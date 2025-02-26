@@ -14,10 +14,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useState } from "react";
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
     {
@@ -158,7 +160,7 @@ export default function Navbar() {
                 )}
               </div>
             </div>
-            <Sheet>
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden">
                   <Menu className="h-5 w-5" />
@@ -167,7 +169,7 @@ export default function Navbar() {
               </SheetTrigger>
               <SheetContent side="right" className="w-full p-0 sm:max-w-[400px]">
                 <SheetHeader className="p-6 border-b">
-                  <Link href="/" className="flex items-center gap-2">
+                  <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
                     <div className="size-8 rounded-full bg-primary flex items-center justify-center">
                       <span className="text-lg font-bold text-primary-foreground">R</span>
                     </div>
@@ -179,6 +181,7 @@ export default function Navbar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={() => setIsOpen(false)}
                       className={`flex items-center gap-4 px-6 py-4 transition-colors hover:bg-primary/10 ${
                         pathname === item.href ? "bg-primary/15" : ""
                       }`}
@@ -206,7 +209,10 @@ export default function Navbar() {
                   {user ? (
                     <Button
                       variant="ghost"
-                      onClick={() => signOut()}
+                      onClick={() => {
+                        setIsOpen(false);
+                        signOut();
+                      }}
                       className="w-full justify-start gap-2 h-auto py-4"
                     >
                       <LogOut className="h-5 w-5" />
@@ -217,7 +223,7 @@ export default function Navbar() {
                     </Button>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      <Link href="/signin" className="w-full">
+                      <Link href="/signin" onClick={() => setIsOpen(false)} className="w-full">
                         <Button 
                           variant="ghost" 
                           className={`w-full justify-start gap-2 h-auto py-4 ${
@@ -231,7 +237,7 @@ export default function Navbar() {
                           </div>
                         </Button>
                       </Link>
-                      <Link href="/signup" className="w-full">
+                      <Link href="/signup" onClick={() => setIsOpen(false)} className="w-full">
                         <Button className={`w-full h-10 ${
                           pathname === "/signup" ? "bg-primary/90" : ""
                         }`}>

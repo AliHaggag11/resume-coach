@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -199,6 +199,8 @@ function BuilderPageContent() {
     strongPoints: string[];
   } | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isInitialSetup, setIsInitialSetup] = useState(true);
 
   const sections = [
     { id: "personal", name: "Personal Info" },
@@ -1075,29 +1077,38 @@ function BuilderPageContent() {
     </div>
   );
 
+  // Add this function to check if essential info is filled
+  const hasEssentialInfo = () => {
+    const { personalInfo } = resumeData;
+    return personalInfo.fullName && 
+           personalInfo.email && 
+           personalInfo.title && 
+           resumeData.experiences.length > 0;
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Desktop Editor Panel */}
         {renderEditorPanel()}
 
-        {/* Center Panel - Resume Preview */}
+        {/* Center Panel - Resume Preview or Editor */}
         <div className="flex-1 bg-muted/10 overflow-y-auto">
-          {/* Mobile Controls */}
-          <div className="flex md:hidden items-center justify-between gap-2 p-4 border-b bg-background/50 backdrop-blur-sm fixed top-[73px] left-0 right-0 z-10">
-            <Sheet open={showEditorSheet} onOpenChange={setShowEditorSheet}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="flex-1">
-                  <PenLine className="h-4 w-4 mr-2" />
-                  Edit Resume
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[90vh]">
-                <SheetHeader className="border-b pb-4">
-                  <SheetTitle>Resume Builder</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4 flex flex-col h-[calc(90vh-100px)]">
+          {/* Mobile View */}
+          <div className="md:hidden">
+            {isInitialSetup ? (
+              // Step-by-step editor view
+              <div className="p-4">
+                <div className="mb-6">
+                  <h1 className="text-2xl font-bold">Create Your Resume</h1>
+                  <p className="text-muted-foreground mt-2">
+                    Let's build your resume step by step. Start with your basic information.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
                   {/* Progress Bar */}
-                  <div className="px-4 mb-4">
+                  <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>Progress</span>
                       <span>{calculateProgress()}%</span>
@@ -1105,41 +1116,8 @@ function BuilderPageContent() {
                     <Progress value={calculateProgress()} className="h-2" />
                   </div>
 
-                  {/* Steps List */}
-                  <div className="px-4 space-y-2 flex-shrink-0">
-                    {steps.map((step, index) => (
-                      <button
-                        key={step.id}
-                        onClick={() => setCurrentStep(index)}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
-                          currentStep === index
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-primary/10",
-                          index < currentStep && "text-muted-foreground"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-6 h-6 rounded-full flex items-center justify-center border text-xs",
-                          currentStep === index
-                            ? "bg-primary-foreground text-primary border-primary-foreground"
-                            : index < currentStep
-                            ? "bg-primary/20 border-primary/20"
-                            : "border-muted-foreground"
-                        )}>
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium">{step.name}</div>
-                          <div className="text-xs text-muted-foreground">{step.description}</div>
-                        </div>
-                        {step.icon}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Current Step Form */}
-                  <div className="flex-1 overflow-y-auto px-4 py-6 border-t mt-4">
+                  {/* Current Step */}
+                  <div className="bg-card rounded-lg p-4">
                     <div className="mb-4">
                       <h3 className="text-lg font-medium flex items-center gap-2">
                         {steps[currentStep].icon}
@@ -1152,125 +1130,223 @@ function BuilderPageContent() {
                     {steps[currentStep].component}
                   </div>
 
-                  {/* Navigation Buttons */}
-                  <div className="px-4 py-4 border-t mt-auto">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={handlePrevious}
-                        disabled={currentStep === 0}
-                        className="flex-1"
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-2" />
-                        Previous
+                  {/* Navigation */}
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handlePrevious}
+                      disabled={currentStep === 0}
+                      className="flex-1"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Previous
+                    </Button>
+                    <Button
+                      onClick={handleNext}
+                      disabled={currentStep === steps.length - 1}
+                      className="flex-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+
+                  {hasEssentialInfo() && (
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => {
+                        if (hasEssentialInfo()) {
+                          setIsInitialSetup(false);
+                        } else {
+                          toast.error("Please fill in all required information first");
+                        }
+                      }}
+                    >
+                      View Resume
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Resume preview with compact controls
+              <>
+                {/* Mobile Controls */}
+                <div className="flex flex-wrap gap-2 p-2 border-b bg-background/50 backdrop-blur-sm fixed top-[73px] left-0 right-0 z-10">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 h-9"
+                    onClick={() => setIsInitialSetup(true)}
+                  >
+                    <PenLine className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+
+                  <Sheet open={showAiSheet} onOpenChange={setShowAiSheet}>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" className="flex-1 h-9">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AI
                       </Button>
-                      <Button
-                        onClick={handleNext}
-                        disabled={currentStep === steps.length - 1}
-                        className="flex-1"
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-2" />
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-full sm:w-[400px] p-0">
+                      <SheetHeader className="p-4 border-b">
+                        <SheetTitle className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          AI Assistant
+                        </SheetTitle>
+                      </SheetHeader>
+                      <div className="overflow-y-auto h-full p-4">
+                        {aiSuggestions.map((suggestion, index) => (
+                          <motion.div
+                            key={suggestion.title}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors mb-4"
+                          >
+                            <h3 className="font-medium">{suggestion.title}</h3>
+                            {'description' in suggestion ? (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {suggestion.description}
+                              </p>
+                            ) : (
+                              <div className="mt-3">
+                                {suggestion.content()}
+                              </div>
+                            )}
+                            <Button 
+                              className="mt-3 w-full" 
+                              variant="outline"
+                              onClick={suggestion.onClick}
+                              disabled={isAiLoading}
+                            >
+                              {isAiLoading ? (
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Wand2 className="h-4 w-4 mr-2" />
+                              )}
+                              {suggestion.action}
+                            </Button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex-1 h-9">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Style
                       </Button>
-                    </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[200px]">
+                      <DropdownMenuItem onClick={() => setShowTemplateDialog(true)}>
+                        <Layout className="h-4 w-4 mr-2" />
+                        Change Template
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowStyleDialog(true)}>
+                        <Palette className="h-4 w-4 mr-2" />
+                        Customize Style
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex-1 h-9">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[200px]">
+                      <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                        <File className="h-4 w-4 mr-2" />
+                        PDF Document
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport('word')}>
+                        <File className="h-4 w-4 mr-2" />
+                        Word Document
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport('text')}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Plain Text
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Resume Preview */}
+                <div className="max-w-[850px] mx-auto p-2 md:p-8 mt-[100px] md:mt-0">
+                  <div 
+                    ref={resumeRef} 
+                    className={cn(
+                      "bg-white text-zinc-900 rounded-xl shadow-xl w-full p-4 md:p-8",
+                      resumeTemplates.find(t => t.id === selectedTemplate)?.className,
+                      {
+                        'text-sm': style.fontSize === 'small',
+                        'text-base': style.fontSize === 'medium',
+                        'text-lg': style.fontSize === 'large',
+                        'space-y-2': style.spacing === 'compact',
+                        'space-y-4': style.spacing === 'comfortable',
+                        'space-y-6': style.spacing === 'spacious',
+                        'font-inter': style.font === 'inter',
+                        'font-roboto': style.font === 'roboto',
+                        'font-merriweather': style.font === 'merriweather',
+                        'font-playfair': style.font === 'playfair',
+                        'scale-[0.9] origin-top md:scale-100': true,
+                      }
+                    )}
+                    style={{
+                      '--accent-color': style.accentColor,
+                      '--resume-spacing': style.spacing === 'compact' ? '0.5rem' : 
+                                        style.spacing === 'spacious' ? '1.5rem' : '1rem',
+                      minHeight: '1100px',
+                      width: '100%',
+                      maxWidth: '850px',
+                    } as React.CSSProperties}
+                  >
+                    <ResumePreview template={selectedTemplate} />
                   </div>
                 </div>
-              </SheetContent>
-            </Sheet>
+              </>
+            )}
+          </div>
 
-            <Sheet open={showAiSheet} onOpenChange={setShowAiSheet}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="flex-1">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  AI Assistant
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[80vh]">
-                <SheetHeader className="border-b pb-4">
-                  <SheetTitle>AI Assistant</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4 overflow-y-auto h-[calc(80vh-100px)]">
-                  {aiSuggestions.map((suggestion, index) => (
-                    <motion.div
-                      key={suggestion.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors mb-4"
-                    >
-                      <h3 className="font-medium">{suggestion.title}</h3>
-                      {'description' in suggestion ? (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {suggestion.description}
-                        </p>
-                      ) : (
-                        <div className="mt-3">
-                          {suggestion.content()}
-                        </div>
-                      )}
-                      <Button 
-                        className="mt-3 w-full" 
-                        variant="outline"
-                        onClick={suggestion.onClick}
-                        disabled={isAiLoading}
-                      >
-                        {isAiLoading ? (
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Wand2 className="h-4 w-4 mr-2" />
-                        )}
-                        {suggestion.action}
-                      </Button>
-                    </motion.div>
-                  ))}
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                  <File className="h-4 w-4 mr-2" />
-                  PDF Document
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('word')}>
-                  <File className="h-4 w-4 mr-2" />
-                  Word Document
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('text')}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Plain Text
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {/* Desktop View - Always show preview */}
+          <div className="hidden md:block">
+            <div className="max-w-[850px] mx-auto p-2 md:p-8">
+              <div 
+                ref={resumeRef} 
+                className={cn(
+                  "bg-white text-zinc-900 rounded-xl shadow-xl w-full p-4 md:p-8",
+                  resumeTemplates.find(t => t.id === selectedTemplate)?.className,
+                  {
+                    'text-sm': style.fontSize === 'small',
+                    'text-base': style.fontSize === 'medium',
+                    'text-lg': style.fontSize === 'large',
+                    'space-y-2': style.spacing === 'compact',
+                    'space-y-4': style.spacing === 'comfortable',
+                    'space-y-6': style.spacing === 'spacious',
+                    'font-inter': style.font === 'inter',
+                    'font-roboto': style.font === 'roboto',
+                    'font-merriweather': style.font === 'merriweather',
+                    'font-playfair': style.font === 'playfair',
+                  }
+                )}
+                style={{
+                  '--accent-color': style.accentColor,
+                  '--resume-spacing': style.spacing === 'compact' ? '0.5rem' : 
+                                    style.spacing === 'spacious' ? '1.5rem' : '1rem',
+                  minHeight: '1100px',
+                  width: '100%',
+                  maxWidth: '850px',
+                } as React.CSSProperties}
+              >
+                <ResumePreview template={selectedTemplate} />
               </div>
-
-          {/* Resume Preview */}
-          <div className="max-w-[850px] mx-auto p-4 md:p-8 mt-[64px] md:mt-0">
-            <div 
-              ref={resumeRef} 
-              className={`bg-white text-zinc-900 rounded-xl shadow-xl w-full p-6 md:p-8 ${
-                resumeTemplates.find(t => t.id === selectedTemplate)?.className
-              } ${style.font} ${
-                style.fontSize === 'small' ? 'text-sm' :
-                style.fontSize === 'large' ? 'text-lg' : 'text-base'
-              } ${
-                style.spacing === 'compact' ? 'space-y-2' :
-                style.spacing === 'spacious' ? 'space-y-6' : 'space-y-4'
-              }`}
-              style={{
-                '--accent-color': style.accentColor,
-                minHeight: '1100px',
-                width: '100%',
-                maxWidth: '850px',
-              } as React.CSSProperties}
-            >
-              <ResumePreview template={selectedTemplate} />
             </div>
           </div>
         </div>

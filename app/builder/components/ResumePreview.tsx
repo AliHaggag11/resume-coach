@@ -26,52 +26,52 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ template }) => {
 
   const themeStyles = {
     modern: {
-      heading: "text-3xl font-bold mb-4 text-zinc-900 border-b border-primary/20 pb-4",
-      subheading: "text-xl font-semibold mb-3 text-primary",
+      heading: "text-3xl font-bold mb-4 text-zinc-900 border-b pb-4",
+      subheading: "text-xl font-semibold mb-3",
       section: "mb-8",
       item: "mb-6",
       title: "font-medium text-zinc-900",
       subtitle: "text-zinc-600",
-      link: "text-primary hover:text-primary/80 hover:underline",
+      link: "hover:underline transition-colors duration-200",
       container: "space-y-6",
       header: "mb-8",
       contactInfo: "flex flex-wrap gap-4 text-sm mt-4 text-zinc-600",
       description: "text-zinc-700 leading-relaxed",
       achievementList: "list-none space-y-2 mt-3",
       achievementItem: "flex items-start gap-2 text-zinc-700",
-      bullet: "text-primary mt-1.5",
+      bullet: "mt-1.5",
     },
     professional: {
-      heading: "text-4xl font-serif font-bold mb-6 text-zinc-900",
-      subheading: "text-2xl font-serif font-semibold mb-4 border-b-2 border-zinc-200 pb-2",
+      heading: "text-4xl font-bold mb-6 text-zinc-900",
+      subheading: "text-2xl font-semibold mb-4 border-b-2 pb-2",
       section: "mb-10",
       item: "mb-8",
-      title: "font-serif font-semibold text-zinc-900 text-lg",
-      subtitle: "text-zinc-600 font-serif",
-      link: "text-blue-600 hover:text-blue-800 font-serif",
+      title: "font-semibold text-zinc-900 text-lg",
+      subtitle: "text-zinc-600",
+      link: "hover:underline transition-colors duration-200",
       container: "space-y-8",
       header: "mb-10 text-center",
-      contactInfo: "flex flex-wrap justify-center gap-6 text-sm mt-4 text-zinc-600 font-serif",
-      description: "text-zinc-700 font-serif leading-relaxed",
+      contactInfo: "flex flex-wrap justify-center gap-6 text-sm mt-4 text-zinc-600",
+      description: "text-zinc-700 leading-relaxed",
       achievementList: "list-disc list-inside mt-3 space-y-2",
-      achievementItem: "text-zinc-700 font-serif",
+      achievementItem: "text-zinc-700",
       bullet: "text-zinc-400",
     },
     creative: {
-      heading: "text-4xl font-bold mb-4 text-primary bg-primary/5 inline-block px-4 py-2 rounded-lg",
-      subheading: "text-xl font-bold mb-4 text-primary flex items-center gap-2 before:content-[''] before:h-px before:flex-1 before:bg-primary/20",
+      heading: "text-4xl font-bold mb-4 bg-primary/5 inline-block px-4 py-2 rounded-lg",
+      subheading: "text-xl font-bold mb-4 flex items-center gap-2 before:content-[''] before:h-px before:flex-1 before:bg-primary/20",
       section: "mb-8",
-      item: "mb-6 bg-zinc-50 p-4 rounded-lg border border-zinc-100",
+      item: "mb-6 bg-zinc-50/80 p-4 rounded-lg border border-zinc-100",
       title: "font-bold text-zinc-900",
       subtitle: "text-zinc-500",
-      link: "text-primary hover:text-primary/80 font-medium",
+      link: "font-medium hover:underline transition-colors duration-200",
       container: "space-y-8",
       header: "mb-8",
-      contactInfo: "flex flex-wrap gap-4 text-sm mt-4 bg-zinc-50 p-4 rounded-lg",
+      contactInfo: "flex flex-wrap gap-4 text-sm mt-4 bg-zinc-50/80 p-4 rounded-lg",
       description: "text-zinc-700 mt-2",
       achievementList: "space-y-2 mt-3",
       achievementItem: "flex items-start gap-2 text-zinc-700 bg-white p-2 rounded border border-zinc-100",
-      bullet: "text-primary",
+      bullet: "",
     },
     minimal: {
       heading: "text-2xl font-medium mb-6 text-zinc-900",
@@ -80,7 +80,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ template }) => {
       item: "mb-6",
       title: "font-medium text-zinc-900",
       subtitle: "text-zinc-500 text-sm",
-      link: "text-zinc-900 hover:text-zinc-600",
+      link: "hover:underline transition-colors duration-200",
       container: "space-y-6",
       header: "mb-8",
       contactInfo: "flex flex-wrap gap-4 text-sm mt-3 text-zinc-500",
@@ -91,7 +91,20 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ template }) => {
     },
   };
 
-  const theme = themeStyles[template as keyof typeof themeStyles] || themeStyles.modern;
+  // Apply dynamic styles based on the selected theme and user customizations
+  const getThemeWithCustomizations = () => {
+    const baseTheme = themeStyles[template as keyof typeof themeStyles] || themeStyles.modern;
+    
+    return {
+      ...baseTheme,
+      heading: `${baseTheme.heading} ${style.font}`,
+      subheading: `${baseTheme.subheading} ${style.font} text-[color:var(--accent-color)]`,
+      link: `${baseTheme.link} text-[color:var(--accent-color)]`,
+      bullet: `${baseTheme.bullet} text-[color:var(--accent-color)]`,
+    };
+  };
+
+  const theme = getThemeWithCustomizations();
 
   return (
     <div className={cn("print:p-0 text-zinc-900", theme.container)}>
