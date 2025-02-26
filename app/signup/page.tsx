@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TermsDialog } from "@/components/TermsDialog";
 import { PrivacyDialog } from "@/components/PrivacyDialog";
-import Footer from "@/components/Footer";
 import { ArrowRight, Github, Loader2, Lock, Mail, User, AlertCircle } from "lucide-react";
 
 export default function SignUp() {
@@ -64,28 +63,28 @@ export default function SignUp() {
 
   return (
     <>
-      <div className="relative isolate">
+      <div className="relative isolate h-[calc(100vh-4rem)] overflow-x-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
         <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl opacity-50 md:opacity-100" />
         </div>
         
-        <div className="container relative flex items-center justify-center min-h-[calc(100vh-4rem)] p-4 md:p-8">
+        <main className="h-full flex items-center justify-center px-3 py-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="w-full max-w-md"
+            className="w-full max-w-[380px]"
           >
             <Card className="border-primary/20 shadow-2xl shadow-primary/10 backdrop-blur-sm">
-              <CardHeader className="space-y-3">
+              <CardHeader className="space-y-4 pt-6 px-3 md:pt-8 md:px-6">
                 <div className="space-y-2 text-center">
                   <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
                   <CardDescription className="text-base">
                     Get started with your free resume builder account
                   </CardDescription>
                 </div>
-                <div className="grid gap-4">
+                <div className="grid gap-3">
                   <Button 
                     variant="outline" 
                     className="relative h-11"
@@ -107,14 +106,14 @@ export default function SignUp() {
                 </div>
               </CardHeader>
               
-              <div className="px-6 flex items-center gap-2 my-2">
+              <div className="px-3 md:px-6 flex items-center gap-2 my-2">
                 <Separator className="flex-1" />
                 <span className="text-xs text-muted-foreground px-2">OR</span>
                 <Separator className="flex-1" />
               </div>
 
               <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 px-3 md:px-6">
                   {error && (
                     <motion.div 
                       initial={{ opacity: 0, y: -10 }}
@@ -188,7 +187,7 @@ export default function SignUp() {
                     />
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 pt-1">
                     <Checkbox 
                       id="terms" 
                       checked={acceptTerms}
@@ -218,7 +217,7 @@ export default function SignUp() {
                   </div>
                 </CardContent>
 
-                <CardFooter className="flex flex-col space-y-4">
+                <CardFooter className="flex flex-col space-y-4 px-3 pb-6 md:px-6 md:pb-8">
                   <Button 
                     type="submit" 
                     className="w-full h-11 text-base font-medium"
@@ -249,12 +248,11 @@ export default function SignUp() {
               </form>
             </Card>
           </motion.div>
-        </div>
+        </main>
       </div>
       
       <TermsDialog isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
       <PrivacyDialog isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
-      <Footer />
     </>
   );
 } 
