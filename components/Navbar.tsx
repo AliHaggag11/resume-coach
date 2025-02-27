@@ -155,7 +155,7 @@ export default function Navbar() {
                     variant="ghost"
                     onClick={async () => {
                       await signOut();
-                      router.push('/');
+                      router.replace('/');
                     }}
                     className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium h-auto"
                   >
@@ -247,7 +247,7 @@ export default function Navbar() {
                       onClick={async () => {
                         setIsOpen(false);
                         await signOut();
-                        router.push('/');
+                        router.replace('/');
                       }}
                       className="w-full justify-start gap-3 h-10"
                     >
