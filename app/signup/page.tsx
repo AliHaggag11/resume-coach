@@ -52,7 +52,27 @@ export default function SignUp() {
         return;
       }
       
-      router.push("/verification");
+      router.push(`/verification?email=${encodeURIComponent(email)}`);
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOAuthSignUp = async (provider: 'google' | 'github') => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { error } = provider === 'google' 
+        ? await signUpWithGoogle()
+        : await signUpWithGithub();
+
+      if (error) {
+        setError(error.message);
+      }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error(err);
@@ -88,20 +108,22 @@ export default function SignUp() {
                   <Button 
                     variant="outline" 
                     className="relative h-11"
-                    onClick={() => signUpWithGoogle()}
+                    onClick={() => handleOAuthSignUp('google')}
+                    disabled={isLoading}
                   >
                     <div className="absolute left-4 flex h-5 w-5">
                       <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo" className="w-full h-auto" />
                     </div>
-                    Continue with Google
+                    {isLoading ? 'Connecting...' : 'Continue with Google'}
                   </Button>
                   <Button 
                     variant="outline"
                     className="relative h-11"
-                    onClick={() => signUpWithGithub()}
+                    onClick={() => handleOAuthSignUp('github')}
+                    disabled={isLoading}
                   >
                     <Github className="absolute left-4 h-5 w-5" />
-                    Continue with GitHub
+                    {isLoading ? 'Connecting...' : 'Continue with GitHub'}
                   </Button>
                 </div>
               </CardHeader>

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -17,9 +19,10 @@ const contactSchema = z.object({
 });
 
 export default function ContactPage() {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: user?.user_metadata?.full_name || "",
+    email: user?.email || "",
     subject: "",
     message: "",
   });
@@ -45,14 +48,29 @@ export default function ContactPage() {
       contactSchema.parse(formData);
       setIsSubmitting(true);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          user_id: user?.id || null,
+        });
+
+      if (error) throw error;
 
       toast.success("Message sent successfully! We'll get back to you soon.", {
         description: "Thank you for contacting us. We typically respond within 24 hours.",
       });
-      setFormData({ name: "", email: "", subject: "", message: "" });
-    } catch (error) {
+      
+      // Only clear subject and message if successful
+      setFormData(prev => ({
+        ...prev,
+        subject: "",
+        message: "",
+      }));
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
         error.errors.forEach(err => {
@@ -63,6 +81,11 @@ export default function ContactPage() {
         setErrors(fieldErrors);
         toast.error("Please fix the errors in the form", {
           description: "Some fields need your attention before submitting.",
+        });
+      } else {
+        console.error('Error submitting contact form:', error);
+        toast.error("Failed to send message", {
+          description: error.message || "Please try again later.",
         });
       }
     } finally {

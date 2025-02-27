@@ -59,6 +59,22 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       }
 
       try {
+        // First, check if the subscriptions table exists
+        const { error: tableError } = await supabase
+          .from('subscriptions')
+          .select('count')
+          .limit(1)
+          .single();
+
+        // If table doesn't exist or there's an error, default to free tier
+        if (tableError) {
+          console.log('Subscriptions table not set up yet, defaulting to free tier');
+          setTier('free');
+          setIsLoading(false);
+          return;
+        }
+
+        // If table exists, try to fetch the subscription
         const { data, error } = await supabase
           .from('subscriptions')
           .select('tier, status')
@@ -66,7 +82,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           .single();
 
         if (error) {
-          console.error('Error fetching subscription:', error);
+          console.log('No subscription found for user, defaulting to free tier');
           setTier('free');
         } else if (data && data.status === 'active') {
           setTier(data.tier as SubscriptionTier);
@@ -74,7 +90,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           setTier('free');
         }
       } catch (error) {
-        console.error('Error in subscription fetch:', error);
+        console.log('Error checking subscription, defaulting to free tier:', error);
         setTier('free');
       } finally {
         setIsLoading(false);

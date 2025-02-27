@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { motion } from "framer-motion";
-import { Menu, ChevronRight, LogOut, User, Sparkles, CreditCard, Layout, PenLine, Mail } from "lucide-react";
+import { Menu, ChevronRight, LogOut, User, Sparkles, CreditCard, Layout, PenLine, Mail, HeadphonesIcon, MessageSquare, Settings2, Sun } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -20,6 +20,10 @@ export default function Navbar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+
+  const isSupport = user?.user_metadata?.role === 'support' || user?.user_metadata?.role === 'admin';
+  const isAdmin = user?.user_metadata?.role === 'admin';
 
   const menuItems = [
     {
@@ -46,12 +50,14 @@ export default function Navbar() {
       icon: CreditCard,
       description: "View pricing plans and options",
     },
-    {
-      href: "/contact",
-      label: "Contact",
-      icon: Mail,
-      description: "Get in touch with our team",
-    },
+    ...(!isAdmin ? [
+      {
+        href: "/contact",
+        label: "Contact",
+        icon: Mail,
+        description: "Get in touch with our team",
+      }
+    ] : []),
     ...(user ? [
       {
         href: "/dashboard",
@@ -60,11 +66,33 @@ export default function Navbar() {
         description: "Manage your resumes and profile",
       },
       {
+        href: "/messages",
+        label: "Messages",
+        icon: MessageSquare,
+        description: "View your support messages",
+      },
+      {
         href: "/profile",
         label: "Profile",
         icon: User,
         description: "View and edit your profile",
       },
+      ...(isSupport ? [
+        {
+          href: "/support",
+          label: "Support",
+          icon: HeadphonesIcon,
+          description: "Customer Support Dashboard",
+        },
+      ] : []),
+      ...(isAdmin ? [
+        {
+          href: "/admin",
+          label: "Admin",
+          icon: Settings2,
+          description: "System Administration",
+        },
+      ] : []),
     ] : []),
   ];
 
@@ -125,7 +153,10 @@ export default function Navbar() {
                 {user ? (
                   <Button
                     variant="ghost"
-                    onClick={() => signOut()}
+                    onClick={async () => {
+                      await signOut();
+                      router.push('/');
+                    }}
                     className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium h-auto"
                   >
                     <LogOut className="h-4 w-4" />
@@ -167,8 +198,8 @@ export default function Navbar() {
                   <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-full p-0 sm:max-w-[400px]">
-                <SheetHeader className="p-6 border-b">
+              <SheetContent side="right" className="w-full p-0 sm:max-w-[400px] flex flex-col">
+                <SheetHeader className="p-5 border-b shrink-0">
                   <Link href="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
                     <div className="size-8 rounded-full bg-primary flex items-center justify-center">
                       <span className="text-lg font-bold text-primary-foreground">R</span>
@@ -176,72 +207,66 @@ export default function Navbar() {
                     <SheetTitle className="font-bold text-xl">ResumeCoach</SheetTitle>
                   </Link>
                 </SheetHeader>
-                <div className="flex flex-col">
-                  {menuItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-4 px-6 py-4 transition-colors hover:bg-primary/10 ${
-                        pathname === item.href ? "bg-primary/15" : ""
-                      }`}
-                    >
-                      <item.icon className={`h-5 w-5 ${pathname === item.href ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-sm font-medium ${pathname === item.href ? "text-foreground" : ""}`}>{item.label}</span>
-                          <ChevronRight className={`h-4 w-4 ${pathname === item.href ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="flex-1 py-3">
+                  <div className="flex flex-col space-y-1">
+                    {menuItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={`flex items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/10 ${
+                          pathname === item.href ? "bg-primary/15" : ""
+                        }`}
+                      >
+                        <item.icon className={`h-5 w-5 ${pathname === item.href ? "text-primary" : "text-muted-foreground"}`} />
+                        <div>
+                          <div className={`text-sm font-medium ${pathname === item.href ? "text-foreground" : "text-muted-foreground"}`}>
+                            {item.label}
+                          </div>
+                          <div className="text-xs text-muted-foreground/75 line-clamp-1">
+                            {item.description}
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <div className="border-t px-6 py-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-medium">Appearance</h4>
-                    <div className="h-6 w-[1px] bg-border mx-4" />
-                    <span className="text-xs text-muted-foreground">Customize your experience</span>
+                      </Link>
+                    ))}
                   </div>
-                  <ThemeToggle mobile />
                 </div>
-                <div className="border-t px-6 py-4">
+                <div className="border-t px-5 py-3 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sun className="h-4 w-4" />
+                      <span className="text-sm font-medium">Dark mode</span>
+                    </div>
+                    <ThemeToggle mobile />
+                  </div>
+                </div>
+                <div className="border-t px-5 py-4 shrink-0">
                   {user ? (
                     <Button
                       variant="ghost"
-                      onClick={() => {
+                      onClick={async () => {
                         setIsOpen(false);
-                        signOut();
+                        await signOut();
+                        router.push('/');
                       }}
-                      className="w-full justify-start gap-2 h-auto py-4"
+                      className="w-full justify-start gap-3 h-10"
                     >
-                      <LogOut className="h-5 w-5" />
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-medium">Sign Out</span>
-                        <span className="text-xs text-muted-foreground">Log out of your account</span>
-                      </div>
+                      <LogOut className="h-4 w-4" />
+                      <span className="text-sm font-medium">Sign Out</span>
                     </Button>
                   ) : (
-                    <div className="flex flex-col gap-2">
-                      <Link href="/signin" onClick={() => setIsOpen(false)} className="w-full">
+                    <div className="flex gap-3">
+                      <Link href="/signin" onClick={() => setIsOpen(false)} className="flex-1">
                         <Button 
                           variant="ghost" 
-                          className={`w-full justify-start gap-2 h-auto py-4 ${
-                            pathname === "/signin" ? "bg-primary/15" : ""
-                          }`}
+                          className="w-full h-10"
                         >
-                          <User className={`h-5 w-5 ${pathname === "/signin" ? "text-primary" : ""}`} />
-                          <div className="flex flex-col items-start">
-                            <span className={`text-sm font-medium ${pathname === "/signin" ? "text-foreground" : ""}`}>Sign In</span>
-                            <span className="text-xs text-muted-foreground">Access your account</span>
-                          </div>
+                          Sign In
                         </Button>
                       </Link>
-                      <Link href="/signup" onClick={() => setIsOpen(false)} className="w-full">
-                        <Button className={`w-full h-10 ${
-                          pathname === "/signup" ? "bg-primary/90" : ""
-                        }`}>
-                          Create Account
+                      <Link href="/signup" onClick={() => setIsOpen(false)} className="flex-1">
+                        <Button className="w-full h-10">
+                          Sign Up
                         </Button>
                       </Link>
                     </div>
