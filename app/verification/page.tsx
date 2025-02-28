@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mail, AlertCircle, Loader2 } from "lucide-react";
@@ -8,7 +8,18 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 
-export default function Verification() {
+function LoadingState() {
+  return (
+    <div className="h-screen flex items-center justify-center">
+      <div className="animate-pulse text-center">
+        <h2 className="text-2xl font-bold mb-2">Loading...</h2>
+        <p className="text-muted-foreground">Please wait while we load your verification details.</p>
+      </div>
+    </div>
+  );
+}
+
+function VerificationContent() {
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -55,79 +66,66 @@ export default function Verification() {
   }, [email]);
 
   return (
-    <div className="relative isolate h-[calc(100vh-4rem)] overflow-x-hidden">
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
-      <div className="absolute inset-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl opacity-50 md:opacity-100" />
-      </div>
-      
-      <main className="h-full flex items-center justify-center px-3 py-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-[380px]"
-        >
-          <Card className="border-primary/20 shadow-2xl shadow-primary/10 backdrop-blur-sm">
-            <CardHeader className="space-y-4 pt-6 px-3 md:pt-8 md:px-6">
-              <div className="flex justify-center">
-                <div className="bg-primary/10 p-3 rounded-full">
-                  <Mail className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div className="space-y-2 text-center">
-                <CardTitle className="text-2xl font-bold tracking-tight">Check your email</CardTitle>
-                <CardDescription className="text-base">
-                  We sent you a verification link to {email}. Please check your email and click the link to verify your account.
-                </CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pb-8 px-3 md:px-6">
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-destructive/10 text-destructive p-3 rounded-md text-sm flex items-center gap-2"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
-                </motion.div>
-              )}
-              
-              {successMessage && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm flex items-center gap-2"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  {successMessage}
-                </motion.div>
-              )}
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <motion.div
+        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card>
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              Check your email
+            </CardTitle>
+            <CardDescription className="text-base">
+              We sent you a verification link. Please check your email to verify your account.
+            </CardDescription>
+          </CardHeader>
 
-              <p className="text-sm text-muted-foreground text-center">
-                If you don't see the email, check your spam folder. The verification link will expire in 24 hours.
-              </p>
+          <CardContent className="space-y-4 pt-4">
+            {error && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
 
-              <Button
-                variant="outline"
-                className="w-full h-11"
-                onClick={handleResendEmail}
-                disabled={isResending || !email}
-              >
-                {isResending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Resending...
-                  </>
-                ) : (
-                  'Resend verification email'
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
+            {successMessage && (
+              <div className="flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/10 p-4 text-green-500">
+                <Mail className="h-5 w-5 shrink-0" />
+                <p className="text-sm">{successMessage}</p>
+              </div>
+            )}
+
+            <Button
+              className="w-full h-11 text-base font-medium"
+              onClick={handleResendEmail}
+              disabled={isResending}
+            >
+              {isResending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resending...
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Resend verification email
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
+  );
+}
+
+export default function Verification() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <VerificationContent />
+    </Suspense>
   );
 } 
