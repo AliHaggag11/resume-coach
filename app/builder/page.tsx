@@ -1,19 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { ReactElement } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Sparkles,
-  MessageSquare,
-  PenLine,
   Download,
   Share2,
   Settings,
   ChevronLeft,
   ChevronRight,
   Wand2,
-  RefreshCw,
   FileText,
   Linkedin,
   Mail,
@@ -28,6 +25,13 @@ import {
   Star,
   FolderGit2,
   Trophy,
+  Eye,
+  EyeOff,
+  X,
+  Sparkles,
+  LineChart,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -47,7 +51,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import Navbar from "@/components/Navbar";
 import { ResumeProvider, useResume } from "../context/ResumeContext";
 import { ResumeStyleProvider, useResumeStyle } from "../context/ResumeStyleContext";
 import PersonalInfoForm from "./components/PersonalInfoForm";
@@ -71,6 +74,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Experience {
   company: string;
@@ -174,274 +179,40 @@ const resumeTemplates = [
   },
 ] as const;
 
-function BuilderPageContent() {
+interface Section {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  component: React.ReactNode;
+}
+
+const sections: Section[] = [
+  { id: "personal", name: "Personal Info", icon: <User className="h-4 w-4" />, component: <PersonalInfoForm /> },
+  { id: "experience", name: "Experience", icon: <Briefcase className="h-4 w-4" />, component: <ExperienceForm /> },
+  { id: "education", name: "Education", icon: <GraduationCap className="h-4 w-4" />, component: <EducationForm /> },
+  { id: "skills", name: "Skills", icon: <Wand2 className="h-4 w-4" />, component: <SkillsForm /> },
+  { id: "projects", name: "Projects", icon: <FolderGit2 className="h-4 w-4" />, component: <ProjectsForm /> },
+  { id: "awards", name: "Awards", icon: <Trophy className="h-4 w-4" />, component: <AwardsForm /> },
+];
+
+function BuilderPageContent(): ReactElement {
   const { resumeData } = useResume();
   const { style } = useResumeStyle();
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(true);
   const [currentSection, setCurrentSection] = useState("personal");
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [showShareDialog, setShowShareDialog] = useState(false);
   const [showStyleDialog, setShowStyleDialog] = useState(false);
   const resumeRef = useRef<HTMLDivElement>(null);
-  const [showEditorSheet, setShowEditorSheet] = useState(false);
-  const [showAiSheet, setShowAiSheet] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("modern");
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
-  const [jobDescription, setJobDescription] = useState("");
-  const [showJobAnalyzerDialog, setShowJobAnalyzerDialog] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<{
-    match: number;
-    missingKeywords: string[];
-    missingSkills: string[];
-    recommendations: string[];
-    strongPoints: string[];
-  } | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
-  const [isInitialSetup, setIsInitialSetup] = useState(true);
-
-  const sections = [
-    { id: "personal", name: "Personal Info" },
-    { id: "experience", name: "Experience" },
-    { id: "education", name: "Education" },
-    { id: "skills", name: "Skills" },
-    { id: "projects", name: "Projects" },
-    { id: "awards", name: "Awards" },
-  ];
-
-  const steps = [
-    { 
-      id: "personal",
-      name: "Personal Info",
-      description: "Start with your basic information",
-      icon: <User className="h-4 w-4" />,
-      component: <PersonalInfoForm />
-    },
-    { 
-      id: "experience", 
-      name: "Experience",
-      description: "Add your work history",
-      icon: <Briefcase className="h-4 w-4" />,
-      component: <ExperienceForm />
-    },
-    { 
-      id: "education",
-      name: "Education",
-      description: "List your educational background",
-      icon: <GraduationCap className="h-4 w-4" />,
-      component: <EducationForm />
-    },
-    { 
-      id: "skills",
-      name: "Skills",
-      description: "Highlight your key abilities",
-      icon: <Star className="h-4 w-4" />,
-      component: <SkillsForm />
-    },
-    { 
-      id: "projects",
-      name: "Projects",
-      description: "Showcase your best work",
-      icon: <FolderGit2 className="h-4 w-4" />,
-      component: <ProjectsForm />
-    },
-    { 
-      id: "awards",
-      name: "Awards",
-      description: "Add your achievements",
-      icon: <Trophy className="h-4 w-4" />,
-      component: <AwardsForm />
-    }
-  ];
-
-  const mockAiResponse = async () => {
-    setIsAiLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsAiLoading(false);
-    toast.success("AI suggestions applied successfully!");
-  };
-
-  const calculateATSScore = () => {
-    const score = {
-      total: 0,
-      keywordMatches: [] as string[],
-      missingKeywords: [] as string[],
-      formatScore: 0,
-    };
-
-    // Check for key sections
-    if (resumeData.personalInfo.summary) score.total += 15;
-    if (resumeData.experiences.length > 0) score.total += 20;
-    if (resumeData.education.length > 0) score.total += 15;
-    if (resumeData.skills.length > 0) score.total += 15;
-
-    // Format scoring
-    const hasProperFormatting = 
-      resumeData.experiences.every(exp => exp.startDate && (exp.endDate || exp.current)) &&
-      resumeData.education.every(edu => edu.startDate && (edu.endDate || edu.current));
-    if (hasProperFormatting) score.total += 15;
-    score.formatScore = hasProperFormatting ? 100 : 70;
-
-    // Keyword analysis (simulated)
-    const commonKeywords = ['leadership', 'management', 'development', 'analysis', 'project', 'team'];
-    const content = JSON.stringify(resumeData).toLowerCase();
-    
-    commonKeywords.forEach(keyword => {
-      if (content.includes(keyword)) {
-        score.keywordMatches.push(keyword);
-        score.total += 5;
-      } else {
-        score.missingKeywords.push(keyword);
-      }
-    });
-
-    return score;
-  };
-
-  const mockAnalyzeJobDescription = async (description: string) => {
-    setIsAnalyzing(true);
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Extract keywords from job description
-    const keywords = description.toLowerCase().match(/\b\w+\b/g) || [];
-    const resumeContent = JSON.stringify(resumeData).toLowerCase();
-
-    // Mock analysis
-    const mockKeywords = [
-      'leadership', 'management', 'development', 'react', 'nodejs', 'typescript',
-      'agile', 'scrum', 'collaboration', 'communication', 'problem-solving'
-    ];
-
-    const missingKeywords = mockKeywords.filter(keyword => 
-      !resumeContent.includes(keyword) && description.toLowerCase().includes(keyword)
-    );
-
-    const mockSkills = ['React', 'Node.js', 'TypeScript', 'Python', 'AWS', 'Docker'];
-    const missingSkills = mockSkills.filter(skill => 
-      !resumeData.skills.some(category => 
-        category.skills.some(s => s.toLowerCase() === skill.toLowerCase())
-      ) && description.toLowerCase().includes(skill.toLowerCase())
-    );
-
-    // Calculate match percentage
-    const matchScore = Math.min(
-      100,
-      Math.round(
-        ((mockKeywords.length - missingKeywords.length) / mockKeywords.length) * 100
-      )
-    );
-
-    const result = {
-      match: matchScore,
-      missingKeywords,
-      missingSkills,
-      recommendations: [
-        "Add more quantifiable achievements to highlight results",
-        "Include specific examples of leadership experience",
-        "Emphasize collaboration and team achievements",
-        "Add relevant technical certifications",
-      ],
-      strongPoints: [
-        "Strong technical background matches requirements",
-        "Project experience aligns well",
-        "Good demonstration of problem-solving skills",
-        "Relevant industry experience",
-      ],
-    };
-
-    setAnalysisResult(result);
-    setIsAnalyzing(false);
-  };
-
-  const aiSuggestions = [
-    {
-      title: "Job Description Analyzer",
-      description: "Analyze how well your resume matches a specific job posting and get tailored recommendations.",
-      action: "Analyze",
-      onClick: () => setShowJobAnalyzerDialog(true),
-    },
-    {
-      title: "ATS Score Analysis",
-      content: () => {
-        const score = calculateATSScore();
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{score.total}%</div>
-              <div className={`text-sm ${score.total >= 70 ? 'text-green-500' : 'text-yellow-500'}`}>
-                {score.total >= 70 ? 'Good Standing' : 'Needs Improvement'}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Format Compatibility</div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${score.formatScore}%` }}
-                />
-              </div>
-            </div>
-
-            {score.keywordMatches.length > 0 && (
-              <div>
-                <div className="text-sm font-medium mb-2">Keyword Matches</div>
-                <div className="flex flex-wrap gap-2">
-                  {score.keywordMatches.map(keyword => (
-                    <span key={keyword} className="px-2 py-1 rounded-full bg-primary/10 text-xs">
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {score.missingKeywords.length > 0 && (
-              <div>
-                <div className="text-sm font-medium mb-2 text-yellow-500">Consider Adding</div>
-                <div className="flex flex-wrap gap-2">
-                  {score.missingKeywords.map(keyword => (
-                    <span key={keyword} className="px-2 py-1 rounded-full bg-yellow-500/10 text-xs">
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      },
-      action: "Refresh",
-      onClick: mockAiResponse,
-    },
-    {
-      title: "Enhance Your Experience",
-      description: "Let AI help you write more impactful bullet points for your experience.",
-      action: "Enhance",
-      onClick: mockAiResponse,
-    },
-    {
-      title: "Skills Analysis",
-      description: "Analyze job descriptions to suggest relevant skills you should add.",
-      action: "Analyze",
-      onClick: mockAiResponse,
-    },
-    {
-      title: "Language Improvement",
-      description: "Improve the language and tone of your resume content.",
-      action: "Improve",
-      onClick: mockAiResponse,
-    },
-    {
-      title: "ATS Optimization",
-      description: "Optimize your resume for Applicant Tracking Systems.",
-      action: "Optimize",
-      onClick: mockAiResponse,
-    },
-  ];
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [atsScore, setAtsScore] = useState<number | null>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<{
+    atsCompatibility: { score: number; feedback: string };
+    impactStatements: { score: number; feedback: string };
+    keywordsMatch: { score: number; feedback: string };
+  } | null>(null);
 
   const calculateProgress = () => {
     let progress = 0;
@@ -480,15 +251,139 @@ function BuilderPageContent() {
     return Math.round(progress);
   };
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
+  const analyzeResume = async () => {
+    try {
+      // Validate resume content first
+      const { personalInfo, experiences, education, skills } = resumeData;
+      
+      // Check if essential sections are filled
+      if (!personalInfo.fullName || !personalInfo.title || !personalInfo.summary) {
+        toast.error("Please complete your personal information first (name, title, and summary)");
+        return;
+      }
 
-  const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      if (experiences.length === 0) {
+        toast.error("Please add at least one work experience");
+        return;
+      }
+
+      if (education.length === 0) {
+        toast.error("Please add your educational background");
+        return;
+      }
+
+      if (skills.length === 0) {
+        toast.error("Please add your skills");
+        return;
+      }
+
+      setIsAnalyzing(true);
+      
+      // Simplified and more explicit prompt structure
+      const prompt = {
+        role: "assistant",
+        content: `You are a resume analysis AI. Analyze the following resume and return ONLY a JSON object with scores and feedback.
+
+Required JSON format (copy this format exactly):
+{
+  "atsCompatibility": {
+    "score": 85,
+    "feedback": "Your specific feedback here"
+  },
+  "impactStatements": {
+    "score": 75,
+    "feedback": "Your specific feedback here"
+  },
+  "keywordsMatch": {
+    "score": 80,
+    "feedback": "Your specific feedback here"
+  }
+}
+
+Analysis criteria:
+1. ATS Compatibility (score 0-100): Check formatting, headers, sections, keywords
+2. Impact Statements (score 0-100): Evaluate action verbs, achievements, metrics
+3. Keywords Match (score 0-100): Assess industry terms and skill alignment
+
+Resume to analyze:
+${JSON.stringify(resumeData, null, 2)}
+
+Remember: Return ONLY the JSON object with no additional text or explanation.`
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, type: 'analyze' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze resume');
+      }
+
+      const data = await response.json();
+      
+      if (!data.result) {
+        throw new Error('No analysis result received');
+      }
+
+      let analysis;
+      try {
+        // Clean the response string and attempt to parse
+        const cleanResult = data.result
+          .trim()
+          // Remove any markdown code block indicators
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          // Remove any leading/trailing whitespace or newlines
+          .trim();
+
+        analysis = JSON.parse(cleanResult);
+      } catch (parseError) {
+        console.error('Raw AI Response:', data.result);
+        throw new Error('Failed to parse analysis result. Please try again.');
+      }
+
+      // Validate analysis structure
+      if (!analysis || typeof analysis !== 'object') {
+        throw new Error('Invalid analysis format');
+      }
+
+      const requiredFields = ['atsCompatibility', 'impactStatements', 'keywordsMatch'];
+      for (const field of requiredFields) {
+        if (!analysis[field]?.score || !analysis[field]?.feedback) {
+          throw new Error(`Missing required field: ${field}`);
+        }
+      }
+
+      // Normalize scores to ensure they're valid numbers between 0-100
+      const normalizeScore = (score: number) => Math.min(100, Math.max(0, Math.round(Number(score))));
+      
+      analysis.atsCompatibility.score = normalizeScore(analysis.atsCompatibility.score);
+      analysis.impactStatements.score = normalizeScore(analysis.impactStatements.score);
+      analysis.keywordsMatch.score = normalizeScore(analysis.keywordsMatch.score);
+      
+      // Calculate overall ATS score
+      const overallScore = Math.round(
+        (analysis.atsCompatibility.score + 
+         analysis.impactStatements.score + 
+         analysis.keywordsMatch.score) / 3
+      );
+
+      setAtsScore(overallScore);
+      setAnalysisResults(analysis);
+      setShowAnalysis(true);
+      toast.success("Resume analysis complete!");
+    } catch (error: any) {
+      console.error('Error analyzing resume:', error);
+      toast.error(error.message || 'Failed to analyze resume');
+      setAnalysisResults(null);
+      setAtsScore(null);
+      setShowAnalysis(false);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -736,593 +631,211 @@ function BuilderPageContent() {
     }
   };
 
-  const handleShare = async (platform: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    switch (platform) {
-      case 'link':
-        navigator.clipboard.writeText('https://resumecoach.app/share/abc123');
-        toast.success("Share link copied to clipboard!");
-        break;
-      case 'linkedin':
-        window.open('https://www.linkedin.com/sharing/share-offsite/?url=https://resumecoach.app/share/abc123', '_blank');
-        toast.success("Opening LinkedIn sharing...");
-        break;
-      case 'email':
-        window.location.href = `mailto:?subject=Check out my resume&body=View my resume here: https://resumecoach.app/share/abc123`;
-        toast.success("Opening email client...");
-        break;
-      case 'github':
-        window.open('https://gist.github.com/new', '_blank');
-        toast.success("Opening GitHub Gist...");
-        break;
-    }
-  };
-
-  // Add Template Dialog component
-  const TemplateDialog: React.FC = () => (
-    <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-      <DialogContent className="max-w-4xl bg-background">
-        <DialogHeader>
-          <DialogTitle>Choose Template</DialogTitle>
-          <DialogDescription>
-            Select a template that best matches your professional style
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
-          {resumeTemplates.map((template) => (
-            <div
-              key={template.id}
-              className={`relative rounded-lg border-2 overflow-hidden cursor-pointer transition-all ${
-                selectedTemplate === template.id
-                  ? "border-primary ring-2 ring-primary/20"
-                  : "border-muted hover:border-primary/50"
-              }`}
-              onClick={() => {
-                setSelectedTemplate(template.id);
-                setShowTemplateDialog(false);
-              }}
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Navigation Bar */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Tabs
+              value={currentSection}
+              className="w-full"
+              onValueChange={(value) => setCurrentSection(value)}
             >
-              <div className="aspect-[210/297] bg-white">
-                <img
-                  src={template.preview}
-                  alt={template.name}
-                  className="w-full h-full object-cover"
-                />
+              <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
+                {sections.map((section) => (
+                  <TabsTrigger
+                    key={section.id}
+                    value={section.id}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
+                  >
+                    <div className="flex items-center gap-2">
+                      {section.icon}
+                      <span className="hidden md:inline">{section.name}</span>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 p-2 bg-background/90 backdrop-blur-sm">
-                <h3 className="font-medium text-sm">{template.name}</h3>
-                <p className="text-xs text-muted-foreground truncate">
-                  {template.description}
-                </p>
-              </div>
-            </div>
-          ))}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
 
-  // Update the settings dropdown to include template selection
-  const SettingsDropdown: React.FC = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Settings className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-background border">
-        <DropdownMenuLabel>Settings</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setShowTemplateDialog(true)}>
-          <Layout className="h-4 w-4 mr-2" />
-          Change Template
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setShowStyleDialog(true)}>
-          <Palette className="h-4 w-4 mr-2" />
-          Customize Style
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-
-  // Add JobAnalyzerDialog component
-  const JobAnalyzerDialog = () => (
-    <Dialog open={showJobAnalyzerDialog} onOpenChange={setShowJobAnalyzerDialog}>
-      <DialogContent className="max-w-3xl bg-background">
-        <DialogHeader>
-          <DialogTitle>Job Description Analyzer</DialogTitle>
-          <DialogDescription>
-            Paste the job description to analyze how well your resume matches the requirements
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="grid gap-4 py-4">
-          {!analysisResult ? (
-            <Textarea
-              placeholder="Paste job description here..."
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              className="h-[200px]"
-            />
-          ) : (
-            <div className="space-y-6">
-              {/* Match Score */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium">Match Score</h3>
-                  <span className={cn(
-                    "text-sm font-medium",
-                    analysisResult.match >= 70 ? "text-green-500" :
-                    analysisResult.match >= 50 ? "text-yellow-500" :
-                    "text-red-500"
-                  )}>
-                    {analysisResult.match}%
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-4">
+              {atsScore !== null && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md">
+                  <LineChart className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">ATS Score: {atsScore}%</span>
+                </div>
+              )}
+              <Progress 
+                value={calculateProgress()} 
+                className="h-2 w-[200px]" 
+              />
+              <span className="text-sm text-muted-foreground">
+                {calculateProgress()}% Complete
                   </span>
-                </div>
-                <Progress value={analysisResult.match} className="h-2" />
               </div>
 
-              {/* Missing Keywords */}
-              {analysisResult.missingKeywords.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-2">Missing Keywords</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisResult.missingKeywords.map((keyword, i) => (
-                      <Badge key={i} variant="secondary">{keyword}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowPreview(!showPreview)}
+                className="md:hidden"
+              >
+                {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
 
-              {/* Missing Skills */}
-              {analysisResult.missingSkills.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-2">Missing Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisResult.missingSkills.map((skill, i) => (
-                      <Badge key={i} variant="outline">{skill}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Strong Points */}
-              <div>
-                <h3 className="font-medium mb-2">Strong Points</h3>
-                <ul className="space-y-2">
-                  {analysisResult.strongPoints.map((point, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <span className="text-green-500">✓</span>
-                      {point}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Recommendations */}
-              <div>
-                <h3 className="font-medium mb-2">Recommendations</h3>
-                <ul className="space-y-2">
-                  {analysisResult.recommendations.map((rec, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <span className="text-primary">•</span>
-                      {rec}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          {!analysisResult ? (
             <Button
-              onClick={() => mockAnalyzeJobDescription(jobDescription)}
-              disabled={!jobDescription.trim() || isAnalyzing}
+                variant="outline"
+                size="sm"
+                onClick={analyzeResume}
+                disabled={isAnalyzing}
+                className="hidden md:flex"
             >
               {isAnalyzing ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <LineChart className="h-4 w-4 mr-2 animate-pulse" />
                   Analyzing...
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Analyze
+                    Analyze Resume
                 </>
               )}
             </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setAnalysisResult(null);
-                  setJobDescription("");
-                }}
-              >
-                Analyze Another
-              </Button>
-              <Button onClick={() => setShowJobAnalyzerDialog(false)}>
-                Close
-              </Button>
-            </div>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 
-  // Update the left panel render code
-  const renderEditorPanel = () => (
-    <div className="hidden md:flex w-[400px] flex-col border-r bg-card/50 backdrop-blur-sm">
-      <div className="p-4 border-b">
-        <h2 className="text-2xl font-semibold">Resume Builder</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Complete each section to create your resume
-        </p>
-        <div className="mt-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span>Progress</span>
-            <span>{calculateProgress()}%</span>
-          </div>
-          <Progress value={calculateProgress()} className="h-2" />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-hidden flex flex-col">
-        {/* Steps List */}
-        <div className="p-4 space-y-2">
-          {steps.map((step, index) => (
-            <button
-              key={step.id}
-              onClick={() => setCurrentStep(index)}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
-                currentStep === index
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-primary/10",
-                index < currentStep && "text-muted-foreground"
-              )}
-            >
-              <div className={cn(
-                "w-6 h-6 rounded-full flex items-center justify-center border text-xs",
-                currentStep === index
-                  ? "bg-primary-foreground text-primary border-primary-foreground"
-                  : index < currentStep
-                  ? "bg-primary/20 border-primary/20"
-                  : "border-muted-foreground"
-              )}>
-                {index + 1}
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">{step.name}</div>
-                <div className="text-xs text-muted-foreground">{step.description}</div>
-              </div>
-              {step.icon}
-            </button>
-          ))}
-        </div>
-
-        {/* Current Step Form */}
-        <div className="flex-1 overflow-y-auto p-4 border-t">
-          <div className="mb-4">
-            <h3 className="text-lg font-medium flex items-center gap-2">
-              {steps[currentStep].icon}
-              {steps[currentStep].name}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {steps[currentStep].description}
-            </p>
-          </div>
-          {steps[currentStep].component}
-        </div>
-
-        {/* Navigation Buttons */}
-        <div className="p-4 border-t bg-background/50 backdrop-blur-sm">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentStep === 0}
-              className="flex-1"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-            <Button
-              onClick={handleNext}
-              disabled={currentStep === steps.length - 1}
-              className="flex-1"
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-          <div className="flex gap-2 mt-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="flex-1" variant="outline">
-                  {isExporting ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
+                  <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
-                  )}
                   Export
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-background border">
-                <DropdownMenuLabel>Choose Format</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleExport('pdf')}>
                   <File className="h-4 w-4 mr-2" />
                   PDF Document
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport('word')}>
-                  <File className="h-4 w-4 mr-2" />
+                    <FileText className="h-4 w-4 mr-2" />
                   Word Document
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('text')}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Plain Text
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <SettingsDropdown />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
-  // Add this function to check if essential info is filled
-  const hasEssentialInfo = () => {
-    const { personalInfo } = resumeData;
-    return personalInfo.fullName && 
-           personalInfo.email && 
-           personalInfo.title && 
-           resumeData.experiences.length > 0;
-  };
-
-  return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Desktop Editor Panel */}
-        {renderEditorPanel()}
-
-        {/* Center Panel - Resume Preview or Editor */}
-        <div className="flex-1 bg-muted/10 overflow-y-auto">
-          {/* Mobile View */}
-          <div className="md:hidden">
-            {isInitialSetup ? (
-              // Step-by-step editor view
-              <div className="p-4">
-                <div className="mb-6">
-                  <h1 className="text-2xl font-bold">Create Your Resume</h1>
-                  <p className="text-muted-foreground mt-2">
-                    Let's build your resume step by step. Start with your basic information.
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  {/* Progress Bar */}
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Progress</span>
-                      <span>{calculateProgress()}%</span>
-                    </div>
-                    <Progress value={calculateProgress()} className="h-2" />
-                  </div>
-
-                  {/* Current Step */}
-                  <div className="bg-card rounded-lg p-4">
-                    <div className="mb-4">
-                      <h3 className="text-lg font-medium flex items-center gap-2">
-                        {steps[currentStep].icon}
-                        {steps[currentStep].name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {steps[currentStep].description}
-                      </p>
-                    </div>
-                    {steps[currentStep].component}
-                  </div>
-
-                  {/* Navigation */}
-                  <div className="flex gap-2 mt-4">
                     <Button
                       variant="outline"
-                      onClick={handlePrevious}
-                      disabled={currentStep === 0}
-                      className="flex-1"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-2" />
-                      Previous
-                    </Button>
-                    <Button
-                      onClick={handleNext}
-                      disabled={currentStep === steps.length - 1}
-                      className="flex-1"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-2" />
+                size="sm"
+                onClick={() => setShowStyleDialog(true)}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Style
                     </Button>
                   </div>
-
-                  {hasEssentialInfo() && (
-                    <Button 
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => {
-                        if (hasEssentialInfo()) {
-                          setIsInitialSetup(false);
-                        } else {
-                          toast.error("Please fill in all required information first");
-                        }
-                      }}
-                    >
-                      View Resume
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  )}
                 </div>
               </div>
-            ) : (
-              // Resume preview with compact controls
-              <>
-                {/* Mobile Controls */}
-                <div className="flex flex-wrap gap-2 p-2 border-b bg-background/50 backdrop-blur-sm fixed top-[73px] left-0 right-0 z-10">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 h-9"
-                    onClick={() => setIsInitialSetup(true)}
-                  >
-                    <PenLine className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
+      </div>
 
-                  <Sheet open={showAiSheet} onOpenChange={setShowAiSheet}>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" className="flex-1 h-9">
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        AI
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-full sm:w-[400px] p-0">
-                      <SheetHeader className="p-4 border-b">
-                        <SheetTitle className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          AI Assistant
-                        </SheetTitle>
-                      </SheetHeader>
-                      <div className="overflow-y-auto h-full p-4">
-                        {aiSuggestions.map((suggestion, index) => (
+      {/* Main Content */}
+      <div className="container py-6">
+        {showAnalysis && analysisResults && (
                           <motion.div
-                            key={suggestion.title}
-                            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors mb-4"
-                          >
-                            <h3 className="font-medium">{suggestion.title}</h3>
-                            {'description' in suggestion ? (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {suggestion.description}
-                              </p>
-                            ) : (
-                              <div className="mt-3">
-                                {suggestion.content()}
+            className="mb-6"
+          >
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-medium">AI Analysis Results</h3>
                               </div>
-                            )}
                             <Button 
-                              className="mt-3 w-full" 
-                              variant="outline"
-                              onClick={suggestion.onClick}
-                              disabled={isAiLoading}
-                            >
-                              {isAiLoading ? (
-                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Wand2 className="h-4 w-4 mr-2" />
-                              )}
-                              {suggestion.action}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowAnalysis(false)}
+                >
+                  <X className="h-4 w-4" />
                             </Button>
-                          </motion.div>
-                        ))}
                       </div>
-                    </SheetContent>
-                  </Sheet>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="flex-1 h-9">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Style
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[200px]">
-                      <DropdownMenuItem onClick={() => setShowTemplateDialog(true)}>
-                        <Layout className="h-4 w-4 mr-2" />
-                        Change Template
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowStyleDialog(true)}>
-                        <Palette className="h-4 w-4 mr-2" />
-                        Customize Style
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="flex-1 h-9">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[200px]">
-                      <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                        <File className="h-4 w-4 mr-2" />
-                        PDF Document
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExport('word')}>
-                        <File className="h-4 w-4 mr-2" />
-                        Word Document
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExport('text')}>
-                        <FileText className="h-4 w-4 mr-2" />
-                        Plain Text
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                  <CheckCircle2 className={cn(
+                    "h-4 w-4 mt-1",
+                    analysisResults.atsCompatibility.score >= 80 ? "text-green-500" :
+                    analysisResults.atsCompatibility.score >= 60 ? "text-yellow-500" : "text-red-500"
+                  )} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">ATS Compatibility</p>
+                      <Badge variant="outline">{analysisResults.atsCompatibility.score}%</Badge>
                 </div>
-
-                {/* Resume Preview */}
-                <div className="max-w-[850px] mx-auto p-2 md:p-8 mt-[100px] md:mt-0">
-                  <div 
-                    ref={resumeRef} 
-                    className={cn(
-                      "bg-white text-zinc-900 rounded-xl shadow-xl w-full p-4 md:p-8",
-                      resumeTemplates.find(t => t.id === selectedTemplate)?.className,
-                      {
-                        'text-sm': style.fontSize === 'small',
-                        'text-base': style.fontSize === 'medium',
-                        'text-lg': style.fontSize === 'large',
-                        'space-y-2': style.spacing === 'compact',
-                        'space-y-4': style.spacing === 'comfortable',
-                        'space-y-6': style.spacing === 'spacious',
-                        'font-inter': style.font === 'inter',
-                        'font-roboto': style.font === 'roboto',
-                        'font-merriweather': style.font === 'merriweather',
-                        'font-playfair': style.font === 'playfair',
-                        'scale-[0.9] origin-top md:scale-100': true,
-                      }
-                    )}
-                    style={{
-                      '--accent-color': style.accentColor,
-                      '--resume-spacing': style.spacing === 'compact' ? '0.5rem' : 
-                                        style.spacing === 'spacious' ? '1.5rem' : '1rem',
-                      minHeight: '1100px',
-                      width: '100%',
-                      maxWidth: '850px',
-                    } as React.CSSProperties}
-                  >
-                    <ResumePreview template={selectedTemplate} />
+                    <p className="text-xs text-muted-foreground mt-1">{analysisResults.atsCompatibility.feedback}</p>
                   </div>
                 </div>
-              </>
-            )}
+                <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                  <AlertCircle className={cn(
+                    "h-4 w-4 mt-1",
+                    analysisResults.impactStatements.score >= 80 ? "text-green-500" :
+                    analysisResults.impactStatements.score >= 60 ? "text-yellow-500" : "text-red-500"
+                  )} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">Impact Statements</p>
+                      <Badge variant="outline">{analysisResults.impactStatements.score}%</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{analysisResults.impactStatements.feedback}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                  <Star className={cn(
+                    "h-4 w-4 mt-1",
+                    analysisResults.keywordsMatch.score >= 80 ? "text-green-500" :
+                    analysisResults.keywordsMatch.score >= 60 ? "text-yellow-500" : "text-red-500"
+                  )} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">Keywords Match</p>
+                      <Badge variant="outline">{analysisResults.keywordsMatch.score}%</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{analysisResults.keywordsMatch.feedback}</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Editor Panel */}
+          <div className={cn(
+            "space-y-4",
+            showPreview ? "hidden md:block" : "col-span-full md:col-span-1"
+          )}>
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  {sections.find(s => s.id === currentSection)?.icon}
+                  {sections.find(s => s.id === currentSection)?.name}
+                </h2>
+              </div>
+              {sections.find(s => s.id === currentSection)?.component}
+            </Card>
           </div>
 
-          {/* Desktop View - Always show preview */}
-          <div className="hidden md:block">
-            <div className="max-w-[850px] mx-auto p-2 md:p-8">
+          {/* Preview Panel */}
+          <div className={cn(
+            "md:col-span-1",
+            !showPreview && "hidden md:block"
+          )}>
+            <Card className="p-6">
               <div 
                 ref={resumeRef} 
                 className={cn(
-                  "bg-white text-zinc-900 rounded-xl shadow-xl w-full p-4 md:p-8",
-                  resumeTemplates.find(t => t.id === selectedTemplate)?.className,
+                  "bg-white rounded-lg shadow-lg p-8 min-h-[1100px] mx-auto",
+                  style.font,
                   {
                     'text-sm': style.fontSize === 'small',
                     'text-base': style.fontSize === 'medium',
@@ -1330,128 +843,34 @@ function BuilderPageContent() {
                     'space-y-2': style.spacing === 'compact',
                     'space-y-4': style.spacing === 'comfortable',
                     'space-y-6': style.spacing === 'spacious',
-                    'font-inter': style.font === 'inter',
-                    'font-roboto': style.font === 'roboto',
-                    'font-merriweather': style.font === 'merriweather',
-                    'font-playfair': style.font === 'playfair',
                   }
                 )}
                 style={{
                   '--accent-color': style.accentColor,
-                  '--resume-spacing': style.spacing === 'compact' ? '0.5rem' : 
-                                    style.spacing === 'spacious' ? '1.5rem' : '1rem',
-                  minHeight: '1100px',
-                  width: '100%',
                   maxWidth: '850px',
                 } as React.CSSProperties}
               >
                 <ResumePreview template={selectedTemplate} />
               </div>
+            </Card>
             </div>
           </div>
         </div>
 
-        {/* Right Panel - AI Assistant (Desktop) */}
-        <motion.div 
-          className="hidden md:flex border-l bg-card/50 backdrop-blur-sm"
-          animate={{ 
-            width: isAiPanelOpen ? 400 : 0,
-            opacity: isAiPanelOpen ? 1 : 0
-          }}
-          transition={{ duration: 0.3 }}
-          style={{ overflow: 'hidden' }}
-        >
-          <div className="w-[400px]">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-semibold">AI Assistant</h2>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsAiPanelOpen(false)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Get AI-powered suggestions to improve your resume
-            </p>
-          </div>
-
-          <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
-            {aiSuggestions.map((suggestion, index) => (
-              <motion.div
-                key={suggestion.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors"
-              >
-                <h3 className="font-medium">{suggestion.title}</h3>
-                  {'description' in suggestion ? (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {suggestion.description}
-                </p>
-                  ) : (
-                    <div className="mt-3">
-                      {suggestion.content()}
-                    </div>
-                  )}
-                  <Button 
-                    className="mt-3 w-full" 
-                    variant="outline"
-                    onClick={suggestion.onClick}
-                    disabled={isAiLoading}
-                  >
-                    {isAiLoading ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                  <Wand2 className="h-4 w-4 mr-2" />
-                    )}
-                  {suggestion.action}
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-        </motion.div>
-
-        {/* AI Toggle Button - Only show when panel is closed on desktop */}
-        {!isAiPanelOpen && (
-          <Button
-            className="fixed right-4 bottom-4 shadow-lg hidden md:flex"
-            onClick={() => setIsAiPanelOpen(true)}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            AI Assistant
-          </Button>
-        )}
-
-        {/* Settings Dialog */}
         <ResumeStyleDialog
           open={showStyleDialog}
           onOpenChange={setShowStyleDialog}
         />
-      </main>
-      <JobAnalyzerDialog />
-      <TemplateDialog />
     </div>
   );
 }
 
 export default function BuilderPage() {
   return (
-    <>
-      <div className="relative isolate">
         <ResumeStyleProvider>
           <ResumeProvider>
             <BuilderPageContent />
           </ResumeProvider>
         </ResumeStyleProvider>
-      </div>
-    </>
   );
 } 

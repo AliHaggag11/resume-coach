@@ -831,7 +831,7 @@ function UserMessages() {
                 onClick={() => handleMessageSelect(message)}
               >
                 View Replies
-              </Button>
+      </Button>
             </CardContent>
           </Card>
         ))

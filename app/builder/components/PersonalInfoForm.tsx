@@ -22,37 +22,47 @@ export default function PersonalInfoForm() {
   };
 
   const generateSummary = async () => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockSummaries = [
-      "Results-driven software engineer with 5+ years of experience in developing scalable web applications. Proficient in modern JavaScript frameworks and cloud technologies. Strong focus on code quality and performance optimization.",
-      "Innovative full-stack developer with a passion for creating user-centric solutions. Experienced in agile methodologies and cross-functional team collaboration. Proven track record of delivering high-impact projects on time.",
-      "Detail-oriented frontend specialist with expertise in React and TypeScript. Committed to creating accessible and performant web applications. Strong background in UI/UX design principles.",
-    ];
-    
-    const randomSummary = mockSummaries[Math.floor(Math.random() * mockSummaries.length)];
-    updatePersonalInfo({ summary: randomSummary });
-    setIsGenerating(false);
-    toast.success("Generated professional summary!");
-  };
+    try {
+      if (!personalInfo.title) {
+        toast.error("Please enter a professional title first");
+        return;
+      }
 
-  const suggestJobTitle = async () => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockTitles = [
-      "Senior Software Engineer",
-      "Full Stack Developer",
-      "Frontend Engineer",
-      "Software Development Engineer",
-      "Web Application Developer",
-    ];
-    
-    const randomTitle = mockTitles[Math.floor(Math.random() * mockTitles.length)];
-    updatePersonalInfo({ title: randomTitle });
-    setIsGenerating(false);
-    toast.success("Generated job title suggestion!");
+      setIsGenerating(true);
+      
+      const prompt = {
+        content: {
+          title: personalInfo.title,
+          context: "Generate a compelling professional summary for a resume. The summary should be 2-3 sentences long, highlighting expertise, skills, and career focus relevant to this role. Make it impactful and modern, focusing on value proposition."
+        }
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, type: 'suggest' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to generate summary');
+      }
+
+      if (!data.result) {
+        throw new Error('No summary generated');
+      }
+
+      updatePersonalInfo({ summary: data.result });
+      toast.success("Generated professional summary!");
+    } catch (error: any) {
+      console.error('Error generating summary:', error);
+      toast.error(error.message || 'Failed to generate summary');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -149,27 +159,30 @@ export default function PersonalInfoForm() {
 
       <div>
         <Label htmlFor="summary">Professional Summary</Label>
-        <Textarea
-          id="summary"
-          name="summary"
-          value={personalInfo.summary}
-          onChange={handleChange}
-          placeholder="Write a brief summary of your professional background and key qualifications..."
-          className="h-32"
-        />
-      </div>
-
-      <div className="flex justify-end gap-2 mt-6">
-        <Button variant="outline" onClick={() => updatePersonalInfo({
-          fullName: "",
-          title: "",
-          email: "",
-          phone: "",
-          location: "",
-          summary: "",
-        })}>Reset</Button>
-        <Button onClick={generateSummary}>Generate Summary</Button>
-        <Button onClick={suggestJobTitle}>Get Job Title Suggestion</Button>
+        <div className="relative">
+          <Textarea
+            id="summary"
+            name="summary"
+            value={personalInfo.summary}
+            onChange={handleChange}
+            placeholder="Write a brief summary of your professional background and key qualifications..."
+            className="h-32"
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-2 text-muted-foreground hover:text-primary"
+            onClick={generateSummary}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Wand2 className="h-4 w-4 mr-2" />
+            )}
+            Generate Summary
+          </Button>
+        </div>
       </div>
     </div>
   );
