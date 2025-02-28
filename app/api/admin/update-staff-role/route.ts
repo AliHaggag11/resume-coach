@@ -1,32 +1,30 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    
     // Create a Supabase client with service role key
     const supabaseAdmin = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
+          async getAll() {
+            return (await cookies()).getAll();
           },
-          set(name: string, value: string, options: any) {
-            cookieStore.set(name, value, options);
-          },
-          remove(name: string, options: any) {
-            cookieStore.set(name, '', options);
+          async setAll(cookiesToSet) {
+            const cookieStore = await cookies();
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
           },
         },
       }
     );
 
     // Get the request body
-    const { userId, newRole } = await request.json();
+    const { userId, role } = await request.json();
 
     // Verify the current user is an admin
     const {
@@ -41,10 +39,10 @@ export async function POST(request: Request) {
     }
 
     // Update the user's role
-    const { error: updateError } = await supabaseAdmin
-      .auth.admin.updateUserById(userId, {
-        user_metadata: { role: newRole }
-      });
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { user_metadata: { role } }
+    );
 
     if (updateError) {
       throw updateError;
