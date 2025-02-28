@@ -455,6 +455,42 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
           container.style.top = '-9999px';
           container.style.width = '794px'; // A4 width
           container.style.backgroundColor = 'white';
+          
+          // Add specific styles to prevent section splitting
+          const styleSheet = document.createElement('style');
+          styleSheet.textContent = `
+            .pdf-section {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+              position: relative !important;
+              display: block !important;
+              margin-bottom: 20px !important;
+            }
+            .project-item {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+              position: relative !important;
+              display: block !important;
+              margin-bottom: 15px !important;
+            }
+            .project-items-container {
+              position: relative !important;
+              display: block !important;
+            }
+            @media print {
+              .pdf-section, .project-item {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+                position: relative !important;
+                display: block !important;
+              }
+              .project-items-container {
+                position: relative !important;
+                display: block !important;
+              }
+            }
+          `;
+          container.appendChild(styleSheet);
           document.body.appendChild(container);
 
           // Create a root for React rendering
@@ -484,127 +520,86 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
               format: 'a4',
             });
 
-            // Calculate dimensions
+            // Get page dimensions
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 40;
 
-            // Add CSS to prevent section splits and optimize spacing
-            const style = document.createElement('style');
-            style.textContent = `
-              @media print {
-                section {
-                  break-inside: avoid !important;
-                  page-break-inside: avoid !important;
-                  position: relative !important;
-                  display: block !important;
-                }
-                h1, h2, h3 {
-                  break-after: avoid !important;
-                  page-break-after: avoid !important;
-                  margin-bottom: 0.5em !important;
-                }
-                .section-content {
-                  break-inside: avoid !important;
-                  page-break-inside: avoid !important;
-                }
-                .item {
-                  break-inside: avoid !important;
-                  page-break-inside: avoid !important;
-                }
-                ul, li {
-                  break-inside: avoid !important;
-                  page-break-inside: avoid !important;
-                }
-              }
-              section {
-                display: block;
-                position: relative;
-                margin-bottom: 1em !important;
-              }
-              p, ul {
-                margin-bottom: 0.3em !important;
-                line-height: 1.4 !important;
-              }
-              .item {
-                display: block;
-                position: relative;
-                margin-bottom: 0.8em !important;
-              }
-              ul {
-                padding-left: 1em !important;
-              }
-              li {
-                margin-bottom: 0.2em !important;
-              }
-              .section-content {
-                padding-left: 0.3em !important;
-              }
-            `;
-            content.appendChild(style);
-
-            // Capture the content with optimized settings
+            // Capture the content with high quality settings
             const canvas = await html2canvas(content, {
-              scale: 3, // High quality
+              scale: 3,
               useCORS: true,
               allowTaint: true,
               backgroundColor: 'white',
               logging: false,
               windowWidth: 794,
-              onclone: (doc) => {
-                // Add the same styles to the cloned document
-                const clonedStyle = doc.createElement('style');
-                clonedStyle.textContent = style.textContent;
-                doc.head.appendChild(clonedStyle);
-
-                // Add specific print media styles
-                const printStyle = doc.createElement('style');
-                printStyle.textContent = `
-                  @media print {
-                    * {
-                      -webkit-print-color-adjust: exact !important;
-                      print-color-adjust: exact !important;
-                    }
+              onclone: (clonedDoc) => {
+                // Add additional styles to the cloned document
+                const style = clonedDoc.createElement('style');
+                style.textContent = `
+                  .pdf-section, .project-item {
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
                   }
                 `;
-                doc.head.appendChild(printStyle);
+                clonedDoc.head.appendChild(style);
               }
             });
 
-            // Calculate image dimensions with smaller margins
-            const margin = 30; // Reduced margin (30pt instead of 40pt)
+            // Calculate dimensions
             const imgWidth = pageWidth - (margin * 2);
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = margin;
+            
+            // Calculate total pages needed
+            const totalPages = Math.ceil(imgHeight / (pageHeight - (margin * 2)));
+            
+            // Add each page
+            for (let page = 0; page < totalPages; page++) {
+              // Add new page if not the first page
+              if (page > 0) {
+                pdf.addPage();
+              }
 
-            // Add first page
-            pdf.addImage(
-              canvas,
-              'PNG',
-              margin,
-              position,
-              imgWidth,
-              imgHeight,
-              undefined,
-              'FAST'
-            );
-            heightLeft -= (pageHeight - (margin * 2));
-
-            // Add subsequent pages if needed
-            while (heightLeft >= 0) {
-              position = heightLeft - imgHeight + margin;
-              pdf.addPage();
-              pdf.addImage(
-                canvas,
-                'PNG',
-                margin,
-                position,
-                imgWidth,
-                imgHeight,
-                undefined,
-                'FAST'
+              // Calculate the portion of the image to use for this page
+              const sourceY = page * (pageHeight - (margin * 2)) * (canvas.width / imgWidth);
+              const sourceHeight = Math.min(
+                canvas.height - sourceY,
+                (pageHeight - (margin * 2)) * (canvas.width / imgWidth)
               );
-              heightLeft -= (pageHeight - (margin * 2));
+              
+              // Create a temporary canvas for this page's content
+              const pageCanvas = document.createElement('canvas');
+              pageCanvas.width = canvas.width;
+              pageCanvas.height = sourceHeight;
+              const ctx = pageCanvas.getContext('2d');
+              
+              if (ctx) {
+                // Draw the portion of the content for this page
+                ctx.drawImage(
+                  canvas,
+                  0,
+                  sourceY,
+                  canvas.width,
+                  sourceHeight,
+                  0,
+                  0,
+                  canvas.width,
+                  sourceHeight
+                );
+
+                // Add the page content to the PDF
+                const pageData = pageCanvas.toDataURL('image/jpeg', 1.0);
+                pdf.addImage(
+                  pageData,
+                  'JPEG',
+                  margin,
+                  margin,
+                  imgWidth,
+                  (sourceHeight * imgWidth) / canvas.width,
+                  undefined,
+                  'FAST'
+                );
+              }
             }
 
             // Save the PDF
@@ -846,31 +841,68 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
     <div className="flex flex-col min-h-screen">
       {/* Navigation Bar */}
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container flex h-14 max-w-screen-2xl items-center">
+          <div className="flex items-center gap-2 w-full justify-between">
+            {/* Mobile Menu */}
+            <div className="flex items-center gap-2 md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="bg-background border shadow-md w-56">
+                  <DropdownMenuItem onClick={() => setShowStyleDialog(true)}>
+                    <Palette className="h-4 w-4 mr-2" />
+                    Style Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={analyzeResume} disabled={isAnalyzing}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Analyze Resume
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                    <File className="h-4 w-4 mr-2" />
+                    Export as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('word')}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export as Word
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Section Tabs */}
             <Tabs
               value={currentSection}
-              className="w-full"
+              className="w-full md:w-auto"
               onValueChange={(value) => setCurrentSection(value)}
             >
-              <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground">
+              <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full md:w-auto">
                 {sections.map((section) => (
                   <TabsTrigger
                     key={section.id}
                     value={section.id}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow flex-1 md:flex-initial"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-center md:justify-start">
                       {section.icon}
-                      <span className="hidden md:inline">{section.name}</span>
+                      <span className="hidden sm:inline">{section.name}</span>
                     </div>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
-          </div>
 
-          <div className="flex items-center gap-4">
+            {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-4">
               {atsScore !== null && (
                 <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md">
@@ -885,24 +917,12 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
               <span className="text-sm text-muted-foreground">
                 {calculateProgress()}% Complete
               </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowPreview(!showPreview)}
-                className="md:hidden"
-              >
-                {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={analyzeResume}
                 disabled={isAnalyzing}
-                className="hidden md:flex"
               >
                 {isAnalyzing ? (
                   <>
@@ -951,6 +971,15 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
 
       {/* Main Content */}
       <div className="container py-6">
+        {/* Mobile Progress Bar */}
+        <div className="md:hidden mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Resume Progress</span>
+            <span className="text-sm text-muted-foreground">{calculateProgress()}%</span>
+          </div>
+          <Progress value={calculateProgress()} className="h-2" />
+        </div>
+
         {showAnalysis && analysisResults && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -1023,9 +1052,9 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
           {/* Editor Panel */}
           <div className={cn(
             "space-y-4",
-            showPreview ? "hidden md:block" : "col-span-full md:col-span-1"
+            showPreview ? "hidden md:block" : "block"
           )}>
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   {sections.find(s => s.id === currentSection)?.icon}
@@ -1038,17 +1067,22 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
 
           {/* Preview Panel */}
           <div className={cn(
-            "md:col-span-1",
-            !showPreview && "hidden md:block"
+            "md:col-span-1 w-full",
+            !showPreview && "hidden md:block",
+            showPreview && "block"
           )}>
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6 overflow-x-hidden">
               <div 
                 ref={resumeRef} 
-                className="relative"
+                className="relative w-full overflow-x-auto"
+                style={{
+                  maxWidth: '100%',
+                  overflowY: 'visible'
+                }}
               >
                 <ResumePreview 
                   template={selectedTemplate} 
-                  scale={0.7}
+                  scale={showPreview ? 0.5 : 0.7}
                 />
               </div>
             </Card>

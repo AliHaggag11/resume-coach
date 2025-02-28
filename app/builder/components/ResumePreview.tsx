@@ -181,14 +181,17 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
       )} style={{ 
         letterSpacing: '0.01em', 
         lineHeight: forExport ? '1.3' : '1.6',
-        pageBreakInside: 'auto',
-        breakInside: 'auto'
       }}>
         {/* Header */}
-        <header className={cn(
-          "text-center",
+        <section className={cn(
+          "text-center pdf-section",
           forExport ? "space-y-1.5 mb-3" : "space-y-3 mb-8"
-        )} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+        )} style={{ 
+          pageBreakInside: 'avoid', 
+          breakInside: 'avoid',
+          display: 'block',
+          position: 'relative',
+        }}>
           <h1 className="text-2xl font-bold tracking-wide" style={{ color: style.accentColor }}>
             {resumeData.personalInfo.fullName}
           </h1>
@@ -220,11 +223,16 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
               </a>
             )}
           </div>
-        </header>
+        </section>
 
         {/* Summary */}
         {resumeData.personalInfo.summary && (
-          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
+            pageBreakInside: 'avoid', 
+            breakInside: 'avoid',
+            display: 'block',
+            position: 'relative',
+          }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
               Professional Summary
             </h2>
@@ -234,13 +242,23 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Experience */}
         {resumeData.experiences.length > 0 && (
-          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
+            pageBreakInside: 'avoid', 
+            breakInside: 'avoid',
+            display: 'block',
+            position: 'relative',
+          }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
               Experience
             </h2>
             <div className={forExport ? "space-y-2" : "space-y-5"}>
               {resumeData.experiences.map((exp, index) => (
-                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div key={index} className="space-y-1" style={{ 
+                  pageBreakInside: 'avoid', 
+                  breakInside: 'avoid',
+                  display: 'block',
+                  position: 'relative',
+                }}>
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium tracking-wide">{exp.position}</h3>
@@ -266,13 +284,23 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Education */}
         {resumeData.education.length > 0 && (
-          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
+            pageBreakInside: 'avoid', 
+            breakInside: 'avoid',
+            display: 'block',
+            position: 'relative',
+          }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
               Education
             </h2>
             <div className={forExport ? "space-y-2" : "space-y-5"}>
               {resumeData.education.map((edu, index) => (
-                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div key={index} className="space-y-1" style={{ 
+                  pageBreakInside: 'avoid', 
+                  breakInside: 'avoid',
+                  display: 'block',
+                  position: 'relative',
+                }}>
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium tracking-wide">{edu.degree} in {edu.field}</h3>
@@ -298,13 +326,23 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Skills */}
         {resumeData.skills.length > 0 && (
-          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
+            pageBreakInside: 'avoid', 
+            breakInside: 'avoid',
+            display: 'block',
+            position: 'relative',
+          }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
               Skills
             </h2>
             <div className={forExport ? "space-y-1.5" : "space-y-4"}>
               {resumeData.skills.map((category, index) => (
-                <div key={index} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div key={index} style={{ 
+                  pageBreakInside: 'avoid', 
+                  breakInside: 'avoid',
+                  display: 'block',
+                  position: 'relative',
+                }}>
                   <h3 className="font-medium text-sm tracking-wide mb-0.5">{category.name}</h3>
                   <p className="text-sm tracking-wide leading-relaxed">{category.skills.join(" • ")}</p>
                 </div>
@@ -315,13 +353,22 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Projects */}
         {resumeData.projects.length > 0 && (
-          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <section className={cn(
+            "pdf-section relative block",
+            forExport ? "mb-3" : "mb-6"
+          )} style={{ borderColor: style.accentColor }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
               Projects
             </h2>
-            <div className={forExport ? "space-y-2" : "space-y-5"}>
+            <div className={cn(
+              "project-items-container",
+              forExport ? "space-y-2" : "space-y-5"
+            )}>
               {resumeData.projects.map((project, index) => (
-                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div key={index} className={cn(
+                  "project-item relative block space-y-1",
+                  forExport ? "mb-4" : "mb-6"
+                )}>
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium tracking-wide">
@@ -362,13 +409,23 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Awards */}
         {resumeData.awards.length > 0 && (
-          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
+            pageBreakInside: 'avoid', 
+            breakInside: 'avoid',
+            display: 'block',
+            position: 'relative',
+          }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
               Awards & Certifications
             </h2>
             <div className={forExport ? "space-y-2" : "space-y-5"}>
               {resumeData.awards.map((award, index) => (
-                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div key={index} className="space-y-1" style={{ 
+                  pageBreakInside: 'avoid', 
+                  breakInside: 'avoid',
+                  display: 'block',
+                  position: 'relative',
+                }}>
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium tracking-wide">{award.title}</h3>
