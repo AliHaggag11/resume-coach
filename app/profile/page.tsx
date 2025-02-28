@@ -22,6 +22,8 @@ import {
   Crown,
   Shield,
   Info,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -37,6 +39,8 @@ export default function ProfilePage() {
   const { tier } = useSubscription();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -55,8 +59,23 @@ export default function ProfilePage() {
         email: user.email || "",
         phone: metadata.phone || "",
       }));
+      if (metadata.avatar_url) {
+        setAvatarPreview(metadata.avatar_url);
+      }
     }
   }, [user]);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +83,34 @@ export default function ProfilePage() {
 
     setIsUpdating(true);
     try {
+      let avatar_url = user.user_metadata?.avatar_url;
+
+      // Upload new avatar if selected
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        const { error: uploadError, data } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, avatarFile);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        avatar_url = publicUrl;
+      }
+
       // Update user metadata
       const { error: metadataError } = await supabase.auth.updateUser({
         data: {
           full_name: formData.fullName,
           phone: formData.phone,
+          avatar_url,
           updated_at: new Date().toISOString(),
         },
       });
@@ -198,7 +240,37 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <form onSubmit={handleUpdateProfile} className="space-y-6">
+            <div className="space-y-4">
+              <Label>Profile Picture</Label>
+              <div className="flex items-center gap-6">
+                <div className="relative size-24">
+                  <div className="size-24 rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Profile"
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Recommended: Square image, at least 400x400px
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="role" className="flex items-center gap-2">
                 Role

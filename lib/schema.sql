@@ -36,7 +36,11 @@ returns trigger
 language plpgsql
 as $$
 begin
-    new.last_modified = timezone('utc'::text, now());
+    if TG_TABLE_NAME = 'resumes' then
+        new.last_modified = timezone('utc'::text, now());
+    else
+        new.updated_at = timezone('utc'::text, now());
+    end if;
     return new;
 end;
 $$;
@@ -140,10 +144,17 @@ create policy "Support users can view replies"
         )
     );
 
+-- Add foreign key reference to support_user_profiles
+ALTER TABLE public.message_replies
+ADD CONSTRAINT message_replies_support_user_profiles_fkey
+FOREIGN KEY (support_user_id)
+REFERENCES public.support_user_profiles(user_id)
+ON DELETE SET NULL;
+
 -- Create support_user_profiles table
 CREATE TABLE public.support_user_profiles (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
     full_name text NOT NULL,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -456,4 +467,92 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute permission on the new function
-GRANT EXECUTE ON FUNCTION public.get_staff_tickets TO authenticated; 
+GRANT EXECUTE ON FUNCTION public.get_staff_tickets TO authenticated;
+
+-- Add staff user function
+CREATE OR REPLACE FUNCTION public.add_staff_user(
+  email text,
+  full_name text,
+  password text,
+  role text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  new_user_id uuid;
+BEGIN
+  -- Check if the executing user is an admin
+  IF NOT EXISTS (
+    SELECT 1 FROM auth.users 
+    WHERE id = auth.uid() 
+    AND raw_user_meta_data->>'role' = 'admin'
+  ) THEN
+    RAISE EXCEPTION 'Only administrators can add staff members';
+  END IF;
+
+  -- Create the user in auth.users
+  INSERT INTO auth.users (
+    instance_id,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token,
+    email_change_token_new,
+    recovery_token
+  )
+  VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    email,
+    crypt(password, gen_salt('bf')),
+    NOW(),
+    jsonb_build_object(
+      'full_name', full_name,
+      'role', role,
+      'avatar_url', NULL
+    ),
+    NOW(),
+    NOW(),
+    encode(crypto.gen_random_bytes(32), 'hex'),
+    encode(crypto.gen_random_bytes(32), 'hex'),
+    encode(crypto.gen_random_bytes(32), 'hex')
+  )
+  RETURNING id INTO new_user_id;
+
+  -- Create support user profile
+  INSERT INTO public.support_user_profiles (user_id, full_name)
+  VALUES (new_user_id, full_name);
+END;
+$$;
+
+-- Function to delete a staff user
+CREATE OR REPLACE FUNCTION public.delete_staff_user(user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Check if the executing user is an admin
+  IF NOT EXISTS (
+    SELECT 1 FROM auth.users 
+    WHERE id = auth.uid() 
+    AND raw_user_meta_data->>'role' = 'admin'
+  ) THEN
+    RAISE EXCEPTION 'Only administrators can delete staff members';
+  END IF;
+
+  -- Delete the support profile first (due to foreign key constraint)
+  DELETE FROM public.support_user_profiles WHERE user_id = $1;
+  
+  -- Delete the user from auth.users
+  DELETE FROM auth.users WHERE id = $1;
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.delete_staff_user TO authenticated; 

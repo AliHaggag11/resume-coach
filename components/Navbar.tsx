@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { motion } from "framer-motion";
-import { Menu, ChevronRight, LogOut, User, Sparkles, CreditCard, Layout, PenLine, Mail, HeadphonesIcon, MessageSquare, Settings2, Sun } from "lucide-react";
+import { Menu, LogOut, User, Sparkles, CreditCard, Layout, PenLine, Mail, HeadphonesIcon, MessageSquare, Sun, Moon, Laptop } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -14,6 +14,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
 import { useState } from "react";
 
 export default function Navbar() {
@@ -21,9 +30,9 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { setTheme } = useTheme();
 
   const isSupport = user?.user_metadata?.role === 'support' || user?.user_metadata?.role === 'admin';
-  const isAdmin = user?.user_metadata?.role === 'admin';
 
   const menuItems = [
     {
@@ -50,7 +59,7 @@ export default function Navbar() {
       icon: CreditCard,
       description: "View pricing plans and options",
     },
-    ...(!isAdmin ? [
+    ...(!isSupport ? [
       {
         href: "/contact",
         label: "Contact",
@@ -65,132 +74,145 @@ export default function Navbar() {
         icon: User,
         description: "Manage your resumes and profile",
       },
-      {
-        href: "/messages",
-        label: "Messages",
-        icon: MessageSquare,
-        description: "View your support messages",
-      },
-      {
-        href: "/profile",
-        label: "Profile",
-        icon: User,
-        description: "View and edit your profile",
-      },
+      ...(!isSupport ? [
+        {
+          href: "/messages",
+          label: "Messages",
+          icon: MessageSquare,
+          description: "View your support messages",
+        }
+      ] : []),
       ...(isSupport ? [
         {
           href: "/support",
-          label: "Support",
+          label: "Support Dashboard",
           icon: HeadphonesIcon,
-          description: "Customer Support Dashboard",
-        },
-      ] : []),
-      ...(isAdmin ? [
-        {
-          href: "/admin",
-          label: "Admin",
-          icon: Settings2,
-          description: "System Administration",
+          description: "Manage support tickets and messages",
         },
       ] : []),
     ] : []),
   ];
 
   return (
-    <div className="w-full fixed top-0 z-50 px-4 py-3">
-      <motion.nav 
-        className="mx-auto max-w-[1400px] rounded-full border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
+    <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <motion.nav
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="mx-auto flex h-14 w-full items-center px-4"
       >
-        <div className="flex h-14 items-center justify-between px-6">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-3 px-1">
-              <motion.div 
-                className="relative size-7 overflow-hidden rounded-full bg-primary shadow-sm"
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <span className="absolute inset-0 flex items-center justify-center text-base font-bold text-primary-foreground">
-                  R
-                </span>
-              </motion.div>
-              <motion.span 
-                className="hidden font-semibold sm:inline-block text-lg"
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-              >
-                ResumeCoach
-              </motion.span>
-            </Link>
-            <nav className="hidden md:flex items-center">
-              <div className="flex items-center gap-1 rounded-full bg-muted/50 p-1">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors hover:text-foreground hover:bg-primary/10 ${
-                      pathname === item.href 
-                        ? "bg-primary/15 text-foreground shadow-sm" 
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    <item.icon className={`h-4 w-4 ${pathname === item.href ? "text-primary" : ""}`} />
-                    {item.label}
-                  </Link>
-                ))}
+        <div className="flex flex-1 items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="size-8 rounded-full bg-primary flex items-center justify-center">
+                <span className="text-lg font-bold text-primary-foreground">R</span>
               </div>
+              <span className="hidden font-bold sm:inline-block">
+                ResumeCoach
+              </span>
+            </Link>
+            <nav className="hidden md:flex items-center space-x-2">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-primary/10 ${
+                    pathname === item.href ? "bg-primary/15" : ""
+                  }`}
+                >
+                  <item.icon className={`h-4 w-4 ${pathname === item.href ? "text-primary" : ""}`} />
+                  {item.label}
+                </Link>
+              ))}
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden md:block">
-              <ThemeToggle className="h-8 w-8" />
-            </div>
             <div className="hidden md:flex items-center">
-              <div className="flex items-center gap-1 rounded-full bg-muted/50 p-1">
-                {user ? (
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      await signOut();
-                      router.replace('/');
-                    }}
-                    className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium h-auto"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </Button>
-                ) : (
-                  <>
-                    <Link href="/signin">
-                      <Button 
-                        variant="ghost" 
-                        className={`rounded-full px-4 py-2 text-sm font-medium h-auto ${
-                          pathname === "/signin" 
-                            ? "bg-primary/15 text-foreground shadow-sm" 
-                            : ""
-                        }`}
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative size-8 rounded-full p-0">
+                      <div className="size-8 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors flex items-center justify-center overflow-hidden">
+                        {user.user_metadata?.avatar_url ? (
+                          <img
+                            src={user.user_metadata.avatar_url}
+                            alt="Profile"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-background border shadow-lg" sideOffset={8}>
+                    <div className="bg-background">
+                      <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile" className="cursor-pointer flex items-center">
+                          <User className="mr-2 h-4 w-4" />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="font-semibold">Theme</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer">
+                        <Sun className="mr-2 h-4 w-4" />
+                        Light
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer">
+                        <Moon className="mr-2 h-4 w-4" />
+                        Dark
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer">
+                        <Laptop className="mr-2 h-4 w-4" />
+                        System
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          await signOut();
+                          router.replace('/signin');
+                        }}
+                        className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
                       >
-                        Sign In
-                      </Button>
-                    </Link>
-                    <Link href="/signup">
-                      <Button 
-                        className={`rounded-full px-4 py-2 text-sm font-medium h-auto ${
-                          pathname === "/signup" 
-                            ? "bg-primary/90" 
-                            : "bg-primary"
-                        }`}
-                      >
-                        Sign Up
-                      </Button>
-                    </Link>
-                  </>
-                )}
-              </div>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign out
+                      </DropdownMenuItem>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Link href="/signin">
+                    <Button 
+                      variant="ghost" 
+                      className={`rounded-full px-4 py-2 text-sm font-medium h-auto ${
+                        pathname === "/signin" 
+                          ? "bg-primary/15 text-foreground shadow-sm" 
+                          : ""
+                      }`}
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/signup">
+                    <Button 
+                      className={`rounded-full px-4 py-2 text-sm font-medium h-auto ${
+                        pathname === "/signup" 
+                          ? "bg-primary/90" 
+                          : "bg-primary"
+                      }`}
+                    >
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
+            
+            {/* Mobile menu sheet */}
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden">
@@ -231,30 +253,71 @@ export default function Navbar() {
                     ))}
                   </div>
                 </div>
-                <div className="border-t px-5 py-3 shrink-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sun className="h-4 w-4" />
-                      <span className="text-sm font-medium">Dark mode</span>
+                {user && (
+                  <div className="border-t px-5 py-4 shrink-0">
+                    <div className="space-y-3">
+                      <Link href="/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted">
+                        <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                          {user.user_metadata?.avatar_url ? (
+                            <img
+                              src={user.user_metadata.avatar_url}
+                              alt="Profile"
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <User className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
+                        <span className="text-sm font-medium">Profile Settings</span>
+                      </Link>
+                      <div className="px-3 py-2 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Theme</span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => setTheme("light")}
+                            >
+                              <Sun className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => setTheme("dark")}
+                            >
+                              <Moon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => setTheme("system")}
+                            >
+                              <Laptop className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        onClick={async () => {
+                          setIsOpen(false);
+                          await signOut();
+                          router.replace('/signin');
+                        }}
+                        className="w-full justify-start gap-3 h-10 text-red-600 dark:text-red-400"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span className="text-sm font-medium">Sign Out</span>
+                      </Button>
                     </div>
-                    <ThemeToggle mobile />
                   </div>
-                </div>
-                <div className="border-t px-5 py-4 shrink-0">
-                  {user ? (
-                    <Button
-                      variant="ghost"
-                      onClick={async () => {
-                        setIsOpen(false);
-                        await signOut();
-                        router.replace('/');
-                      }}
-                      className="w-full justify-start gap-3 h-10"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span className="text-sm font-medium">Sign Out</span>
-                    </Button>
-                  ) : (
+                )}
+                {!user && (
+                  <div className="border-t px-5 py-4 shrink-0">
                     <div className="flex gap-3">
                       <Link href="/signin" onClick={() => setIsOpen(false)} className="flex-1">
                         <Button 
@@ -270,8 +333,8 @@ export default function Navbar() {
                         </Button>
                       </Link>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </SheetContent>
             </Sheet>
           </div>
@@ -279,4 +342,4 @@ export default function Navbar() {
       </motion.nav>
     </div>
   );
-} 
+}
