@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function AuthCallback() {
+function LoadingState() {
+  return (
+    <div className="h-screen flex items-center justify-center">
+      <div className="animate-pulse text-center">
+        <h2 className="text-2xl font-bold mb-2">Verifying...</h2>
+        <p className="text-muted-foreground">Please wait while we verify your account.</p>
+      </div>
+    </div>
+  );
+}
+
+function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -28,12 +39,13 @@ export default function AuthCallback() {
     handleAuthCallback();
   }, [router, searchParams]);
 
+  return <LoadingState />;
+}
+
+export default function AuthCallback() {
   return (
-    <div className="h-screen flex items-center justify-center">
-      <div className="animate-pulse text-center">
-        <h2 className="text-2xl font-bold mb-2">Verifying...</h2>
-        <p className="text-muted-foreground">Please wait while we verify your account.</p>
-      </div>
-    </div>
+    <Suspense fallback={<LoadingState />}>
+      <CallbackHandler />
+    </Suspense>
   );
 } 
