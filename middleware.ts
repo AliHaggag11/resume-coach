@@ -36,11 +36,6 @@ export async function middleware(request: NextRequest) {
   try {
     const { data: { session }, error } = await supabase.auth.getSession()
 
-    if (error) {
-      console.error('Error getting session:', error)
-      return NextResponse.redirect(new URL('/signin', request.url))
-    }
-
     // Update response headers with new cookie values
     const newResponse = NextResponse.next({
       request: {
@@ -53,14 +48,23 @@ export async function middleware(request: NextRequest) {
       newResponse.cookies.set(cookie.name, cookie.value, cookie)
     })
 
-    if (request.nextUrl.pathname.startsWith('/builder') && !session) {
-      return NextResponse.redirect(new URL('/signin', request.url))
+    // Only redirect to signin if accessing /builder without a session
+    if (request.nextUrl.pathname.startsWith('/builder')) {
+      if (!session) {
+        return NextResponse.redirect(new URL('/signin', request.url))
+      }
+      return newResponse
     }
 
+    // For all other routes, just return the response
     return newResponse
   } catch (e) {
     console.error('Error in middleware:', e)
-    return NextResponse.redirect(new URL('/signin', request.url))
+    // Only redirect to signin if there's an error on protected routes
+    if (request.nextUrl.pathname.startsWith('/builder')) {
+      return NextResponse.redirect(new URL('/signin', request.url))
+    }
+    return response
   }
 }
 
