@@ -58,11 +58,19 @@ create table public.contact_messages (
     user_id uuid references auth.users(id),
     status text not null default 'unread' check (status in ('unread', 'read', 'replied')),
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
     assigned_to uuid REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
 -- Enable RLS
 alter table public.contact_messages enable row level security;
+
+-- Create trigger for updated_at on contact_messages
+create trigger set_contact_messages_updated_at
+    before update
+    on public.contact_messages
+    for each row
+    execute function public.handle_updated_at();
 
 -- Create policies
 create policy "Anyone can create contact messages"
