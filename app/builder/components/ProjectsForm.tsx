@@ -44,7 +44,9 @@ export default function ProjectsForm() {
           },
         ]
   );
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState<number | null>(null);
+  const [generatingAchievements, setGeneratingAchievements] = useState<number | null>(null);
+  const [generatingTechnologies, setGeneratingTechnologies] = useState<number | null>(null);
 
   const addProject = () => {
     setProjects([
@@ -121,66 +123,224 @@ export default function ProjectsForm() {
   };
 
   const generateDescription = async (index: number) => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockDescriptions = [
-      "Developed a full-stack web application using React and Node.js that streamlined the company's project management process. Implemented real-time collaboration features and automated task tracking.",
-      "Created a mobile-responsive e-commerce platform using Next.js and Stripe, resulting in a 50% increase in mobile conversions. Integrated inventory management and analytics dashboard.",
-      "Built a RESTful API service using Express and MongoDB that handles user authentication and data management. Implemented caching and rate limiting for improved performance.",
-    ];
-    
-    const randomDescription = mockDescriptions[Math.floor(Math.random() * mockDescriptions.length)];
-    const newProjects = [...projects];
-    newProjects[index] = { ...newProjects[index], description: randomDescription };
-    setProjects(newProjects);
-    updateProjects(newProjects);
-    setIsGenerating(false);
-    toast.success("Generated project description!");
+    try {
+      const project = projects[index];
+      
+      // Validate required fields
+      if (!project.name.trim()) {
+        toast.error("Please enter a project name before generating description");
+        return;
+      }
+
+      setGeneratingDescription(index);
+      
+      const prompt = {
+        content: {
+          projectName: project.name,
+          context: `Generate a detailed technical description for a project named "${project.name}". The description should:
+1. Start with a strong action verb
+2. Include the main technologies or methodologies used
+3. Highlight the key features or functionality
+4. Mention the impact or purpose of the project
+5. Keep it to 2-3 impactful sentences
+
+Example format:
+"Developed a machine learning-powered recommendation engine using Python and TensorFlow, implementing collaborative filtering algorithms to analyze user behavior patterns. Integrated the system with a React frontend and REST API, resulting in a 40% increase in user engagement."
+
+Respond with ONLY the description, no additional text or context.`
+        }
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, type: 'suggest' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to generate description');
+      }
+
+      if (!data.result) {
+        throw new Error('No description generated');
+      }
+
+      const newProjects = [...projects];
+      newProjects[index] = { ...newProjects[index], description: data.result.trim() };
+      setProjects(newProjects);
+      updateProjects(newProjects);
+      toast.success("Generated project description!");
+    } catch (error: any) {
+      console.error('Error generating description:', error);
+      toast.error(error.message || 'Failed to generate description');
+    } finally {
+      setGeneratingDescription(null);
+    }
   };
 
   const suggestTechnologies = async (index: number) => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockTechStacks = [
-      ["React", "TypeScript", "Node.js", "Express", "MongoDB"],
-      ["Next.js", "TailwindCSS", "Prisma", "PostgreSQL", "AWS"],
-      ["Vue.js", "Python", "Django", "Redis", "Docker"],
-      ["Angular", "NestJS", "GraphQL", "MySQL", "Azure"],
-    ];
-    
-    const randomStack = mockTechStacks[Math.floor(Math.random() * mockTechStacks.length)];
-    const newProjects = [...projects];
-    newProjects[index] = { ...newProjects[index], technologies: randomStack };
-    setProjects(newProjects);
-    updateProjects(newProjects);
-    setIsGenerating(false);
-    toast.success("Generated technology stack!");
+    try {
+      const project = projects[index];
+      
+      // Validate required fields
+      if (!project.description.trim()) {
+        toast.error("Please generate or enter a project description first");
+        return;
+      }
+
+      setGeneratingTechnologies(index);
+      
+      const prompt = {
+        content: {
+          projectName: project.name,
+          description: project.description,
+          context: `Based on this project description, extract a list of 4-6 specific technologies that would be used to build this project. Focus on:
+1. Programming languages
+2. Frameworks and libraries
+3. Databases or storage solutions
+4. Development tools or platforms
+
+Return ONLY the technology names, one per line. Example:
+React
+TypeScript
+Node.js
+MongoDB
+AWS S3
+Docker
+
+Do not include any additional text, bullets, or formatting.`
+        }
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, type: 'suggest' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to generate technologies');
+      }
+
+      if (!data.result) {
+        throw new Error('No technologies generated');
+      }
+
+      // Process the technologies
+      const techList = data.result
+        .split('\n')
+        .map((tech: string) => tech.trim())
+        .filter((tech: string) => tech.length > 0);
+
+      const newProjects = [...projects];
+      const currentProject = newProjects[index];
+      
+      // If there's only an empty technology, replace it
+      if (currentProject.technologies.length === 1 && !currentProject.technologies[0]) {
+        currentProject.technologies = techList;
+      } else {
+        // Otherwise, append new technologies
+        currentProject.technologies = [...currentProject.technologies, ...techList];
+      }
+
+      setProjects(newProjects);
+      updateProjects(newProjects);
+      toast.success("Generated technology stack!");
+    } catch (error: any) {
+      console.error('Error generating technologies:', error);
+      toast.error(error.message || 'Failed to generate technologies');
+    } finally {
+      setGeneratingTechnologies(null);
+    }
   };
 
   const generateAchievements = async (index: number) => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockAchievements = [
-      "Reduced page load time by 60% through code optimization and lazy loading",
-      "Implemented automated testing achieving 90% code coverage",
-      "Decreased API response time by 40% using caching strategies",
-      "Integrated CI/CD pipeline reducing deployment time by 70%",
-      "Enhanced security with OAuth 2.0 and rate limiting",
-    ];
-    
-    const selectedAchievements = mockAchievements
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 3);
-    
-    const newProjects = [...projects];
-    newProjects[index] = { ...newProjects[index], achievements: selectedAchievements };
-    setProjects(newProjects);
-    updateProjects(newProjects);
-    setIsGenerating(false);
-    toast.success("Generated project achievements!");
+    try {
+      const project = projects[index];
+      
+      // Validate required fields
+      if (!project.description.trim()) {
+        toast.error("Please generate or enter a project description first");
+        return;
+      }
+
+      setGeneratingAchievements(index);
+      
+      const prompt = {
+        content: {
+          projectName: project.name,
+          description: project.description,
+          context: `Based on this project description, generate 3-4 specific, quantifiable achievements that demonstrate the project's impact. Each achievement should:
+1. Start with a strong action verb
+2. Include specific metrics or numbers
+3. Highlight technical impact
+4. Mention specific technologies when relevant
+
+Format each achievement as a complete, impactful statement.
+
+Example achievements:
+- Reduced API response time by 65% through implementation of Redis caching
+- Achieved 95% test coverage using Jest and React Testing Library
+- Decreased bundle size by 40% through code splitting and lazy loading
+
+Respond with ONLY the achievements, one per line, starting with a dash (-). Each achievement must start with a dash. Do not use asterisks or bullet points.`
+        }
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, type: 'suggest' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to generate achievements');
+      }
+
+      if (!data.result) {
+        throw new Error('No achievements generated');
+      }
+
+      // Process the achievements
+      const achievementsList = data.result
+        .split('\n') // Split by newlines first
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.startsWith('-')) // Only keep lines that start with a dash
+        .map((line: string) => line.substring(1).trim()) // Remove the dash
+        .filter((achievement: string) => achievement.length > 0);
+
+      const newProjects = [...projects];
+      const currentProject = newProjects[index];
+      
+      // If there's only an empty achievement, replace it
+      if (currentProject.achievements.length === 1 && !currentProject.achievements[0]) {
+        currentProject.achievements = achievementsList;
+      } else {
+        // Otherwise, append new achievements
+        currentProject.achievements = [...currentProject.achievements, ...achievementsList];
+      }
+
+      setProjects(newProjects);
+      updateProjects(newProjects);
+      toast.success("Generated project achievements!");
+    } catch (error: any) {
+      console.error('Error generating achievements:', error);
+      toast.error(error.message || 'Failed to generate achievements');
+    } finally {
+      setGeneratingAchievements(null);
+    }
   };
 
   return (
@@ -215,9 +375,9 @@ export default function ProjectsForm() {
                   size="sm"
                   className="text-muted-foreground hover:text-primary"
                   onClick={() => generateDescription(index)}
-                  disabled={isGenerating}
+                  disabled={generatingDescription !== null || !project.name.trim()}
                 >
-                  {isGenerating ? (
+                  {generatingDescription === index ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Wand2 className="h-4 w-4 mr-2" />
@@ -280,14 +440,14 @@ export default function ProjectsForm() {
                   size="sm"
                   className="text-muted-foreground hover:text-primary"
                   onClick={() => suggestTechnologies(index)}
-                  disabled={isGenerating}
+                  disabled={generatingTechnologies !== null || !project.description.trim()}
                 >
-                  {isGenerating ? (
+                  {generatingTechnologies === index ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Wand2 className="h-4 w-4 mr-2" />
                   )}
-                  Suggest Tech Stack
+                  Generate Tech Stack
                 </Button>
               </div>
               {project.technologies.map((tech, techIndex) => (
@@ -326,9 +486,9 @@ export default function ProjectsForm() {
                   size="sm"
                   className="text-muted-foreground hover:text-primary"
                   onClick={() => generateAchievements(index)}
-                  disabled={isGenerating}
+                  disabled={generatingAchievements !== null || !project.description.trim()}
                 >
-                  {isGenerating ? (
+                  {generatingAchievements === index ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Wand2 className="h-4 w-4 mr-2" />

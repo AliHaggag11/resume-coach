@@ -79,64 +79,92 @@ export default function SkillsForm() {
   };
 
   const suggestSkills = async (categoryIndex: number) => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockSkillsByCategory: { [key: string]: string[] } = {
-      "Technical Skills": [
-        "React.js",
-        "TypeScript",
-        "Node.js",
-        "AWS",
-        "Docker",
-        "GraphQL",
-        "MongoDB",
-      ],
-      "Soft Skills": [
-        "Team Leadership",
-        "Problem Solving",
-        "Communication",
-        "Project Management",
-        "Agile Methodologies",
-      ],
-      "Tools & Technologies": [
-        "Git",
-        "VS Code",
-        "Jira",
-        "Jenkins",
-        "Kubernetes",
-        "Postman",
-      ],
-      "Languages": [
-        "JavaScript",
-        "Python",
-        "Java",
-        "C++",
-        "SQL",
-        "HTML/CSS",
-      ],
-    };
-
-    const categoryName = categories[categoryIndex].name;
-    let suggestedSkills = mockSkillsByCategory["Technical Skills"]; // default
-
-    for (const [key, skills] of Object.entries(mockSkillsByCategory)) {
-      if (categoryName.toLowerCase().includes(key.toLowerCase().split(" ")[0])) {
-        suggestedSkills = skills;
-        break;
+    try {
+      const category = categories[categoryIndex];
+      
+      if (!category.name.trim()) {
+        toast.error("Please enter a category name first");
+        return;
       }
+
+      // Check if required personal info exists
+      if (!resumeData.personalInfo.title?.trim()) {
+        toast.error("Please fill in your professional title in the Personal Info section first");
+        return;
+      }
+
+      if (!resumeData.personalInfo.summary?.trim()) {
+        toast.error("Please add a professional summary in the Personal Info section first");
+        return;
+      }
+
+      setIsGenerating(true);
+      
+      const prompt = {
+        content: {
+          category: category.name,
+          title: resumeData.personalInfo.title,
+          summary: resumeData.personalInfo.summary,
+          context: `Based on the professional title "${resumeData.personalInfo.title}" and the category "${category.name}", suggest 5-7 relevant skills. The skills should be specific and aligned with current industry standards.
+
+Format the response as a JSON array of strings:
+["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"]
+
+Example for a "Technical Skills" category for a "Full Stack Developer":
+["React.js", "Node.js", "TypeScript", "AWS", "Docker"]
+
+Make sure the skills are:
+1. Relevant to both the job title and category
+2. Modern and currently in-demand
+3. Specific rather than generic
+4. Properly capitalized and formatted`
+        }
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, type: 'suggest' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to generate skills');
+      }
+
+      if (!data.result) {
+        throw new Error('No skills generated');
+      }
+
+      // Parse the result as JSON array
+      let suggestedSkills;
+      try {
+        suggestedSkills = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+        if (!Array.isArray(suggestedSkills)) {
+          throw new Error('Invalid skills format');
+        }
+      } catch (e) {
+        // Fallback: try to extract skills from text
+        suggestedSkills = data.result
+          .split(/[,\n]/)
+          .map((skill: string) => skill.trim())
+          .filter((skill: string) => skill.length > 0);
+      }
+
+      const newCategories = [...categories];
+      newCategories[categoryIndex].skills = suggestedSkills;
+      setCategories(newCategories);
+      updateSkills(newCategories);
+      toast.success("Generated skill suggestions!");
+    } catch (error: any) {
+      console.error('Error generating skills:', error);
+      toast.error(error.message || 'Failed to generate skills');
+    } finally {
+      setIsGenerating(false);
     }
-
-    const selectedSkills = suggestedSkills
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 5);
-
-    const newCategories = [...categories];
-    newCategories[categoryIndex].skills = selectedSkills;
-    setCategories(newCategories);
-    updateSkills(newCategories);
-    setIsGenerating(false);
-    toast.success("Generated skill suggestions!");
   };
 
   return (

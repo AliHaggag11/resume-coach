@@ -279,36 +279,35 @@ function BuilderPageContent(): ReactElement {
 
       setIsAnalyzing(true);
       
-      // Simplified and more explicit prompt structure
       const prompt = {
         role: "assistant",
-        content: `You are a resume analysis AI. Analyze the following resume and return ONLY a JSON object with scores and feedback.
+        content: `You are an ATS (Applicant Tracking System) analyzer. Your task is to analyze the resume data and return ONLY a JSON object containing scores and feedback. DO NOT return the resume text or any other format.
 
-Required JSON format (copy this format exactly):
+Analysis criteria:
+1. ATS Compatibility (0-100): Evaluate formatting, keyword optimization, section organization
+2. Impact Statements (0-100): Assess use of action verbs, quantifiable achievements, clarity
+3. Keywords Match (0-100): Check industry-relevant terms, technical skills alignment
+
+Resume data to analyze:
+${JSON.stringify(resumeData, null, 2)}
+
+IMPORTANT: Your response must be ONLY the following JSON object, with no additional text, markdown, or formatting:
 {
   "atsCompatibility": {
-    "score": 85,
-    "feedback": "Your specific feedback here"
+    "score": <number 0-100>,
+    "feedback": "<clear, specific feedback with actionable improvements>"
   },
   "impactStatements": {
-    "score": 75,
-    "feedback": "Your specific feedback here"
+    "score": <number 0-100>,
+    "feedback": "<clear, specific feedback with actionable improvements>"
   },
   "keywordsMatch": {
-    "score": 80,
-    "feedback": "Your specific feedback here"
+    "score": <number 0-100>,
+    "feedback": "<clear, specific feedback with actionable improvements>"
   }
 }
 
-Analysis criteria:
-1. ATS Compatibility (score 0-100): Check formatting, headers, sections, keywords
-2. Impact Statements (score 0-100): Evaluate action verbs, achievements, metrics
-3. Keywords Match (score 0-100): Assess industry terms and skill alignment
-
-Resume to analyze:
-${JSON.stringify(resumeData, null, 2)}
-
-Remember: Return ONLY the JSON object with no additional text or explanation.`
+DO NOT include any text before or after the JSON object. DO NOT format as a code block. Return ONLY the JSON object.`
       };
 
       const response = await fetch('/api/ai', {
@@ -329,42 +328,62 @@ Remember: Return ONLY the JSON object with no additional text or explanation.`
         throw new Error('No analysis result received');
       }
 
-      let analysis;
+      type AnalysisSection = {
+        score: number;
+        feedback: string;
+      };
+
+      type Analysis = {
+        atsCompatibility: AnalysisSection;
+        impactStatements: AnalysisSection;
+        keywordsMatch: AnalysisSection;
+      };
+
+      let analysis: Analysis;
       try {
-        // Clean the response string and attempt to parse
+        // Clean the response string and parse it
         const cleanResult = data.result
-          .trim()
-          // Remove any markdown code block indicators
-          .replace(/```json/g, '')
-          .replace(/```/g, '')
-          // Remove any leading/trailing whitespace or newlines
+          .replace(/```json\s*/g, '')
+          .replace(/```\s*/g, '')
           .trim();
 
-        analysis = JSON.parse(cleanResult);
-      } catch (parseError) {
-        console.error('Raw AI Response:', data.result);
-        throw new Error('Failed to parse analysis result. Please try again.');
-      }
-
-      // Validate analysis structure
-      if (!analysis || typeof analysis !== 'object') {
-        throw new Error('Invalid analysis format');
-      }
-
-      const requiredFields = ['atsCompatibility', 'impactStatements', 'keywordsMatch'];
-      for (const field of requiredFields) {
-        if (!analysis[field]?.score || !analysis[field]?.feedback) {
-          throw new Error(`Missing required field: ${field}`);
+        // Attempt to parse, with additional error context if it fails
+        try {
+          analysis = JSON.parse(cleanResult) as Analysis;
+        } catch (parseError: unknown) {
+          console.error('Parse error. Raw response:', cleanResult);
+          throw new Error(`Failed to parse analysis result: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
         }
+
+        // Validate the analysis structure
+        const validateScore = (score: number) => {
+          return typeof score === 'number' && score >= 0 && score <= 100;
+        };
+
+        const validateFeedback = (feedback: string) => {
+          return typeof feedback === 'string' && feedback.length > 0;
+        };
+
+        // Type-safe way to check sections
+        const sections: (keyof Analysis)[] = ['atsCompatibility', 'impactStatements', 'keywordsMatch'];
+        for (const section of sections) {
+          if (!analysis[section] || 
+              !validateScore(analysis[section].score) || 
+              !validateFeedback(analysis[section].feedback)) {
+            throw new Error(`Invalid or missing ${section} data in analysis result`);
+          }
+        }
+
+        // Normalize scores
+        sections.forEach(section => {
+          analysis[section].score = Math.round(analysis[section].score);
+        });
+
+      } catch (error) {
+        console.error('Analysis validation error:', error);
+        throw new Error('Invalid analysis format received. Please try again.');
       }
 
-      // Normalize scores to ensure they're valid numbers between 0-100
-      const normalizeScore = (score: number) => Math.min(100, Math.max(0, Math.round(Number(score))));
-      
-      analysis.atsCompatibility.score = normalizeScore(analysis.atsCompatibility.score);
-      analysis.impactStatements.score = normalizeScore(analysis.impactStatements.score);
-      analysis.keywordsMatch.score = normalizeScore(analysis.keywordsMatch.score);
-      
       // Calculate overall ATS score
       const overallScore = Math.round(
         (analysis.atsCompatibility.score + 

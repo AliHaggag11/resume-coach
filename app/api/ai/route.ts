@@ -14,7 +14,86 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // Helper function to generate prompts based on type
 function generatePrompt(type: string, content: any) {
-  const basePrompt = `Act as a professional resume writer. Generate ONLY the actual content to be used in the resume. Do not provide explanations, suggestions, or instructions.
+  switch (type) {
+    case 'analyze':
+      return `You are an ATS (Applicant Tracking System) analyzer. Analyze the following resume data and return ONLY a JSON object with scores and feedback. The response must be a valid JSON object with no additional text, markdown, or formatting.
+
+Resume to analyze:
+${JSON.stringify(content)}
+
+Scoring Criteria:
+
+ATS Compatibility (Score out of 100):
+- Format and Structure (30 points):
+  * Clear section headings
+  * Consistent formatting
+  * Proper use of bullet points
+  * Standard resume sections present
+- Content Quality (40 points):
+  * Relevant information for each section
+  * Proper date formatting
+  * Contact information completeness
+  * Professional email address
+- Keyword Optimization (30 points):
+  * Industry-standard terminology
+  * Job-relevant skills
+  * Technical terms accuracy
+
+Impact Statements (Score out of 100):
+- Action Verbs (25 points):
+  * Strong action verbs at start
+  * Variety in verb usage
+  * Professional tone
+- Quantification (25 points):
+  * Numerical results
+  * Percentages
+  * Specific metrics
+- Achievement Focus (25 points):
+  * Results over responsibilities
+  * Problem-solution statements
+  * Impact on business
+- Clarity (25 points):
+  * Concise phrasing
+  * Clear cause-effect
+  * Professional language
+
+Keywords Match (Score out of 100):
+- Technical Skills (40 points):
+  * Relevant technical skills
+  * Current technologies
+  * Industry-standard tools
+- Soft Skills (30 points):
+  * Leadership terms
+  * Collaboration terms
+  * Communication skills
+- Industry Terms (30 points):
+  * Domain-specific terminology
+  * Role-specific keywords
+  * Industry best practices
+
+Required JSON format:
+{
+  "atsCompatibility": {
+    "score": <number 0-100>,
+    "feedback": "<clear, specific feedback with actionable improvements>"
+  },
+  "impactStatements": {
+    "score": <number 0-100>,
+    "feedback": "<clear, specific feedback with actionable improvements>"
+  },
+  "keywordsMatch": {
+    "score": <number 0-100>,
+    "feedback": "<clear, specific feedback with actionable improvements>"
+  }
+}
+
+Important:
+1. Scores must be integers between 0 and 100
+2. Follow the scoring criteria exactly
+3. Be consistent in scoring across analyses
+4. Provide specific, actionable feedback for improvement`;
+    case 'improve':
+      return `Act as a professional resume writer. Generate ONLY the actual content to be used in the resume. Do not provide explanations, suggestions, or instructions.
 
 Input Content:
 ${JSON.stringify(content)}
@@ -26,17 +105,35 @@ Requirements:
 4. No bullet points or formatting
 5. Just the plain text content
 
-Generate the content for: `;
-
-  switch (type) {
-    case 'improve':
-      return basePrompt + "an improved version that is more professional and impactful.";
-    case 'analyze':
-      return basePrompt + "optimized content based on the job description.";
+Generate an improved version that is more professional and impactful.`;
     case 'suggest':
-      return basePrompt + "an improved version of this resume section.";
+      return `Act as a professional resume writer. Generate ONLY the actual content to be used in the resume. Do not provide explanations, suggestions, or instructions.
+
+Input Content:
+${JSON.stringify(content)}
+
+Requirements:
+1. Return only the final content
+2. Content should be ready to use directly in the resume
+3. No explanations or meta-commentary
+4. No bullet points or formatting
+5. Just the plain text content
+
+Generate an improved version of this resume section.`;
     default:
-      return basePrompt + "professional resume content.";
+      return `Act as a professional resume writer. Generate ONLY the actual content to be used in the resume. Do not provide explanations, suggestions, or instructions.
+
+Input Content:
+${JSON.stringify(content)}
+
+Requirements:
+1. Return only the final content
+2. Content should be ready to use directly in the resume
+3. No explanations or meta-commentary
+4. No bullet points or formatting
+5. Just the plain text content
+
+Generate professional resume content.`;
   }
 }
 
@@ -60,11 +157,11 @@ export async function POST(request: Request) {
       // Generate the appropriate prompt
       const formattedPrompt = generatePrompt(type, prompt);
 
-      // Set generation config to encourage direct responses
+      // Set generation config to encourage consistent, deterministic responses
       const generationConfig = {
-        temperature: 0.7,
+        temperature: 0.1,
         topK: 1,
-        topP: 0.8,
+        topP: 0.1,
         maxOutputTokens: 1000,
       };
 

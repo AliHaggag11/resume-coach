@@ -44,8 +44,8 @@ export default function ExperienceForm() {
           },
         ]
   );
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [generatingDescription, setGeneratingDescription] = useState<number | null>(null);
+  const [generatingAchievements, setGeneratingAchievements] = useState<number | null>(null);
 
   const addExperience = () => {
     setExperiences([
@@ -99,15 +99,44 @@ export default function ExperienceForm() {
 
   const generateDescription = async (index: number) => {
     try {
-      setIsGenerating(true);
       const experience = experiences[index];
+      
+      // Validate required fields
+      if (!experience.company.trim() || !experience.position.trim()) {
+        toast.error("Please enter both company name and position before generating description");
+        return;
+      }
+
+      setGeneratingDescription(index);
       
       const prompt = {
         content: {
           position: experience.position,
           company: experience.company,
           current: experience.current,
-          context: "Generate a professional and impactful job description highlighting responsibilities and impact. Focus on action verbs and quantifiable achievements."
+          context: `Based on the ${experience.position} role, complete ONLY the following template with 2-3 strong action verbs and their corresponding achievements. Each should be quantifiable and impactful.
+
+Template to fill (ONLY fill the [...] parts, keep everything else exactly as is):
+{
+  "verb1": "[first action verb]",
+  "achievement1": "[first achievement with metrics]",
+  "verb2": "[second action verb]",
+  "achievement2": "[second achievement with metrics]",
+  "verb3": "[optional third action verb]",
+  "achievement3": "[optional third achievement with metrics]"
+}
+
+Example response:
+{
+  "verb1": "Developed",
+  "achievement1": "scalable backend services, improving system performance by 40%",
+  "verb2": "Led",
+  "achievement2": "cross-functional teams in implementing automated testing, reducing deployment time by 60%",
+  "verb3": "",
+  "achievement3": ""
+}
+
+Fill in ONLY the template above. Do not add any other text or context.`
         }
       };
 
@@ -129,8 +158,36 @@ export default function ExperienceForm() {
         throw new Error('No description generated');
       }
 
+      // Parse the template response and construct the description
+      let cleanDescription;
+      try {
+        const template = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+        
+        // Construct the description from the template parts
+        const parts = [];
+        if (template.verb1 && template.achievement1) {
+          parts.push(`${template.verb1} ${template.achievement1}`);
+        }
+        if (template.verb2 && template.achievement2) {
+          parts.push(`${template.verb2} ${template.achievement2}`);
+        }
+        if (template.verb3 && template.achievement3) {
+          parts.push(`${template.verb3} ${template.achievement3}`);
+        }
+        
+        cleanDescription = parts.join('. ');
+        if (cleanDescription) {
+          cleanDescription += '.';
+        }
+      } catch (e) {
+        // If parsing fails, use a simple cleanup as fallback
+        cleanDescription = data.result
+          .replace(/^[^.!?]*(?:Software Engineer|Engineer|Developer|Position|Role|Current|As a|Working as)[^.!?]*[.!?]\s*/i, '')
+          .trim();
+      }
+
       const newExperiences = [...experiences];
-      newExperiences[index] = { ...newExperiences[index], description: data.result };
+      newExperiences[index] = { ...newExperiences[index], description: cleanDescription };
       setExperiences(newExperiences);
       updateExperiences(newExperiences);
       toast.success("Generated job description!");
@@ -138,13 +195,13 @@ export default function ExperienceForm() {
       console.error('Error generating description:', error);
       toast.error(error.message || 'Failed to generate description');
     } finally {
-      setIsGenerating(false);
+      setGeneratingDescription(null);
     }
   };
 
   const generateAchievements = async (index: number) => {
     try {
-      setIsGenerating(true);
+      setGeneratingAchievements(index);
       const experience = experiences[index];
       
       const prompt = {
@@ -203,54 +260,7 @@ export default function ExperienceForm() {
       console.error('Error generating achievements:', error);
       toast.error(error.message || 'Failed to generate achievements');
     } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleAiSuggestion = async (index: number) => {
-    try {
-      setIsGenerating(true);
-      const experience = experiences[index];
-      
-      const prompt = {
-        content: {
-          position: experience.position,
-          company: experience.company,
-          location: experience.location,
-          startDate: experience.startDate,
-          endDate: experience.endDate,
-          current: experience.current,
-          description: experience.description,
-          achievements: experience.achievements,
-          context: "Review and improve this work experience entry. Suggest improvements for the job description and achievements. Focus on making it more impactful and professional."
-        }
-      };
-
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt, type: 'suggest' }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.details || data.error || 'Failed to get suggestions');
-      }
-
-      if (!data.result) {
-        throw new Error('No suggestions generated');
-      }
-
-      setAiSuggestion(data.result);
-      toast.success("AI suggestions received!");
-    } catch (error: any) {
-      console.error('Error getting suggestions:', error);
-      toast.error(error.message || 'Failed to get suggestions');
-    } finally {
-      setIsGenerating(false);
+      setGeneratingAchievements(null);
     }
   };
 
@@ -259,23 +269,8 @@ export default function ExperienceForm() {
       {experiences.map((experience, index) => (
         <Card key={index} className="relative">
           <CardHeader>
-            <CardTitle className="text-xl">Experience {index + 1}</CardTitle>
-            <CardDescription>Add your work experience details</CardDescription>
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-primary"
-                onClick={() => handleAiSuggestion(index)}
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4 mr-2" />
-                )}
-                Get Suggestions
-              </Button>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl">Experience {index + 1}</CardTitle>
               {index > 0 && (
                 <Button
                   variant="ghost"
@@ -287,6 +282,7 @@ export default function ExperienceForm() {
                 </Button>
               )}
             </div>
+            <CardDescription>Add your work experience details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -338,9 +334,9 @@ export default function ExperienceForm() {
                   size="sm"
                   className="text-muted-foreground hover:text-primary"
                   onClick={() => generateDescription(index)}
-                  disabled={isGenerating}
+                  disabled={generatingDescription !== null || !experience.company.trim() || !experience.position.trim()}
                 >
-                  {isGenerating ? (
+                  {generatingDescription === index ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Wand2 className="h-4 w-4 mr-2" />
@@ -365,9 +361,9 @@ export default function ExperienceForm() {
                   size="sm"
                   className="text-muted-foreground hover:text-primary"
                   onClick={() => generateAchievements(index)}
-                  disabled={isGenerating}
+                  disabled={generatingAchievements !== null}
                 >
-                  {isGenerating ? (
+                  {generatingAchievements === index ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Wand2 className="h-4 w-4 mr-2" />
@@ -405,24 +401,6 @@ export default function ExperienceForm() {
                 Add Achievement
               </Button>
             </div>
-            {aiSuggestion && index === experiences.length - 1 && (
-              <div className="mt-4 p-4 rounded-lg border bg-muted/50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Wand2 className="h-4 w-4 text-primary" />
-                    AI Suggestions
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setAiSuggestion(null)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-sm whitespace-pre-wrap">{aiSuggestion}</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       ))}

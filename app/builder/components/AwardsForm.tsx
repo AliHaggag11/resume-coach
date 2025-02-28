@@ -38,7 +38,7 @@ export default function AwardsForm() {
           },
         ]
   );
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState<number | null>(null);
 
   const addAward = () => {
     setAwards([
@@ -66,64 +66,63 @@ export default function AwardsForm() {
   };
 
   const generateDescription = async (index: number) => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockDescriptions = [
-      "Awarded for exceptional leadership in developing innovative solutions that significantly improved team productivity and project delivery timelines.",
-      "Recognized for outstanding contributions to open-source projects and community development initiatives.",
-      "Certified in advanced cloud architecture, demonstrating expertise in designing and implementing scalable cloud solutions.",
-      "Received for excellence in technical problem-solving and implementing best practices in software development.",
-    ];
-    
-    const randomDescription = mockDescriptions[Math.floor(Math.random() * mockDescriptions.length)];
-    const newAwards = [...awards];
-    newAwards[index] = { ...newAwards[index], description: randomDescription };
-    setAwards(newAwards);
-    updateAwards(newAwards);
-    setIsGenerating(false);
-    toast.success("Generated award description!");
-  };
+    try {
+      const award = awards[index];
+      
+      // Validate required fields
+      if (!award.title.trim()) {
+        toast.error("Please enter an award title before generating description");
+        return;
+      }
 
-  const suggestAward = async (index: number) => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockAwards = [
-      {
-        title: "AWS Certified Solutions Architect",
-        issuer: "Amazon Web Services",
-        description: "Professional certification demonstrating expertise in designing distributed systems on AWS.",
-      },
-      {
-        title: "Google Cloud Professional Developer",
-        issuer: "Google Cloud",
-        description: "Advanced certification for building scalable and reliable applications on Google Cloud Platform.",
-      },
-      {
-        title: "Microsoft Certified: Azure Developer Associate",
-        issuer: "Microsoft",
-        description: "Certification validating expertise in cloud development using Microsoft Azure services.",
-      },
-      {
-        title: "Certified Kubernetes Administrator",
-        issuer: "Cloud Native Computing Foundation",
-        description: "Professional certification in managing and orchestrating containerized applications using Kubernetes.",
-      },
-    ];
-    
-    const randomAward = mockAwards[Math.floor(Math.random() * mockAwards.length)];
-    const newAwards = [...awards];
-    newAwards[index] = { 
-      ...newAwards[index], 
-      title: randomAward.title,
-      issuer: randomAward.issuer,
-      description: randomAward.description,
-    };
-    setAwards(newAwards);
-    updateAwards(newAwards);
-    setIsGenerating(false);
-    toast.success("Generated award suggestion!");
+      setGeneratingDescription(index);
+      
+      const prompt = {
+        content: {
+          awardTitle: award.title,
+          issuer: award.issuer,
+          context: `Generate a detailed and professional description for the award/certification "${award.title}"${award.issuer ? ` from ${award.issuer}` : ''}. The description should:
+1. Highlight the significance and prestige of the award/certification
+2. Mention specific skills or knowledge areas validated
+3. Describe the impact or value in professional context
+4. Keep it to 1-2 impactful sentences
+
+Example format:
+"Demonstrated advanced expertise in cloud architecture and security best practices, validating ability to design and implement scalable, secure solutions across multiple cloud platforms. Recognized for exceptional problem-solving skills and deep technical knowledge in modern cloud technologies."
+
+Respond with ONLY the description, no additional text or context.`
+        }
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, type: 'suggest' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to generate description');
+      }
+
+      if (!data.result) {
+        throw new Error('No description generated');
+      }
+
+      const newAwards = [...awards];
+      newAwards[index] = { ...newAwards[index], description: data.result.trim() };
+      setAwards(newAwards);
+      updateAwards(newAwards);
+      toast.success("Generated award description!");
+    } catch (error: any) {
+      console.error('Error generating description:', error);
+      toast.error(error.message || 'Failed to generate description');
+    } finally {
+      setGeneratingDescription(null);
+    }
   };
 
   return (
@@ -145,22 +144,6 @@ export default function AwardsForm() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-primary"
-                onClick={() => suggestAward(index)}
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4 mr-2" />
-                )}
-                Suggest Award
-              </Button>
-            </div>
             <Input
               placeholder="Award/Certification Title"
               value={award.title}
@@ -185,9 +168,9 @@ export default function AwardsForm() {
                   size="sm"
                   className="text-muted-foreground hover:text-primary"
                   onClick={() => generateDescription(index)}
-                  disabled={isGenerating}
+                  disabled={generatingDescription !== null || !award.title.trim()}
                 >
-                  {isGenerating ? (
+                  {generatingDescription === index ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Wand2 className="h-4 w-4 mr-2" />
