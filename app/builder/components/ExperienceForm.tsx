@@ -179,7 +179,7 @@ export default function ExperienceForm() {
         .split('\n')
         .map((achievement: string) => achievement.trim())
         .filter((achievement: string) => achievement.length > 0)
-        .map((achievement: string) => achievement.replace(/^[•\-\*]\s*/, '')); // Remove bullet points and spaces
+        .map((achievement: string) => achievement.replace(/^[•\-*]\s*/, '')); // Remove bullet points and spaces
 
       // Create a new experience object with the first achievement replacing the empty one
       const newExperiences = [...experiences];
@@ -349,7 +349,9 @@ export default function ExperienceForm() {
                 </Button>
               </div>
               <Textarea
-                placeholder="Job Description"
+                placeholder="* Increased revenue by 25% through implementation of new sales strategies
+* Led a team of 5 developers in successful project delivery
+* Reduced customer churn rate by 15% through improved service quality"
                 value={experience.description}
                 onChange={(e) => updateExperience(index, "description", e.target.value)}
                 className="h-24"

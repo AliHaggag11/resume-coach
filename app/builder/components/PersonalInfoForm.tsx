@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Wand2, RefreshCw } from "lucide-react";
+import { Wand2, RefreshCw, Loader2 } from "lucide-react";
 import { useResume } from "@/app/context/ResumeContext";
 import { toast } from "sonner";
 
@@ -157,31 +157,37 @@ export default function PersonalInfoForm() {
         />
       </div>
 
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="summary">Professional Summary</Label>
-        <div className="relative">
+        <div className="space-y-2">
           <Textarea
             id="summary"
             name="summary"
             value={personalInfo.summary}
             onChange={handleChange}
             placeholder="Write a brief summary of your professional background and key qualifications..."
-            className="h-32"
+            className="min-h-[100px]"
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-2 right-2 text-muted-foreground hover:text-primary"
-            onClick={generateSummary}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Wand2 className="h-4 w-4 mr-2" />
-            )}
-            Generate Summary
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateSummary}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Generate Summary
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
