@@ -3,6 +3,56 @@
 import { useResume } from "@/app/context/ResumeContext";
 import { useResumeStyle } from "@/app/context/ResumeStyleContext";
 import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
+
+interface Experience {
+  company: string;
+  position: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+  achievements: string[];
+}
+
+interface Education {
+  school: string;
+  degree: string;
+  field: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  gpa: string;
+  achievements: string[];
+}
+
+interface SkillCategory {
+  name: string;
+  skills: string[];
+}
+
+interface Project {
+  name: string;
+  description: string;
+  technologies: string[];
+  link: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  achievements: string[];
+}
+
+interface Award {
+  title: string;
+  issuer: string;
+  date: string;
+  description: string;
+  link: string;
+}
 
 interface PersonalInfo {
   fullName: string;
@@ -16,270 +66,389 @@ interface PersonalInfo {
   website: string;
 }
 
-interface ResumePreviewProps {
-  template: string;
+interface ResumeData {
+  personalInfo: PersonalInfo;
+  experiences: Experience[];
+  education: Education[];
+  skills: SkillCategory[];
+  projects: Project[];
+  awards: Award[];
 }
 
-const ResumePreview: React.FC<ResumePreviewProps> = ({ template }) => {
-  const { resumeData } = useResume();
-  const { style } = useResumeStyle();
+interface ResumeStyle {
+  font: string;
+  fontSize: string;
+  spacing: string;
+  accentColor: string;
+}
 
-  const themeStyles = {
-    modern: {
-      heading: "text-3xl font-bold mb-4 text-zinc-900 border-b pb-4",
-      subheading: "text-xl font-semibold mb-3",
-      section: "mb-8",
-      item: "mb-6",
-      title: "font-medium text-zinc-900",
-      subtitle: "text-zinc-600",
-      link: "hover:underline transition-colors duration-200",
-      container: "space-y-6",
-      header: "mb-8",
-      contactInfo: "flex flex-wrap gap-4 text-sm mt-4 text-zinc-600",
-      description: "text-zinc-700 leading-relaxed",
-      achievementList: "list-none space-y-2 mt-3",
-      achievementItem: "flex items-start gap-2 text-zinc-700",
-      bullet: "mt-1.5",
-    },
-    professional: {
-      heading: "text-4xl font-bold mb-6 text-zinc-900",
-      subheading: "text-2xl font-semibold mb-4 border-b-2 pb-2",
-      section: "mb-10",
-      item: "mb-8",
-      title: "font-semibold text-zinc-900 text-lg",
-      subtitle: "text-zinc-600",
-      link: "hover:underline transition-colors duration-200",
-      container: "space-y-8",
-      header: "mb-10 text-center",
-      contactInfo: "flex flex-wrap justify-center gap-6 text-sm mt-4 text-zinc-600",
-      description: "text-zinc-700 leading-relaxed",
-      achievementList: "list-disc list-inside mt-3 space-y-2",
-      achievementItem: "text-zinc-700",
-      bullet: "text-zinc-400",
-    },
-    creative: {
-      heading: "text-4xl font-bold mb-4 bg-primary/5 inline-block px-4 py-2 rounded-lg",
-      subheading: "text-xl font-bold mb-4 flex items-center gap-2 before:content-[''] before:h-px before:flex-1 before:bg-primary/20",
-      section: "mb-8",
-      item: "mb-6 bg-zinc-50/80 p-4 rounded-lg border border-zinc-100",
-      title: "font-bold text-zinc-900",
-      subtitle: "text-zinc-500",
-      link: "font-medium hover:underline transition-colors duration-200",
-      container: "space-y-8",
-      header: "mb-8",
-      contactInfo: "flex flex-wrap gap-4 text-sm mt-4 bg-zinc-50/80 p-4 rounded-lg",
-      description: "text-zinc-700 mt-2",
-      achievementList: "space-y-2 mt-3",
-      achievementItem: "flex items-start gap-2 text-zinc-700 bg-white p-2 rounded border border-zinc-100",
-      bullet: "",
-    },
-    minimal: {
-      heading: "text-2xl font-medium mb-6 text-zinc-900",
-      subheading: "text-lg font-medium mb-4 text-zinc-800 uppercase tracking-wider",
-      section: "mb-8",
-      item: "mb-6",
-      title: "font-medium text-zinc-900",
-      subtitle: "text-zinc-500 text-sm",
-      link: "hover:underline transition-colors duration-200",
-      container: "space-y-6",
-      header: "mb-8",
-      contactInfo: "flex flex-wrap gap-4 text-sm mt-3 text-zinc-500",
-      description: "text-zinc-700 leading-relaxed",
-      achievementList: "space-y-2 mt-2",
-      achievementItem: "text-zinc-700 flex items-start gap-2",
-      bullet: "text-zinc-300",
-    },
+interface ResumePreviewProps {
+  template: string;
+  scale?: number;
+  forExport?: boolean;
+  data?: ResumeData;
+  styleOverride?: ResumeStyle;
+}
+
+const ResumePreview: React.FC<ResumePreviewProps> = ({ 
+  template, 
+  scale = 1, 
+  forExport = false,
+  data,
+  styleOverride
+}) => {
+  const { resumeData: contextData } = useResume();
+  const { style: contextStyle } = useResumeStyle();
+  
+  // Use provided data/style or fall back to context
+  const resumeData = data || contextData;
+  const style = styleOverride || contextStyle;
+
+  const A4_DIMENSIONS = {
+    width: 794, // ~210mm in px at 96dpi
+    height: 1123, // ~297mm in px at 96dpi
+    padding: forExport ? 40 : 72, // Use smaller padding for export
   };
 
-  // Apply dynamic styles based on the selected theme and user customizations
-  const getThemeWithCustomizations = () => {
-    const baseTheme = themeStyles[template as keyof typeof themeStyles] || themeStyles.modern;
-    
-    return {
-      ...baseTheme,
-      heading: `${baseTheme.heading} ${style.font}`,
-      subheading: `${baseTheme.subheading} ${style.font} text-[color:var(--accent-color)]`,
-      link: `${baseTheme.link} text-[color:var(--accent-color)]`,
-      bullet: `${baseTheme.bullet} text-[color:var(--accent-color)]`,
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isCalculating, setIsCalculating] = useState(true);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const calculatePages = () => {
+      setIsCalculating(true);
+      const content = contentRef.current;
+      if (!content) return;
+
+      // Reset content height to get full height
+      content.style.height = 'auto';
+      
+      const contentHeight = content.scrollHeight;
+      const pageHeight = A4_DIMENSIONS.height - (A4_DIMENSIONS.padding * 2);
+      const calculatedTotalPages = Math.ceil(contentHeight / pageHeight);
+      
+      // Only show pagination if we actually have content that spans multiple pages
+      setTotalPages(contentHeight > pageHeight ? calculatedTotalPages : 1);
+      setCurrentPage(1);
+      
+      // Set the content height to match the current page
+      if (!forExport) {
+        content.style.height = `${pageHeight}px`;
+        content.style.overflow = 'hidden';
+      }
+      
+      setIsCalculating(false);
     };
+
+    calculatePages();
+    window.addEventListener('resize', calculatePages);
+
+    return () => {
+      window.removeEventListener('resize', calculatePages);
+    };
+  }, [resumeData, style, forExport]);
+
+  const containerStyle = {
+    width: `${A4_DIMENSIONS.width}px`,
+    minHeight: forExport ? 'auto' : `${A4_DIMENSIONS.height}px`,
+    padding: `${A4_DIMENSIONS.padding}px`,
+    transform: forExport ? 'none' : `scale(${scale})`,
+    transformOrigin: 'top left',
   };
 
-  const theme = getThemeWithCustomizations();
+  const wrapperStyle = {
+    width: `${A4_DIMENSIONS.width * scale}px`,
+    height: forExport ? 'auto' : `${A4_DIMENSIONS.height * scale}px`,
+    overflow: 'hidden',
+  };
+
+  const renderContent = () => {
+    return (
+      <div className={cn(
+        forExport ? "space-y-3" : "space-y-6",
+        style.font,
+        {
+          'text-sm': style.fontSize === 'small',
+          'text-base': style.fontSize === 'medium',
+          'text-lg': style.fontSize === 'large',
+          'space-y-2': style.spacing === 'compact' || forExport,
+          'space-y-4': style.spacing === 'comfortable' && !forExport,
+          'space-y-6': style.spacing === 'spacious' && !forExport,
+        }
+      )} style={{ 
+        letterSpacing: '0.01em', 
+        lineHeight: forExport ? '1.3' : '1.6',
+        pageBreakInside: 'auto',
+        breakInside: 'auto'
+      }}>
+        {/* Header */}
+        <header className={cn(
+          "text-center",
+          forExport ? "space-y-1.5 mb-3" : "space-y-3 mb-8"
+        )} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <h1 className="text-2xl font-bold tracking-wide" style={{ color: style.accentColor }}>
+            {resumeData.personalInfo.fullName}
+          </h1>
+          <p className="text-lg tracking-wide">
+            {resumeData.personalInfo.title}
+          </p>
+          <div className="flex items-center justify-center gap-6 text-sm tracking-wide">
+            <span>{resumeData.personalInfo.email}</span>
+            <span>{resumeData.personalInfo.phone}</span>
+            <span>{resumeData.personalInfo.location}</span>
+          </div>
+          <div className="flex items-center justify-center gap-6 text-sm tracking-wide">
+            {resumeData.personalInfo.linkedin && (
+              <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" 
+                className="hover:underline" style={{ color: style.accentColor }}>
+                LinkedIn
+              </a>
+            )}
+            {resumeData.personalInfo.github && (
+              <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" 
+                className="hover:underline" style={{ color: style.accentColor }}>
+                GitHub
+              </a>
+            )}
+            {resumeData.personalInfo.website && (
+              <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" 
+                className="hover:underline" style={{ color: style.accentColor }}>
+                Portfolio
+              </a>
+            )}
+          </div>
+        </header>
+
+        {/* Summary */}
+        {resumeData.personalInfo.summary && (
+          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
+              Professional Summary
+            </h2>
+            <p className="text-sm tracking-wide leading-relaxed">{resumeData.personalInfo.summary}</p>
+          </section>
+        )}
+
+        {/* Experience */}
+        {resumeData.experiences.length > 0 && (
+          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
+              Experience
+            </h2>
+            <div className={forExport ? "space-y-2" : "space-y-5"}>
+              {resumeData.experiences.map((exp, index) => (
+                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium tracking-wide">{exp.position}</h3>
+                      <p className="text-sm tracking-wide">{exp.company} • {exp.location}</p>
+                    </div>
+                    <p className="text-sm tracking-wide">
+                      {exp.startDate} - {exp.current ? "Present" : exp.endDate}
+                    </p>
+                  </div>
+                  <p className="text-sm tracking-wide leading-relaxed">{exp.description}</p>
+                  {exp.achievements.length > 0 && (
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      {exp.achievements.map((achievement, i) => (
+                        <li key={i} className="text-sm tracking-wide leading-relaxed">{achievement}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Education */}
+        {resumeData.education.length > 0 && (
+          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
+              Education
+            </h2>
+            <div className={forExport ? "space-y-2" : "space-y-5"}>
+              {resumeData.education.map((edu, index) => (
+                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium tracking-wide">{edu.degree} in {edu.field}</h3>
+                      <p className="text-sm tracking-wide">{edu.school} • {edu.location}</p>
+                    </div>
+                    <p className="text-sm tracking-wide">
+                      {edu.startDate} - {edu.current ? "Present" : edu.endDate}
+                    </p>
+                  </div>
+                  {edu.gpa && <p className="text-sm tracking-wide">GPA: {edu.gpa}</p>}
+                  {edu.achievements.length > 0 && (
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      {edu.achievements.map((achievement, i) => (
+                        <li key={i} className="text-sm tracking-wide leading-relaxed">{achievement}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Skills */}
+        {resumeData.skills.length > 0 && (
+          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
+              Skills
+            </h2>
+            <div className={forExport ? "space-y-1.5" : "space-y-4"}>
+              {resumeData.skills.map((category, index) => (
+                <div key={index} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                  <h3 className="font-medium text-sm tracking-wide mb-0.5">{category.name}</h3>
+                  <p className="text-sm tracking-wide leading-relaxed">{category.skills.join(" • ")}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Projects */}
+        {resumeData.projects.length > 0 && (
+          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
+              Projects
+            </h2>
+            <div className={forExport ? "space-y-2" : "space-y-5"}>
+              {resumeData.projects.map((project, index) => (
+                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium tracking-wide">
+                        {project.name}
+                        {project.link && (
+                          <a 
+                            href={project.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="ml-2 text-sm hover:underline tracking-wide"
+                            style={{ color: style.accentColor }}
+                          >
+                            View Project →
+                          </a>
+                        )}
+                      </h3>
+                      <p className="text-sm tracking-wide">{project.technologies.join(" • ")}</p>
+                    </div>
+                    {(project.startDate || project.endDate) && (
+                      <p className="text-sm tracking-wide">
+                        {project.startDate} - {project.current ? "Present" : project.endDate}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-sm tracking-wide leading-relaxed">{project.description}</p>
+                  {project.achievements.length > 0 && (
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      {project.achievements.map((achievement, i) => (
+                        <li key={i} className="text-sm tracking-wide leading-relaxed">{achievement}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Awards */}
+        {resumeData.awards.length > 0 && (
+          <section className={forExport ? "mb-3" : "mb-6"} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
+              Awards & Certifications
+            </h2>
+            <div className={forExport ? "space-y-2" : "space-y-5"}>
+              {resumeData.awards.map((award, index) => (
+                <div key={index} className="space-y-1" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium tracking-wide">{award.title}</h3>
+                      <p className="text-sm tracking-wide">{award.issuer}</p>
+                    </div>
+                    <p className="text-sm tracking-wide">{award.date}</p>
+                  </div>
+                  <p className="text-sm tracking-wide leading-relaxed">{award.description}</p>
+                  {award.link && (
+                    <a 
+                      href={award.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-sm hover:underline tracking-wide"
+                      style={{ color: style.accentColor }}
+                    >
+                      View Certificate →
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  };
+
+  if (forExport) {
+    return (
+      <div style={containerStyle} className="bg-white" ref={contentRef}>
+        {renderContent()}
+      </div>
+    );
+  }
 
   return (
-    <div className={cn("print:p-0 text-zinc-900", theme.container)}>
-      {/* Header */}
-      <header className={theme.header}>
-        <h1 className={theme.heading}>
-          {resumeData.personalInfo.fullName}
-        </h1>
-        <p className={theme.subtitle}>
-          {resumeData.personalInfo.title}
-        </p>
-        <div className={theme.contactInfo}>
-          <a href={`mailto:${resumeData.personalInfo.email}`} className={theme.link}>
-            {resumeData.personalInfo.email}
-          </a>
-          <span>{resumeData.personalInfo.phone}</span>
-          <span>{resumeData.personalInfo.location}</span>
-          {resumeData.personalInfo.linkedin && (
-            <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className={theme.link}>
-              LinkedIn
-            </a>
-          )}
-          {resumeData.personalInfo.github && (
-            <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className={theme.link}>
-              GitHub
-            </a>
-          )}
-          {resumeData.personalInfo.website && (
-            <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className={theme.link}>
-              Portfolio
-            </a>
-          )}
+    <div className="relative" style={wrapperStyle}>
+      <div 
+        style={{
+          ...containerStyle,
+          marginTop: forExport ? 0 : `${-A4_DIMENSIONS.height * (currentPage - 1)}px`,
+          transition: 'margin-top 0.3s ease-in-out'
+        }} 
+        className={cn(
+          "bg-white shadow-lg mx-auto",
+          isCalculating && "opacity-0"
+        )}
+        ref={contentRef}
+      >
+        {renderContent()}
+      </div>
+
+      {totalPages > 1 && !isCalculating && (
+        <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-white rounded-full shadow px-3 py-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
-      </header>
-
-      {/* Summary */}
-      {resumeData.personalInfo.summary && (
-        <section className={theme.section}>
-          <h2 className={theme.subheading}>Professional Summary</h2>
-          <p className={theme.description}>{resumeData.personalInfo.summary}</p>
-        </section>
-      )}
-
-      {/* Experience */}
-      {resumeData.experiences.length > 0 && (
-        <section className={theme.section}>
-          <h2 className={theme.subheading}>Experience</h2>
-          {resumeData.experiences.map((exp, index) => (
-            <div key={index} className={theme.item}>
-              <div className="flex justify-between items-start">
-                <h3 className={theme.title}>{exp.position}</h3>
-                <span className={theme.subtitle}>
-                  {exp.startDate} - {exp.current ? "Present" : exp.endDate}
-                </span>
-              </div>
-              <p className={theme.subtitle}>{exp.company} • {exp.location}</p>
-              <p className={theme.description}>{exp.description}</p>
-              {exp.achievements.length > 0 && (
-                <ul className={theme.achievementList}>
-                  {exp.achievements.map((achievement, i) => (
-                    <li key={i} className={theme.achievementItem}>
-                      <span className={theme.bullet}>•</span>
-                      {achievement}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Education */}
-      {resumeData.education.length > 0 && (
-        <section className={theme.section}>
-          <h2 className={theme.subheading}>Education</h2>
-          {resumeData.education.map((edu, index) => (
-            <div key={index} className={theme.item}>
-              <div className="flex justify-between items-start">
-                <h3 className={theme.title}>{edu.degree} in {edu.field}</h3>
-                <span className={theme.subtitle}>
-                  {edu.startDate} - {edu.current ? "Present" : edu.endDate}
-                </span>
-              </div>
-              <p className={theme.subtitle}>{edu.school} • {edu.location}</p>
-              {edu.gpa && <p className={cn(theme.description, "mt-1")}>GPA: {edu.gpa}</p>}
-              {edu.achievements.length > 0 && (
-                <ul className={theme.achievementList}>
-                  {edu.achievements.map((achievement, i) => (
-                    <li key={i} className={theme.achievementItem}>
-                      <span className={theme.bullet}>•</span>
-                      {achievement}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Skills */}
-      {resumeData.skills.length > 0 && (
-        <section className={theme.section}>
-          <h2 className={theme.subheading}>Skills</h2>
-          {resumeData.skills.map((category, index) => (
-            <div key={index} className={theme.item}>
-              <h3 className={theme.title}>{category.name}</h3>
-              <p className={cn(theme.description, "mt-1")}>{category.skills.join(", ")}</p>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Projects */}
-      {resumeData.projects.length > 0 && (
-        <section className={theme.section}>
-          <h2 className={theme.subheading}>Projects</h2>
-          {resumeData.projects.map((project, index) => (
-            <div key={index} className={theme.item}>
-              <div className="flex justify-between items-start">
-                <h3 className={theme.title}>{project.name}</h3>
-                <span className={theme.subtitle}>
-                  {project.startDate} - {project.current ? "Present" : project.endDate}
-                </span>
-              </div>
-              <p className={theme.description}>{project.description}</p>
-              {project.technologies.length > 0 && (
-                <p className={cn(theme.description, "mt-2")}>
-                  <span className="font-medium">Technologies:</span> {project.technologies.join(", ")}
-                </p>
-              )}
-              {project.link && (
-                <a href={project.link} target="_blank" rel="noopener noreferrer" className={cn(theme.link, "mt-2 block")}>
-                  View Project
-                </a>
-              )}
-              {project.achievements.length > 0 && (
-                <ul className={theme.achievementList}>
-                  {project.achievements.map((achievement, i) => (
-                    <li key={i} className={theme.achievementItem}>
-                      <span className={theme.bullet}>•</span>
-                      {achievement}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Awards */}
-      {resumeData.awards.length > 0 && (
-        <section className={theme.section}>
-          <h2 className={theme.subheading}>Awards & Certifications</h2>
-          {resumeData.awards.map((award, index) => (
-            <div key={index} className={theme.item}>
-              <div className="flex justify-between items-start">
-                <h3 className={theme.title}>{award.title}</h3>
-                <span className={theme.subtitle}>{award.date}</span>
-              </div>
-              <p className={theme.subtitle}>{award.issuer}</p>
-              <p className={theme.description}>{award.description}</p>
-              {award.link && (
-                <a href={award.link} target="_blank" rel="noopener noreferrer" className={cn(theme.link, "mt-2 block")}>
-                  View Certificate
-                </a>
-              )}
-            </div>
-          ))}
-        </section>
       )}
     </div>
   );
-}
+};
 
 export default ResumePreview; 

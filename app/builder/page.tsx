@@ -76,6 +76,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactDOM from "react-dom/client";
 
 interface Experience {
   company: string;
@@ -147,6 +148,13 @@ interface ResumeData {
   awards: Award[];
 }
 
+interface ResumeStyle {
+  font: string;
+  fontSize: string;
+  spacing: string;
+  accentColor: string;
+}
+
 // Add template definitions
 const resumeTemplates = [
   {
@@ -178,6 +186,33 @@ const resumeTemplates = [
     className: "font-sans",
   },
 ] as const;
+
+type ResumeContextType = ReturnType<typeof useResume>;
+
+const ExportWrapper: React.FC<{ 
+  resumeData: ResumeContextType['resumeData'], 
+  style: ResumeStyle, 
+  template: string 
+}> = ({ 
+  resumeData, 
+  style, 
+  template 
+}) => {
+  return (
+    <ResumeStyleProvider>
+      <ResumeProvider>
+        <div style={{ width: '794px', backgroundColor: 'white' }}>
+          <ResumePreview 
+            template={template} 
+            forExport={true} 
+            data={resumeData}
+            styleOverride={style}
+          />
+        </div>
+      </ResumeProvider>
+    </ResumeStyleProvider>
+  );
+};
 
 interface Section {
   id: string;
@@ -413,121 +448,170 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
     try {
       switch (format) {
         case 'pdf':
-          const element = resumeRef.current;
-          
-          // Create PDF with A4 dimensions (595.28 x 841.89 points)
-          const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'pt',
-            format: 'a4',
-          });
-
-          // Get PDF dimensions
-          const pageWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
-
-          // Create a temporary container
+          // Create a temporary container for the export version
           const container = document.createElement('div');
-          container.style.width = `${pageWidth}px`;
           container.style.position = 'absolute';
           container.style.left = '-9999px';
           container.style.top = '-9999px';
+          container.style.width = '794px'; // A4 width
           container.style.backgroundColor = 'white';
-
-          // Clone the resume content
-          const clone = element.cloneNode(true) as HTMLElement;
-          clone.style.width = '100%';
-          clone.style.height = 'auto';
-          clone.style.transform = 'none';
-          clone.style.padding = '40px';
-          clone.style.margin = '0';
-          clone.style.boxSizing = 'border-box';
-          clone.style.backgroundColor = 'white';
-          container.appendChild(clone);
           document.body.appendChild(container);
 
+          // Create a root for React rendering
+          const root = ReactDOM.createRoot(container);
+
+          // Render the export version
+          root.render(
+            <ExportWrapper 
+              resumeData={resumeData} 
+              style={style} 
+              template={selectedTemplate} 
+            />
+          );
+
           try {
-            // Capture the content
-            const canvas = await html2canvas(clone, {
-              scale: 2, // Higher scale for better quality
+            // Wait for React to finish rendering and fonts to load
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Get the rendered content
+            const content = container.firstChild as HTMLElement;
+            if (!content) throw new Error('Failed to render resume content');
+
+            // Create PDF with A4 dimensions
+            const pdf = new jsPDF({
+              orientation: 'portrait',
+              unit: 'pt',
+              format: 'a4',
+            });
+
+            // Calculate dimensions
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            // Add CSS to prevent section splits and optimize spacing
+            const style = document.createElement('style');
+            style.textContent = `
+              @media print {
+                section {
+                  break-inside: avoid !important;
+                  page-break-inside: avoid !important;
+                  position: relative !important;
+                  display: block !important;
+                }
+                h1, h2, h3 {
+                  break-after: avoid !important;
+                  page-break-after: avoid !important;
+                  margin-bottom: 0.5em !important;
+                }
+                .section-content {
+                  break-inside: avoid !important;
+                  page-break-inside: avoid !important;
+                }
+                .item {
+                  break-inside: avoid !important;
+                  page-break-inside: avoid !important;
+                }
+                ul, li {
+                  break-inside: avoid !important;
+                  page-break-inside: avoid !important;
+                }
+              }
+              section {
+                display: block;
+                position: relative;
+                margin-bottom: 1em !important;
+              }
+              p, ul {
+                margin-bottom: 0.3em !important;
+                line-height: 1.4 !important;
+              }
+              .item {
+                display: block;
+                position: relative;
+                margin-bottom: 0.8em !important;
+              }
+              ul {
+                padding-left: 1em !important;
+              }
+              li {
+                margin-bottom: 0.2em !important;
+              }
+              .section-content {
+                padding-left: 0.3em !important;
+              }
+            `;
+            content.appendChild(style);
+
+            // Capture the content with optimized settings
+            const canvas = await html2canvas(content, {
+              scale: 3, // High quality
               useCORS: true,
               allowTaint: true,
-              logging: false,
-              width: pageWidth,
-              height: container.scrollHeight,
               backgroundColor: 'white',
+              logging: false,
+              windowWidth: 794,
+              onclone: (doc) => {
+                // Add the same styles to the cloned document
+                const clonedStyle = doc.createElement('style');
+                clonedStyle.textContent = style.textContent;
+                doc.head.appendChild(clonedStyle);
+
+                // Add specific print media styles
+                const printStyle = doc.createElement('style');
+                printStyle.textContent = `
+                  @media print {
+                    * {
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                    }
+                  }
+                `;
+                doc.head.appendChild(printStyle);
+              }
             });
 
-            // Calculate number of pages needed
-            const totalPages = Math.ceil(container.scrollHeight / pageHeight);
+            // Calculate image dimensions with smaller margins
+            const margin = 30; // Reduced margin (30pt instead of 40pt)
+            const imgWidth = pageWidth - (margin * 2);
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = margin;
 
-            // Add each page
-            for (let i = 0; i < totalPages; i++) {
-              if (i > 0) {
-                pdf.addPage();
-              }
+            // Add first page
+            pdf.addImage(
+              canvas,
+              'PNG',
+              margin,
+              position,
+              imgWidth,
+              imgHeight,
+              undefined,
+              'FAST'
+            );
+            heightLeft -= (pageHeight - (margin * 2));
 
-              // Calculate the portion of the image to use for this page
-              const srcY = i * pageHeight;
-              const srcHeight = Math.min(pageHeight, container.scrollHeight - srcY);
-
-              // Create a temporary canvas for this page
-              const pageCanvas = document.createElement('canvas');
-              pageCanvas.width = pageWidth;
-              pageCanvas.height = srcHeight;
-              const ctx = pageCanvas.getContext('2d');
-              
-              if (ctx) {
-                ctx.drawImage(
-                  canvas,
-                  0,
-                  srcY,
-                  pageWidth,
-                  srcHeight,
-                  0,
-                  0,
-                  pageWidth,
-                  srcHeight
-                );
-
-                // Add the page image
-                const pageData = pageCanvas.toDataURL('image/jpeg', 1.0);
-                pdf.addImage(
-                  pageData,
-                  'JPEG',
-                  0,
-                  0,
-                  pageWidth,
-                  srcHeight,
-                  undefined,
-                  'FAST'
-                );
-              }
+            // Add subsequent pages if needed
+            while (heightLeft >= 0) {
+              position = heightLeft - imgHeight + margin;
+              pdf.addPage();
+              pdf.addImage(
+                canvas,
+                'PNG',
+                margin,
+                position,
+                imgWidth,
+                imgHeight,
+                undefined,
+                'FAST'
+              );
+              heightLeft -= (pageHeight - (margin * 2));
             }
-
-            // Add clickable links
-            const links = clone.querySelectorAll('a');
-            links.forEach(link => {
-              const rect = link.getBoundingClientRect();
-              const pageNum = Math.floor(rect.top / pageHeight);
-              
-              if (pageNum >= 0 && pageNum < totalPages) {
-                const y = rect.top % pageHeight;
-                pdf.setPage(pageNum + 1);
-                pdf.link(
-                  rect.left,
-                  y,
-                  rect.width,
-                  rect.height,
-                  { url: link.href }
-                );
-              }
-            });
 
             // Save the PDF
             pdf.save('resume.pdf');
           } finally {
             // Cleanup
+            root.unmount();
             document.body.removeChild(container);
           }
           break;
@@ -556,7 +640,7 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
               <div class="section">
                 <h2>Professional Summary</h2>
                 <p>${resumeData.personalInfo.summary}</p>
-          </div>
+              </div>
 
               <div class="section">
                 <h2>Experience</h2>
@@ -574,6 +658,77 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
                   </div>
                 `).join('')}
               </div>
+
+              ${resumeData.education.length > 0 ? `
+                <div class="section">
+                  <h2>Education</h2>
+                  ${resumeData.education.map(edu => `
+                    <div class="item">
+                      <h3>${edu.degree} in ${edu.field}</h3>
+                      <p>${edu.school} • ${edu.location}</p>
+                      <p>${edu.startDate} - ${edu.current ? "Present" : edu.endDate}</p>
+                      ${edu.gpa ? `<p>GPA: ${edu.gpa}</p>` : ''}
+                      ${edu.achievements.length > 0 ? `
+                        <ul>
+                          ${edu.achievements.map(achievement => `<li>${achievement}</li>`).join('')}
+                        </ul>
+                      ` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              ${resumeData.skills.length > 0 ? `
+                <div class="section">
+                  <h2>Skills</h2>
+                  ${resumeData.skills.map(category => `
+                    <div class="item">
+                      <h3>${category.name}</h3>
+                      <p>${category.skills.join(", ")}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              ${resumeData.projects.length > 0 ? `
+                <div class="section">
+                  <h2>Projects</h2>
+                  ${resumeData.projects.map(project => `
+                    <div class="item">
+                      <h3>${project.name}</h3>
+                      <p>${project.startDate} - ${project.current ? "Present" : project.endDate}</p>
+                      <p>${project.description}</p>
+                      ${project.technologies.length > 0 ? `
+                        <p>Technologies: ${project.technologies.join(", ")}</p>
+                      ` : ''}
+                      ${project.link ? `
+                        <p><a href="${project.link}">View Project</a></p>
+                      ` : ''}
+                      ${project.achievements.length > 0 ? `
+                        <ul>
+                          ${project.achievements.map(achievement => `<li>${achievement}</li>`).join('')}
+                        </ul>
+                      ` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              ${resumeData.awards.length > 0 ? `
+                <div class="section">
+                  <h2>Awards & Certifications</h2>
+                  ${resumeData.awards.map(award => `
+                    <div class="item">
+                      <h3>${award.title}</h3>
+                      <p>${award.issuer} • ${award.date}</p>
+                      <p>${award.description}</p>
+                      ${award.link ? `
+                        <p><a href="${award.link}">View Certificate</a></p>
+                      ` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
             </body>
             </html>
           `;
@@ -632,6 +787,43 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
               textContent += `${category.name}: ${category.skills.join(", ")}\n`;
             });
           }
+
+          // Add Projects section
+          if (resumeData.projects.length > 0) {
+            textContent += '\nProjects:\n';
+            resumeData.projects.forEach((project) => {
+              textContent += `${project.name}\n`;
+              textContent += `${project.startDate} - ${project.current ? "Present" : project.endDate}\n`;
+              textContent += `${project.description}\n`;
+              if (project.technologies.length > 0) {
+                textContent += `Technologies: ${project.technologies.join(", ")}\n`;
+              }
+              if (project.link) {
+                textContent += `Link: ${project.link}\n`;
+              }
+              if (project.achievements.length > 0) {
+                textContent += "Achievements:\n";
+                project.achievements.forEach(achievement => {
+                  textContent += `• ${achievement}\n`;
+                });
+              }
+              textContent += "\n";
+            });
+          }
+
+          // Add Awards section
+          if (resumeData.awards.length > 0) {
+            textContent += '\nAwards & Certifications:\n';
+            resumeData.awards.forEach((award) => {
+              textContent += `${award.title}\n`;
+              textContent += `${award.issuer} • ${award.date}\n`;
+              textContent += `${award.description}\n`;
+              if (award.link) {
+                textContent += `Link: ${award.link}\n`;
+              }
+              textContent += "\n";
+            });
+          }
           
           const textBlob = new Blob([textContent], { type: 'text/plain' });
           const textUrl = URL.createObjectURL(textBlob);
@@ -671,12 +863,12 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
                     <div className="flex items-center gap-2">
                       {section.icon}
                       <span className="hidden md:inline">{section.name}</span>
-              </div>
+                    </div>
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
-        </div>
+          </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-4">
@@ -692,8 +884,8 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
               />
               <span className="text-sm text-muted-foreground">
                 {calculateProgress()}% Complete
-                  </span>
-              </div>
+              </span>
+            </div>
 
             <div className="flex items-center gap-2">
               <Button
@@ -705,64 +897,64 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
                 {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
 
-            <Button
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={analyzeResume}
                 disabled={isAnalyzing}
                 className="hidden md:flex"
-            >
-              {isAnalyzing ? (
-                <>
+              >
+                {isAnalyzing ? (
+                  <>
                     <LineChart className="h-4 w-4 mr-2 animate-pulse" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
                     Analyze Resume
-                </>
-              )}
-            </Button>
+                  </>
+                )}
+              </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                  <File className="h-4 w-4 mr-2" />
-                  PDF Document
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('word')}>
+                  <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                    <File className="h-4 w-4 mr-2" />
+                    PDF Document
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('word')}>
                     <FileText className="h-4 w-4 mr-2" />
-                  Word Document
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    Word Document
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                    <Button
-                      variant="outline"
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setShowStyleDialog(true)}
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Style
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="container py-6">
         {showAnalysis && analysisResults && (
-                          <motion.div
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
             <Card className="p-4">
@@ -770,15 +962,15 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h3 className="text-sm font-medium">AI Analysis Results</h3>
-                              </div>
-                            <Button 
+                </div>
+                <Button 
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowAnalysis(false)}
                 >
                   <X className="h-4 w-4" />
-                            </Button>
-                      </div>
+                </Button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
                   <CheckCircle2 className={cn(
@@ -790,7 +982,7 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium">ATS Compatibility</p>
                       <Badge variant="outline">{analysisResults.atsCompatibility.score}%</Badge>
-                </div>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">{analysisResults.atsCompatibility.feedback}</p>
                   </div>
                 </div>
@@ -852,44 +1044,32 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
             <Card className="p-6">
               <div 
                 ref={resumeRef} 
-                className={cn(
-                  "bg-white rounded-lg shadow-lg p-8 min-h-[1100px] mx-auto",
-                  style.font,
-                  {
-                    'text-sm': style.fontSize === 'small',
-                    'text-base': style.fontSize === 'medium',
-                    'text-lg': style.fontSize === 'large',
-                    'space-y-2': style.spacing === 'compact',
-                    'space-y-4': style.spacing === 'comfortable',
-                    'space-y-6': style.spacing === 'spacious',
-                  }
-                )}
-                style={{
-                  '--accent-color': style.accentColor,
-                  maxWidth: '850px',
-                } as React.CSSProperties}
+                className="relative"
               >
-                <ResumePreview template={selectedTemplate} />
+                <ResumePreview 
+                  template={selectedTemplate} 
+                  scale={0.7}
+                />
               </div>
             </Card>
-            </div>
           </div>
         </div>
+      </div>
 
-        <ResumeStyleDialog
-          open={showStyleDialog}
-          onOpenChange={setShowStyleDialog}
-        />
+      <ResumeStyleDialog
+        open={showStyleDialog}
+        onOpenChange={setShowStyleDialog}
+      />
     </div>
   );
 }
 
 export default function BuilderPage() {
   return (
-        <ResumeStyleProvider>
-          <ResumeProvider>
-            <BuilderPageContent />
-          </ResumeProvider>
-        </ResumeStyleProvider>
+    <ResumeStyleProvider>
+      <ResumeProvider>
+        <BuilderPageContent />
+      </ResumeProvider>
+    </ResumeStyleProvider>
   );
 } 
