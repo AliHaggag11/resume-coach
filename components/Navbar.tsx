@@ -42,6 +42,12 @@ export default function Navbar() {
       description: "Create and edit your resume",
     },
     {
+      href: "/cover-letter",
+      label: "Cover Letter",
+      icon: Mail,
+      description: "Generate AI-powered cover letters",
+    },
+    {
       href: "/features",
       label: "Features",
       icon: Sparkles,

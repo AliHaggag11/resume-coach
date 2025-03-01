@@ -11,6 +11,7 @@ type SubscriptionContextType = {
   isLoading: boolean;
   features: {
     maxResumes: number;
+    maxCoverLetters: number;
     aiImprovements: boolean;
     customTemplates: boolean;
     jobMatching: boolean;
@@ -22,6 +23,7 @@ type SubscriptionContextType = {
 const tierFeatures = {
   free: {
     maxResumes: 1,
+    maxCoverLetters: 2,
     aiImprovements: false,
     customTemplates: false,
     jobMatching: false,
@@ -29,6 +31,7 @@ const tierFeatures = {
   },
   premium: {
     maxResumes: 5,
+    maxCoverLetters: 10,
     aiImprovements: true,
     customTemplates: true,
     jobMatching: false,
@@ -36,6 +39,7 @@ const tierFeatures = {
   },
   professional: {
     maxResumes: 10,
+    maxCoverLetters: 25,
     aiImprovements: true,
     customTemplates: true,
     jobMatching: true,
