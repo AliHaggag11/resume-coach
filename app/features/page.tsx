@@ -2,24 +2,22 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import {
   Sparkles,
   Layout,
   Target,
-  Zap,
   FileText,
   PenTool,
   Bot,
-  LineChart,
-  CheckCircle2,
-  ArrowRight,
   Download,
-  Share2,
-  Languages,
-  Award,
-  Clock,
-  Users,
+  Palette,
+  ArrowRight,
+  CheckCircle2,
+  Briefcase,
+  GraduationCap,
+  FolderGit2,
+  Trophy,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
@@ -27,126 +25,126 @@ import Footer from "@/components/Footer";
 const features = [
   {
     icon: Bot,
-    title: "AI-Powered Writing Assistant",
-    description: "Transform your experience into compelling achievements with our advanced AI. Get tailored suggestions and perfect phrasing.",
+    title: "AI-Powered Resume Assistant",
+    description: "Let AI help you craft compelling professional summaries and achievements that highlight your true potential.",
     benefits: [
-      "Smart content suggestions",
-      "Industry-specific keywords",
-      "Impact metrics generation",
-      "Grammar and style checking"
+      "Smart summary generation",
+      "Achievement suggestions",
+      "Professional phrasing",
+      "Real-time assistance"
     ],
     gradient: "from-blue-500/10 via-indigo-500/10 to-purple-500/10",
-    image: "https://images.unsplash.com/photo-1676277791608-ac54525aa2ed?w=800&q=80",
-    alt: "AI writing assistant interface showing smart suggestions"
-  },
-  {
-    icon: Layout,
-    title: "Professional Templates",
-    description: "Choose from our collection of ATS-friendly, professionally designed templates that help you stand out.",
-    benefits: [
-      "Modern designs",
-      "Industry-specific layouts",
-      "Customizable sections",
-      "Mobile-responsive formats"
-    ],
-    gradient: "from-emerald-500/10 via-teal-500/10 to-cyan-500/10",
-    image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&q=80",
-    alt: "Professional resume templates showcase"
+    image: "/features/ai-assistant.webp",
+    alt: "AI writing assistant interface"
   },
   {
     icon: Target,
     title: "ATS Optimization",
-    description: "Ensure your resume gets past applicant tracking systems with our smart formatting and keyword optimization.",
+    description: "Get instant feedback on your resume's ATS compatibility, keyword optimization, and impact statements.",
     benefits: [
+      "ATS compatibility score",
       "Keyword analysis",
-      "Format compatibility",
-      "Score tracking",
+      "Impact statement review",
       "Improvement suggestions"
     ],
-    gradient: "from-orange-500/10 via-amber-500/10 to-yellow-500/10",
-    image: "https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=800&q=80",
-    alt: "ATS optimization analysis dashboard"
+    gradient: "from-emerald-500/10 via-teal-500/10 to-cyan-500/10",
+    image: "/features/ats-analysis.webp",
+    alt: "ATS analysis dashboard"
   },
   {
-    icon: PenTool,
-    title: "Real-Time Customization",
-    description: "Customize every aspect of your resume with our intuitive editor. See changes instantly as you make them.",
+    icon: Palette,
+    title: "Professional Styling",
+    description: "Customize your resume's appearance with our comprehensive style options.",
     benefits: [
-      "Live preview",
-      "Font customization",
-      "Color schemes",
-      "Layout adjustments"
+      "4 professional themes",
+      "Multiple font options",
+      "Spacing controls",
+      "Custom color schemes"
     ],
-    gradient: "from-pink-500/10 via-rose-500/10 to-red-500/10",
-    image: "https://images.unsplash.com/photo-1600267204091-5c1ab8b10c02?w=800&q=80",
-    alt: "Real-time resume customization interface"
-  }
-];
-
-const additionalFeatures = [
+    gradient: "from-orange-500/10 via-amber-500/10 to-yellow-500/10",
+    image: "/features/style-customization.webp",
+    alt: "Resume style customization interface"
+  },
   {
     icon: Download,
     title: "Multiple Export Formats",
-    description: "Download your resume in various formats including PDF, Word, and plain text.",
-    gradient: "from-blue-500/10 via-indigo-500/10 to-purple-500/10"
+    description: "Export your resume in various formats to meet any application requirement.",
+    benefits: [
+      "PDF export",
+      "Word document",
+      "Plain text format",
+      "Print-ready output"
+    ],
+    gradient: "from-pink-500/10 via-rose-500/10 to-red-500/10",
+    image: "/features/export-options.webp",
+    alt: "Export format options"
+  }
+];
+
+const sections = [
+  {
+    icon: User,
+    title: "Personal Info",
+    description: "Create a compelling professional profile with AI-generated summaries.",
+    gradient: "from-blue-500/10 to-indigo-500/10"
   },
   {
-    icon: Share2,
-    title: "Easy Sharing",
-    description: "Share your resume directly with recruiters or generate a shareable link.",
-    gradient: "from-emerald-500/10 via-teal-500/10 to-cyan-500/10"
+    icon: Briefcase,
+    title: "Work Experience",
+    description: "Detail your professional journey with impact-focused achievements.",
+    gradient: "from-emerald-500/10 to-teal-500/10"
   },
   {
-    icon: Languages,
-    title: "Multi-Language Support",
-    description: "Create resumes in multiple languages with built-in translation assistance.",
-    gradient: "from-orange-500/10 via-amber-500/10 to-yellow-500/10"
+    icon: GraduationCap,
+    title: "Education",
+    description: "Showcase your academic achievements and qualifications.",
+    gradient: "from-orange-500/10 to-amber-500/10"
   },
   {
-    icon: LineChart,
-    title: "Analytics Dashboard",
-    description: "Track your resume's performance and get insights on how to improve.",
-    gradient: "from-pink-500/10 via-rose-500/10 to-red-500/10"
+    icon: PenTool,
+    title: "Skills",
+    description: "Highlight your technical and professional competencies.",
+    gradient: "from-pink-500/10 to-rose-500/10"
   },
   {
-    icon: Clock,
-    title: "Version History",
-    description: "Keep track of all versions of your resume and easily revert changes.",
-    gradient: "from-purple-500/10 via-violet-500/10 to-indigo-500/10"
+    icon: FolderGit2,
+    title: "Projects",
+    description: "Feature your notable projects and their impact.",
+    gradient: "from-purple-500/10 to-violet-500/10"
   },
   {
-    icon: Users,
-    title: "Expert Review",
-    description: "Get professional feedback from our network of career experts.",
-    gradient: "from-cyan-500/10 via-blue-500/10 to-sky-500/10"
+    icon: Trophy,
+    title: "Awards",
+    description: "Display your certifications and professional recognition.",
+    gradient: "from-cyan-500/10 to-blue-500/10"
   }
 ];
 
 const stats = [
   { 
-    label: "Active Users", 
-    value: "10K+",
-    icon: Users,
+    label: "ATS Success Rate", 
+    value: "95%",
+    icon: Target,
     gradient: "from-blue-500 to-indigo-500"
   },
   { 
-    label: "Success Rate", 
-    value: "89%",
-    icon: Target,
+    label: "Export Options", 
+    value: "3+",
+    icon: Download,
     gradient: "from-emerald-500 to-teal-500"
   },
   { 
-    label: "Templates", 
-    value: "50+",
+    label: "Theme Options", 
+    value: "4+",
     icon: Layout,
     gradient: "from-orange-500 to-amber-500"
   },
   { 
-    label: "Time Saved", 
-    value: "3hrs",
-    icon: Clock,
+    label: "Resume Sections", 
+    value: "6+",
+    icon: FileText,
     gradient: "from-pink-500 to-rose-500"
-  },
+  }
 ];
 
 export default function FeaturesPage() {
@@ -177,14 +175,14 @@ export default function FeaturesPage() {
               >
                 <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 mb-4 border border-primary/20 shadow-glow">
                   <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                  <span className="text-sm font-medium text-primary">Powerful Features</span>
+                  <span className="text-sm font-medium text-primary">Resume Builder Features</span>
                 </div>
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Everything You Need to
-                  <span className="block mt-1">Build the Perfect Resume</span>
+                  Create Professional
+                  <span className="block mt-1">ATS-Optimized Resumes</span>
                 </h1>
                 <p className="text-muted-foreground text-lg md:text-xl max-w-[600px] mx-auto mt-6">
-                  Our comprehensive suite of tools and features helps you create professional, ATS-friendly resumes that get you noticed by employers.
+                  Our intelligent resume builder combines AI assistance, professional styling, and ATS optimization to help you create standout resumes that get noticed.
                 </p>
               </motion.div>
 
@@ -199,17 +197,17 @@ export default function FeaturesPage() {
                     size="lg" 
                     className="min-w-[200px] h-12 text-base gap-2 rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-glow"
                   >
-                    Get Started Free
+                    Start Building Now
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/templates">
+                <Link href="/builder">
                   <Button 
                     variant="outline" 
                     size="lg" 
                     className="min-w-[200px] h-12 text-base rounded-full border-primary/20 shadow-glow-light"
                   >
-                    View Templates
+                    Try Demo
                   </Button>
                 </Link>
               </motion.div>
@@ -256,116 +254,68 @@ export default function FeaturesPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5 }}
-                  className={`grid gap-8 lg:gap-12 ${index % 2 === 0 ? 'lg:grid-cols-[1fr,400px]' : 'lg:grid-cols-[400px,1fr]'} items-center`}
+                  className="grid md:grid-cols-2 gap-8 md:gap-12 items-center"
                 >
-                  <div className={`space-y-6 ${index % 2 === 1 && 'lg:order-2'}`}>
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shadow-glow">
+                  <div className="space-y-6">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
                       <feature.icon className="h-6 w-6 text-primary" />
                     </div>
-                    <div className="space-y-2">
-                      <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-                        {feature.title}
-                      </h2>
-                      <p className="text-muted-foreground text-lg">
-                        {feature.description}
-                      </p>
+                    <div className="space-y-4">
+                      <h3 className="text-2xl font-bold">{feature.title}</h3>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                      <ul className="space-y-2">
+                        {feature.benefits.map((benefit, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="space-y-3">
-                      {feature.benefits.map((benefit, i) => (
-                        <motion.li 
-                          key={i} 
-                          initial={{ opacity: 0, x: -20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.1 }}
-                          className="flex items-center gap-2 text-muted-foreground group"
-                        >
-                          <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shadow-glow-light">
-                            <CheckCircle2 className="h-3 w-3 text-primary" />
-                          </div>
-                          <span className="group-hover:text-foreground transition-colors">
-                            {benefit}
-                          </span>
-                        </motion.li>
-                      ))}
-                    </ul>
                   </div>
-                  <motion.div 
-                    className={`relative group ${index % 2 === 1 && 'lg:order-1'}`}
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="overflow-hidden rounded-2xl border bg-background/50 backdrop-blur-sm shadow-glow-light">
-                      <div className={`absolute inset-0 bg-gradient-to-br opacity-20 group-hover:opacity-30 transition-opacity duration-300 ${feature.gradient}`} />
-                      <div className="aspect-[4/3] relative">
-                        <Image
-                          src={feature.image}
-                          alt={feature.alt}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
+                  <div className={`relative aspect-video rounded-xl overflow-hidden bg-gradient-to-br ${feature.gradient}`}>
+                    <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-background/80 to-background/20 backdrop-blur-sm" />
+                    <div className="relative h-full flex items-center justify-center p-8">
+                      <feature.icon className="h-16 w-16 text-primary/80" />
                     </div>
-                  </motion.div>
+                  </div>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Additional Features Grid */}
-        <section className="py-24 md:py-32 bg-muted/30 relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
-          <div className="absolute inset-0">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl animate-pulse" />
-          </div>
-          
-          <div className="container px-4 md:px-6 relative">
+        {/* Resume Sections */}
+        <section className="py-24 md:py-32 relative overflow-hidden bg-muted/50">
+          <div className="container px-4 md:px-6">
             <div className="text-center space-y-4 mb-16">
-              <motion.h2 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent"
-              >
-                More Powerful Features
-              </motion.h2>
-              <motion.p 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="text-muted-foreground text-lg max-w-[600px] mx-auto"
-              >
-                Discover all the tools and features that make ResumeCoach the best choice for your career journey.
-              </motion.p>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                Comprehensive Resume Sections
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-[600px] mx-auto">
+                Build a complete professional profile with our comprehensive section management
+              </p>
             </div>
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {additionalFeatures.map((feature, index) => (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {sections.map((section, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
-                  className="group relative"
+                  className="relative group"
                 >
-                  <div className="relative overflow-hidden rounded-2xl border bg-background/50 backdrop-blur-sm p-6 hover:shadow-lg transition-all duration-300 h-full shadow-glow-light">
-                    <div className={`absolute inset-0 bg-gradient-to-br opacity-10 group-hover:opacity-20 transition-opacity duration-300 ${feature.gradient}`} />
-                    <div className="space-y-4 relative">
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shadow-glow">
-                        <feature.icon className="h-6 w-6 text-primary" />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${section.gradient} rounded-xl opacity-20 group-hover:opacity-30 transition-opacity duration-300`} />
+                  <div className="relative p-6 rounded-xl bg-background/50 backdrop-blur-sm border">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <section.icon className="h-5 w-5 text-primary" />
                       </div>
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-semibold bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-                          {feature.title}
-                        </h3>
-                        <p className="text-muted-foreground">
-                          {feature.description}
-                        </p>
-                      </div>
+                      <h3 className="font-semibold text-lg">{section.title}</h3>
                     </div>
+                    <p className="text-muted-foreground">{section.description}</p>
                   </div>
                 </motion.div>
               ))}
@@ -375,61 +325,29 @@ export default function FeaturesPage() {
 
         {/* CTA Section */}
         <section className="py-24 md:py-32 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
-          <div className="absolute inset-0">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl animate-pulse" />
-          </div>
-
-          <div className="container relative px-4 md:px-6">
-            <motion.div 
-              className="flex flex-col items-center justify-center space-y-8 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 border border-primary/20 shadow-glow">
-                <Award className="h-4 w-4 text-primary animate-pulse" />
-                <span className="text-sm font-medium text-primary">Start Building Today</span>
-              </div>
-
-              <div className="space-y-4 max-w-[800px]">
-                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Ready to Create Your
-                  <span className="block mt-1">Professional Resume?</span>
+          <div className="container px-4 md:px-6">
+            <div className="relative rounded-3xl overflow-hidden bg-primary/5 border p-8 md:p-12">
+              <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+              <div className="relative z-10 text-center space-y-8 max-w-2xl mx-auto">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  Ready to Build Your Professional Resume?
                 </h2>
-                <p className="mx-auto max-w-[600px] text-muted-foreground text-lg md:text-xl">
-                  Join thousands of successful job seekers who have used ResumeCoach to land their dream jobs.
+                <p className="text-muted-foreground text-lg">
+                  Join thousands of professionals who trust our AI-powered resume builder to advance their careers.
                 </p>
-              </div>
-
-              <div className="grid gap-4 min-[400px]:flex items-center justify-center mt-4">
-                <Link href="/signup">
-                  <Button 
-                    size="lg" 
-                    className="min-w-[200px] h-12 text-base gap-2 rounded-full group relative overflow-hidden bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-glow"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link href="/signup">
+                    <Button 
+                      size="lg" 
+                      className="min-w-[200px] h-12 text-base gap-2 rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-glow"
+                    >
                       Get Started Free
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Button>
-                </Link>
-                <Link href="/templates">
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="min-w-[200px] h-12 text-base rounded-full group border-primary/20 shadow-glow-light"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      View Templates
-                      <Layout className="h-4 w-4 transition-transform group-hover:scale-110" />
-                    </span>
-                  </Button>
-                </Link>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
       </div>

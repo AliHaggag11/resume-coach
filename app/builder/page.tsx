@@ -843,22 +843,81 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 max-w-screen-2xl items-center">
           <div className="flex items-center gap-2 w-full justify-between">
-            {/* Mobile Menu */}
+            {/* Mobile Navigation */}
             <div className="flex items-center gap-2 md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Layout className="h-4 w-4 mr-2" />
+                    Sections
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Resume Sections</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col py-2">
+                    {sections.map((section) => (
+                      <Button
+                        key={section.id}
+                        variant={currentSection === section.id ? "secondary" : "ghost"}
+                        className="justify-start rounded-none h-12 px-4 relative"
+                        onClick={() => {
+                          setCurrentSection(section.id);
+                          setShowPreview(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          {section.icon}
+                          <span>{section.name}</span>
+                        </div>
+                        {currentSection === section.id && (
+                          <motion.div
+                            layoutId="activeSection"
+                            className="absolute left-0 top-0 h-full w-1 bg-primary"
+                            initial={false}
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 30,
+                            }}
+                          />
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </SheetContent>
+              </Sheet>
+
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={() => setShowPreview(!showPreview)}
+                className="flex items-center gap-2"
               >
-                {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPreview ? (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    <span>Hide Preview</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    <span>Show Preview</span>
+                  </>
+                )}
               </Button>
+            </div>
+
+            {/* Mobile Actions */}
+            <div className="flex items-center gap-2 md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Settings className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="bg-background border shadow-md w-56">
+                <DropdownMenuContent align="end" className="w-56 bg-background border" sideOffset={8}>
                   <DropdownMenuItem onClick={() => setShowStyleDialog(true)}>
                     <Palette className="h-4 w-4 mr-2" />
                     Style Settings
@@ -880,27 +939,30 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
               </DropdownMenu>
             </div>
 
-            {/* Section Tabs */}
-            <Tabs
-              value={currentSection}
-              className="w-full md:w-auto"
-              onValueChange={(value) => setCurrentSection(value)}
-            >
-              <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full md:w-auto">
-                {sections.map((section) => (
-                  <TabsTrigger
-                    key={section.id}
-                    value={section.id}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow flex-1 md:flex-initial"
-                  >
-                    <div className="flex items-center gap-2 justify-center md:justify-start">
-                      {section.icon}
-                      <span className="hidden sm:inline">{section.name}</span>
-                    </div>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4 flex-1">
+              {/* Section Tabs */}
+              <Tabs
+                value={currentSection}
+                className="w-full"
+                onValueChange={(value) => setCurrentSection(value)}
+              >
+                <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full">
+                  {sections.map((section) => (
+                    <TabsTrigger
+                      key={section.id}
+                      value={section.id}
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow flex-1"
+                    >
+                      <div className="flex items-center gap-2 justify-center">
+                        {section.icon}
+                        <span>{section.name}</span>
+                      </div>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-4">
@@ -910,13 +972,6 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
                   <span className="text-sm font-medium">ATS Score: {atsScore}%</span>
                 </div>
               )}
-              <Progress 
-                value={calculateProgress()} 
-                className="h-2 w-[200px]" 
-              />
-              <span className="text-sm text-muted-foreground">
-                {calculateProgress()}% Complete
-              </span>
 
               <Button
                 variant="outline"
@@ -971,13 +1026,31 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
 
       {/* Main Content */}
       <div className="container py-6">
-        {/* Mobile Progress Bar */}
-        <div className="md:hidden mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Resume Progress</span>
-            <span className="text-sm text-muted-foreground">{calculateProgress()}%</span>
+        {/* Mobile Progress and Section Title */}
+        <div className="md:hidden space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Resume Progress</span>
+              <span className="text-sm text-muted-foreground">{calculateProgress()}%</span>
+            </div>
+            <Progress value={calculateProgress()} className="h-2" />
           </div>
-          <Progress value={calculateProgress()} className="h-2" />
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {sections.find(s => s.id === currentSection)?.icon}
+              {sections.find(s => s.id === currentSection)?.name}
+            </h2>
+          </div>
+        </div>
+
+        {/* Desktop Progress Bar */}
+        <div className="hidden md:block mb-6">
+          <div className="flex items-center gap-4">
+            <Progress value={calculateProgress()} className="h-2 flex-1" />
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {calculateProgress()}% Complete
+            </span>
+          </div>
         </div>
 
         {showAnalysis && analysisResults && (
@@ -1054,13 +1127,10 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
             "space-y-4",
             showPreview ? "hidden md:block" : "block"
           )}>
-            <Card className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  {sections.find(s => s.id === currentSection)?.icon}
-                  {sections.find(s => s.id === currentSection)?.name}
-                </h2>
-              </div>
+            <Card className={cn(
+              "p-4 sm:p-6",
+              "md:rounded-lg rounded-none md:border border-x-0 md:border-x shadow-sm"
+            )}>
               {sections.find(s => s.id === currentSection)?.component}
             </Card>
           </div>
@@ -1071,7 +1141,20 @@ DO NOT include any text before or after the JSON object. DO NOT format as a code
             !showPreview && "hidden md:block",
             showPreview && "block"
           )}>
-            <Card className="p-4 sm:p-6 overflow-x-hidden">
+            <Card className={cn(
+              "relative rounded-none md:rounded-lg border-x-0 md:border-x shadow-sm",
+              "overflow-hidden"
+            )}>
+              <div className="sticky top-0 z-10 flex items-center justify-between p-2 bg-background/95 backdrop-blur-sm border-b md:hidden">
+                <h3 className="text-sm font-medium">Resume Preview</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPreview(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
               <div 
                 ref={resumeRef} 
                 className="relative w-full overflow-x-auto"

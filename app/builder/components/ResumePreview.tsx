@@ -114,6 +114,17 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   const [totalPages, setTotalPages] = useState(1);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isCalculating, setIsCalculating] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -155,13 +166,13 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     width: `${A4_DIMENSIONS.width}px`,
     minHeight: forExport ? 'auto' : `${A4_DIMENSIONS.height}px`,
     padding: `${A4_DIMENSIONS.padding}px`,
-    transform: forExport ? 'none' : `scale(${scale})`,
+    transform: forExport ? 'none' : `scale(${isMobile ? 0.35 : scale})`,
     transformOrigin: 'top left',
   };
 
   const wrapperStyle = {
-    width: `${A4_DIMENSIONS.width * scale}px`,
-    height: forExport ? 'auto' : `${A4_DIMENSIONS.height * scale}px`,
+    width: `${A4_DIMENSIONS.width * (isMobile ? 0.35 : scale)}px`,
+    height: forExport ? 'auto' : `${A4_DIMENSIONS.height * (isMobile ? 0.35 : scale)}px`,
     overflow: 'hidden',
   };
 
@@ -463,24 +474,35 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   }
 
   return (
-    <div className="relative" style={wrapperStyle}>
-      <div 
-        style={{
-          ...containerStyle,
-          marginTop: forExport ? 0 : `${-A4_DIMENSIONS.height * (currentPage - 1)}px`,
-          transition: 'margin-top 0.3s ease-in-out'
-        }} 
-        className={cn(
-          "bg-white shadow-lg mx-auto",
-          isCalculating && "opacity-0"
-        )}
-        ref={contentRef}
-      >
-        {renderContent()}
+    <div className="relative">
+      <div className="flex justify-center">
+        <div 
+          style={wrapperStyle} 
+          className={cn(
+            "relative bg-white shadow-lg transition-transform duration-200",
+            isMobile && "touch-pan-y"
+          )}
+        >
+          <div
+            ref={contentRef}
+            style={containerStyle}
+            className={cn(
+              "bg-white transition-transform duration-200",
+              !forExport && "hover:shadow-xl"
+            )}
+          >
+            {renderContent()}
+          </div>
+        </div>
       </div>
-
-      {totalPages > 1 && !isCalculating && (
-        <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-white rounded-full shadow px-3 py-1">
+      
+      {!forExport && totalPages > 1 && (
+        <div className={cn(
+          "absolute bottom-4 left-1/2 transform -translate-x-1/2",
+          "flex items-center gap-2 bg-background/95 backdrop-blur-sm",
+          "px-3 py-1.5 rounded-full border shadow-sm",
+          "touch-none" // Prevent touch events from interfering with mobile scrolling
+        )}>
           <Button
             variant="ghost"
             size="icon"
@@ -490,8 +512,8 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm">
-            Page {currentPage} of {totalPages}
+          <span className="text-sm font-medium">
+            {currentPage} / {totalPages}
           </span>
           <Button
             variant="ghost"
@@ -502,6 +524,19 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+        </div>
+      )}
+
+      {isCalculating && (
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+
+      {/* Mobile Zoom Hint */}
+      {isMobile && !forExport && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground bg-background/95 backdrop-blur-sm px-2 py-1 rounded-full border shadow-sm pointer-events-none">
+          Pinch to zoom
         </div>
       )}
     </div>
