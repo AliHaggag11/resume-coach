@@ -7,7 +7,8 @@ create table public.resumes (
     status text not null default 'draft' check (status in ('draft', 'completed')),
     shared boolean not null default false,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-    last_modified timestamp with time zone default timezone('utc'::text, now()) not null
+    last_modified timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- Enable RLS (Row Level Security)
@@ -38,17 +39,23 @@ as $$
 begin
     if TG_TABLE_NAME = 'resumes' then
         new.last_modified = timezone('utc'::text, now());
-    else
+        new.updated_at = timezone('utc'::text, now());
+    elsif TG_TABLE_NAME = 'cover_letters' then
         new.updated_at = timezone('utc'::text, now());
     end if;
     return new;
 end;
 $$;
 
--- Create trigger for last_modified
+-- Create trigger for last_modified on resumes
+create trigger set_last_modified
+    before update on public.resumes
+    for each row
+    execute function public.handle_updated_at();
+
+-- Create trigger for updated_at on cover_letters
 create trigger set_updated_at
-    before update
-    on public.resumes
+    before update on public.cover_letters
     for each row
     execute function public.handle_updated_at();
 

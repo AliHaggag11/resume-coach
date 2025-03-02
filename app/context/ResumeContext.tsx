@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface PersonalInfo {
   fullName: string;
@@ -72,12 +74,16 @@ interface ResumeData {
 
 interface ResumeContextType {
   resumeData: ResumeData;
+  currentResumeId: string | null;
   updatePersonalInfo: (info: Partial<PersonalInfo>) => void;
   updateExperiences: (experiences: Experience[]) => void;
   updateEducation: (education: Education[]) => void;
   updateSkills: (skills: SkillCategory[]) => void;
   updateProjects: (projects: Project[]) => void;
   updateAwards: (awards: Award[]) => void;
+  setCurrentResumeId: (id: string | null) => void;
+  saveResume: (status?: 'draft' | 'completed') => Promise<void>;
+  loadResume: (id: string) => Promise<void>;
 }
 
 const defaultResumeData: ResumeData = {
@@ -103,6 +109,7 @@ const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
 
 export function ResumeProvider({ children }: { children: React.ReactNode }) {
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
+  const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
 
   const updatePersonalInfo = (info: Partial<PersonalInfo>) => {
     setResumeData(prev => ({
@@ -131,16 +138,108 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
     setResumeData(prev => ({ ...prev, awards }));
   };
 
+  const saveResume = async (status?: 'draft' | 'completed') => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to save your progress');
+        return;
+      }
+
+      let result;
+      if (currentResumeId) {
+        // Update existing resume
+        const { error: updateError } = await supabase
+          .from('resumes')
+          .update({
+            content: resumeData,
+            status: status || 'draft',
+            title: resumeData.personalInfo.fullName ? 
+              `${resumeData.personalInfo.fullName}'s Resume` : 
+              'Untitled Resume'
+          })
+          .eq('id', currentResumeId);
+
+        if (updateError) throw updateError;
+        result = { data: { id: currentResumeId } };
+      } else {
+        // Create new resume
+        const { data, error: insertError } = await supabase
+          .from('resumes')
+          .insert({
+            user_id: session.user.id,
+            content: resumeData,
+            status: status || 'draft',
+            title: resumeData.personalInfo.fullName ? 
+              `${resumeData.personalInfo.fullName}'s Resume` : 
+              'Untitled Resume'
+          })
+          .select('id')
+          .single();
+
+        if (insertError) throw insertError;
+        result = { data };
+      }
+
+      setCurrentResumeId(result.data.id);
+      
+      if (status) {
+        toast.success(status === 'completed' ? 'Resume saved as completed' : 'Resume saved as draft');
+      }
+    } catch (error: any) {
+      console.error('Failed to save resume:', error);
+      toast.error(error.message || 'Failed to save resume');
+      throw error;
+    }
+  };
+
+  const loadResume = async (id: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to load your resume');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('resumes')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Failed to load resume:', error);
+        throw new Error(error.message);
+      }
+
+      if (!data) {
+        throw new Error('Resume not found');
+      }
+
+      setResumeData(data.content);
+      setCurrentResumeId(data.id);
+      toast.success('Resume loaded successfully');
+    } catch (error: any) {
+      console.error('Failed to load resume:', error);
+      toast.error(error.message || 'Failed to load resume');
+      throw error; // Re-throw to handle in the component
+    }
+  };
+
   return (
     <ResumeContext.Provider
       value={{
         resumeData,
+        currentResumeId,
         updatePersonalInfo,
         updateExperiences,
         updateEducation,
         updateSkills,
         updateProjects,
         updateAwards,
+        setCurrentResumeId,
+        saveResume,
+        loadResume,
       }}
     >
       {children}

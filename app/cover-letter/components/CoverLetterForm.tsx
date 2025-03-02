@@ -839,7 +839,7 @@ Additional Requirements:
   }, [formData, coverLetter]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Progress Bar */}
       <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
         <motion.div
@@ -850,104 +850,108 @@ Additional Requirements:
         />
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {lastSaved && (
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <Save className="h-4 w-4" />
               Last saved: {lastSaved.toLocaleTimeString()}
             </div>
           )}
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={undo}
-            disabled={currentHistoryIndex <= 0}
-            className="group"
-          >
-            <Undo className="h-4 w-4 mr-2 group-hover:-rotate-45 transition-transform" />
-            Undo
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={redo}
-            disabled={currentHistoryIndex >= history.length - 1}
-            className="group"
-          >
-            <RefreshCw className="h-4 w-4 mr-2 group-hover:rotate-45 transition-transform" />
-            Redo
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="group">
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Save Cover Letter</DialogTitle>
-                <DialogDescription>
-                  This will save your cover letter as completed and return you to the dashboard.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  const closeButton = document.querySelector('[data-dialog-close]');
-                  if (closeButton instanceof HTMLElement) closeButton.click();
-                }}>Cancel</Button>
-                <Button onClick={async () => {
-                  await saveAsCompleted();
-                  const closeButton = document.querySelector('[data-dialog-close]');
-                  if (closeButton instanceof HTMLElement) closeButton.click();
-                }}>Save as Completed</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="group">
-                <Trash2 className="h-4 w-4 mr-2 group-hover:text-red-500 transition-colors" />
-                Clear
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Clear Form</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to clear the form? This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  const closeButton = document.querySelector('[data-dialog-close]');
-                  if (closeButton instanceof HTMLElement) closeButton.click();
-                }}>Cancel</Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={async () => {
-                    await clearForm();
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undo}
+              disabled={currentHistoryIndex <= 0}
+              className="group flex-1 md:flex-none"
+            >
+              <Undo className="h-4 w-4 mr-2 group-hover:-rotate-45 transition-transform" />
+              Undo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={redo}
+              disabled={currentHistoryIndex >= history.length - 1}
+              className="group flex-1 md:flex-none"
+            >
+              <RefreshCw className="h-4 w-4 mr-2 group-hover:rotate-45 transition-transform" />
+              Redo
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="group flex-1 md:flex-none">
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Save Cover Letter</DialogTitle>
+                  <DialogDescription>
+                    This will save your cover letter as completed and return you to the dashboard.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
                     const closeButton = document.querySelector('[data-dialog-close]');
                     if (closeButton instanceof HTMLElement) closeButton.click();
-                  }}
-                  disabled={isClearing}
-                >
-                  {isClearing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Clearing...
-                    </>
-                  ) : (
-                    'Clear Form'
-                  )}
+                  }}>Cancel</Button>
+                  <Button onClick={async () => {
+                    await saveAsCompleted();
+                    const closeButton = document.querySelector('[data-dialog-close]');
+                    if (closeButton instanceof HTMLElement) closeButton.click();
+                  }}>Save as Completed</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="group flex-1 md:flex-none">
+                  <Trash2 className="h-4 w-4 mr-2 group-hover:text-red-500 transition-colors" />
+                  Clear
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Clear Form</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to clear the form? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
+                    const closeButton = document.querySelector('[data-dialog-close]');
+                    if (closeButton instanceof HTMLElement) closeButton.click();
+                  }}>Cancel</Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={async () => {
+                      await clearForm();
+                      const closeButton = document.querySelector('[data-dialog-close]');
+                      if (closeButton instanceof HTMLElement) closeButton.click();
+                    }}
+                    disabled={isClearing}
+                  >
+                    {isClearing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      'Clear Form'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
@@ -961,13 +965,13 @@ Additional Requirements:
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={analyzeJobDescription}
                 disabled={isAnalyzing}
-                className="group"
+                className="group w-full sm:w-auto"
               >
                 {isAnalyzing ? (
                   <>
@@ -985,7 +989,7 @@ Additional Requirements:
                 variant="outline"
                 size="sm"
                 onClick={() => setShowATSTips(true)}
-                className="group"
+                className="group w-full sm:w-auto"
               >
                 <ListChecks className="h-4 w-4 mr-2" />
                 ATS Tips
@@ -1052,30 +1056,30 @@ Additional Requirements:
 
       {/* ATS Tips Dialog */}
       <Dialog open={showATSTips} onOpenChange={setShowATSTips}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ListChecks className="h-5 w-5" />
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] w-[95vw] sm:w-auto">
+          <DialogHeader className="space-y-2 sm:space-y-4">
+            <DialogTitle className="flex items-center gap-2 text-xl sm:text-2xl">
+              <ListChecks className="h-5 w-5 sm:h-6 sm:w-6" />
               ATS Optimization Guide
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-base">
               Learn how to optimize your cover letter for Applicant Tracking Systems
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <h4 className="font-medium mb-3">Content Structure</h4>
-              <ul className="grid gap-2">
+              <ul className="grid gap-2 sm:gap-3">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Use clear section headings like "Professional Experience," "Technical Skills"</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Start with a strong opening that mentions the exact job title and company</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Include a skills section that matches the job requirements</span>
                 </li>
               </ul>
@@ -1083,17 +1087,17 @@ Additional Requirements:
 
             <div>
               <h4 className="font-medium mb-3">Formatting Guidelines</h4>
-              <ul className="grid gap-2">
+              <ul className="grid gap-2 sm:gap-3">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Use standard fonts (Arial, Calibri) and simple formatting</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Avoid tables, columns, headers, footers, and images</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Use standard bullet points (• or -) instead of custom symbols</span>
                 </li>
               </ul>
@@ -1101,17 +1105,17 @@ Additional Requirements:
 
             <div>
               <h4 className="font-medium mb-3">Keyword Optimization</h4>
-              <ul className="grid gap-2">
+              <ul className="grid gap-2 sm:gap-3">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Use both full terms and acronyms (e.g., "Artificial Intelligence (AI)")</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Include variations of key terms (manage, managed, management)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
                   <span className="text-sm">Place important keywords in context within achievements</span>
                 </li>
               </ul>
@@ -1119,14 +1123,14 @@ Additional Requirements:
 
             <div className="bg-muted/50 p-4 rounded-lg">
               <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                <Info className="h-4 w-4" />
+                <Info className="h-4 w-4 shrink-0" />
                 Writing Tips
               </div>
               <ul className="text-sm space-y-2 text-muted-foreground">
-                <li>• Begin sentences with action verbs (e.g., "Developed," "Implemented")</li>
-                <li>• Use specific metrics and numbers to quantify achievements</li>
-                <li>• Keep paragraphs concise (3-4 sentences maximum)</li>
-                <li>• Maintain a professional tone throughout the letter</li>
+                <li className="flex items-start gap-2">• Begin sentences with action verbs (e.g., "Developed," "Implemented")</li>
+                <li className="flex items-start gap-2">• Use specific metrics and numbers to quantify achievements</li>
+                <li className="flex items-start gap-2">• Keep paragraphs concise (3-4 sentences maximum)</li>
+                <li className="flex items-start gap-2">• Maintain a professional tone throughout the letter</li>
               </ul>
             </div>
           </div>
@@ -1202,7 +1206,7 @@ Additional Requirements:
         type="single"
         value={activeSection}
         onValueChange={setActiveSection}
-        className="space-y-4"
+        className="space-y-3 md:space-y-4"
       >
         {Object.entries(SECTIONS).map(([value, label]) => (
           <AccordionItem
@@ -1210,7 +1214,7 @@ Additional Requirements:
             value={value}
             className="border rounded-lg transition-all duration-200 data-[state=open]:shadow-md overflow-visible"
           >
-            <AccordionTrigger className="px-6 py-4 transition-all">
+            <AccordionTrigger className="px-4 md:px-6 py-3 md:py-4 transition-all">
               <div className="flex items-center gap-3">
                 <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm">
                   {value}
@@ -1221,30 +1225,31 @@ Additional Requirements:
                 )}
               </div>
             </AccordionTrigger>
-            <AccordionContent className="px-6 py-4">
+
+            <AccordionContent className="px-4 md:px-6 pb-4 md:pb-6">
               {value === '1' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Label htmlFor="fullName">Full Name *</Label>
+                      <Label htmlFor="fullName" className="flex items-center gap-2">
+                        Full Name *
                         {renderFieldTooltip('fullName')}
-                      </div>
+                      </Label>
                       <Input
                         id="fullName"
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleInputChange}
                         placeholder="John Doe"
-                        className={validationErrors.fullName ? 'border-red-500' : ''}
+                        className="mt-1.5"
                       />
-                      {validationErrors.fullName && (
-                        <p className="text-sm text-red-500 mt-1">{validationErrors.fullName}</p>
-                      )}
                     </div>
-                    
+
                     <div>
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email" className="flex items-center gap-2">
+                        Email
+                        {renderFieldTooltip('email')}
+                      </Label>
                       <Input
                         id="email"
                         name="email"
@@ -1255,12 +1260,16 @@ Additional Requirements:
                         className="mt-1.5"
                       />
                     </div>
-                    
+
                     <div>
-                      <Label htmlFor="phone">Phone</Label>
+                      <Label htmlFor="phone" className="flex items-center gap-2">
+                        Phone
+                        {renderFieldTooltip('phone')}
+                      </Label>
                       <Input
                         id="phone"
                         name="phone"
+                        type="tel"
                         value={formData.phone}
                         onChange={handleInputChange}
                         placeholder="+1 (555) 123-4567"
@@ -1282,10 +1291,13 @@ Additional Requirements:
               )}
 
               {value === '2' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="companyName">Company Name *</Label>
+                      <Label htmlFor="companyName" className="flex items-center gap-2">
+                        Company Name *
+                        {renderFieldTooltip('companyName')}
+                      </Label>
                       <Input
                         id="companyName"
                         name="companyName"
@@ -1297,7 +1309,10 @@ Additional Requirements:
                     </div>
                     
                     <div>
-                      <Label htmlFor="jobTitle">Job Title *</Label>
+                      <Label htmlFor="jobTitle" className="flex items-center gap-2">
+                        Job Title *
+                        {renderFieldTooltip('jobTitle')}
+                      </Label>
                       <Input
                         id="jobTitle"
                         name="jobTitle"
@@ -1309,7 +1324,10 @@ Additional Requirements:
                     </div>
 
                     <div>
-                      <Label htmlFor="recipientName">Recipient's Name</Label>
+                      <Label htmlFor="recipientName" className="flex items-center gap-2">
+                        Recipient's Name
+                        {renderFieldTooltip('recipientName')}
+                      </Label>
                       <Input
                         id="recipientName"
                         name="recipientName"
@@ -1321,7 +1339,10 @@ Additional Requirements:
                     </div>
 
                     <div>
-                      <Label htmlFor="recipientTitle">Recipient's Title</Label>
+                      <Label htmlFor="recipientTitle" className="flex items-center gap-2">
+                        Recipient's Title
+                        {renderFieldTooltip('recipientTitle')}
+                      </Label>
                       <Input
                         id="recipientTitle"
                         name="recipientTitle"
@@ -1334,7 +1355,10 @@ Additional Requirements:
                   </div>
 
                   <div>
-                    <Label htmlFor="companyAddress">Company Address</Label>
+                    <Label htmlFor="companyAddress" className="flex items-center gap-2">
+                      Company Address
+                      {renderFieldTooltip('companyAddress')}
+                    </Label>
                     <Input
                       id="companyAddress"
                       name="companyAddress"
@@ -1346,7 +1370,10 @@ Additional Requirements:
                   </div>
 
                   <div>
-                    <Label htmlFor="jobDescription">Job Description *</Label>
+                    <Label htmlFor="jobDescription" className="flex items-center gap-2">
+                      Job Description *
+                      {renderFieldTooltip('jobDescription')}
+                    </Label>
                     <div className="mt-1.5 relative">
                       <Textarea
                         id="jobDescription"
@@ -1361,47 +1388,12 @@ Additional Requirements:
                       </div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="relevantExperience">Relevant Experience</Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={generateExperienceSuggestions}
-                        disabled={isGeneratingSuggestions || !formData.jobDescription}
-                        className="group"
-                      >
-                        {isGeneratingSuggestions ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Suggesting...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-2 h-4 w-4 group-hover:text-yellow-500 transition-colors" />
-                            Get AI Suggestions
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <div className="mt-1.5 relative">
-                      <Textarea
-                        id="relevantExperience"
-                        name="relevantExperience"
-                        value={formData.relevantExperience}
-                        onChange={handleInputChange}
-                        placeholder="Describe your relevant experience and key achievements..."
-                        className="h-32"
-                      />
-                      <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                        {getCharacterCount('relevantExperience')}/{MAX_CHARS.relevantExperience}
-                      </div>
-                    </div>
-                  </div>
 
                   <div>
-                    <Label htmlFor="tone">Letter Tone</Label>
+                    <Label htmlFor="tone" className="flex items-center gap-2">
+                      Letter Tone
+                      {renderFieldTooltip('tone')}
+                    </Label>
                     <select
                       id="tone"
                       name="tone"
@@ -1415,7 +1407,7 @@ Additional Requirements:
                     </select>
                   </div>
 
-                  <div className="flex justify-end gap-3">
+                  <div className="flex flex-col md:flex-row justify-end gap-2 md:gap-3">
                     <Button
                       variant="outline"
                       onClick={() => setActiveSection('1')}
@@ -1479,9 +1471,9 @@ Additional Requirements:
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-4"
                     >
-                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
                         <h2 className="text-xl font-semibold">Your Cover Letter</h2>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -1512,7 +1504,7 @@ Additional Requirements:
                           </Button>
                         </div>
                       </div>
-                      <div className="bg-muted p-6 rounded-lg whitespace-pre-wrap">
+                      <div className="bg-muted p-4 md:p-6 rounded-lg whitespace-pre-wrap">
                         {coverLetter}
                       </div>
                     </motion.div>

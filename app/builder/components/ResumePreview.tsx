@@ -110,8 +110,6 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     padding: forExport ? 40 : 72, // Use smaller padding for export
   };
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isCalculating, setIsCalculating] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -133,24 +131,9 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
       setIsCalculating(true);
       const content = contentRef.current;
       if (!content) return;
-
-      // Reset content height to get full height
+      
       content.style.height = 'auto';
-      
-      const contentHeight = content.scrollHeight;
-      const pageHeight = A4_DIMENSIONS.height - (A4_DIMENSIONS.padding * 2);
-      const calculatedTotalPages = Math.ceil(contentHeight / pageHeight);
-      
-      // Only show pagination if we actually have content that spans multiple pages
-      setTotalPages(contentHeight > pageHeight ? calculatedTotalPages : 1);
-      setCurrentPage(1);
-      
-      // Set the content height to match the current page
-      if (!forExport) {
-        content.style.height = `${pageHeight}px`;
-        content.style.overflow = 'hidden';
-      }
-      
+      content.style.overflow = 'visible';
       setIsCalculating(false);
     };
 
@@ -168,18 +151,24 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     padding: `${A4_DIMENSIONS.padding}px`,
     transform: forExport ? 'none' : `scale(${isMobile ? 0.35 : scale})`,
     transformOrigin: 'top left',
+    overflow: 'visible',
+    ...(forExport && {
+      backgroundColor: 'white',
+      position: 'relative' as const,
+      margin: '0 auto',
+    })
   };
 
   const wrapperStyle = {
     width: `${A4_DIMENSIONS.width * (isMobile ? 0.35 : scale)}px`,
     height: forExport ? 'auto' : `${A4_DIMENSIONS.height * (isMobile ? 0.35 : scale)}px`,
-    overflow: 'hidden',
+    overflow: forExport ? 'visible' : 'auto',
   };
 
   const renderContent = () => {
     return (
       <div className={cn(
-        forExport ? "space-y-3" : "space-y-6",
+        forExport ? "space-y-3 print:block" : "space-y-6",
         style.font,
         {
           'text-sm': style.fontSize === 'small',
@@ -192,6 +181,15 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
       )} style={{ 
         letterSpacing: '0.01em', 
         lineHeight: forExport ? '1.3' : '1.6',
+        display: 'flex',
+        flexDirection: 'column',
+        flexGrow: 1,
+        ...(forExport && {
+          printColorAdjust: 'exact',
+          WebkitPrintColorAdjust: 'exact',
+          breakInside: 'auto',
+          pageBreakInside: 'auto',
+        })
       }}>
         {/* Header */}
         <section className={cn(
@@ -253,9 +251,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Experience */}
         {resumeData.experiences.length > 0 && (
-          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
-            pageBreakInside: 'avoid', 
-            breakInside: 'avoid',
+          <section className={cn(
+            "pdf-section print:block", 
+            forExport ? "mb-3" : "mb-6"
+          )} style={{ 
+            pageBreakInside: 'auto', 
+            breakInside: 'auto',
             display: 'block',
             position: 'relative',
           }}>
@@ -365,9 +366,14 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         {/* Projects */}
         {resumeData.projects.length > 0 && (
           <section className={cn(
-            "pdf-section relative block",
+            "pdf-section print:block", 
             forExport ? "mb-3" : "mb-6"
-          )} style={{ borderColor: style.accentColor }}>
+          )} style={{ 
+            breakInside: 'auto',
+            pageBreakInside: 'auto',
+            display: 'block',
+            position: 'relative',
+          }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
               Projects
             </h2>
@@ -379,7 +385,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
                 <div key={index} className={cn(
                   "project-item relative block space-y-1",
                   forExport ? "mb-4" : "mb-6"
-                )}>
+                )} style={{
+                  breakInside: 'auto',
+                  pageBreakInside: 'auto',
+                }}>
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-medium tracking-wide">
@@ -420,9 +429,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Awards */}
         {resumeData.awards.length > 0 && (
-          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
-            pageBreakInside: 'avoid', 
-            breakInside: 'avoid',
+          <section className={cn(
+            "pdf-section print:block", 
+            forExport ? "mb-3" : "mb-6"
+          )} style={{ 
+            breakInside: 'auto',
+            pageBreakInside: 'auto',
             display: 'block',
             position: 'relative',
           }}>
@@ -432,8 +444,8 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
             <div className={forExport ? "space-y-2" : "space-y-5"}>
               {resumeData.awards.map((award, index) => (
                 <div key={index} className="space-y-1" style={{ 
-                  pageBreakInside: 'avoid', 
-                  breakInside: 'avoid',
+                  breakInside: 'auto',
+                  pageBreakInside: 'auto',
                   display: 'block',
                   position: 'relative',
                 }}>
@@ -467,8 +479,31 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
   if (forExport) {
     return (
-      <div style={containerStyle} className="bg-white" ref={contentRef}>
-        {renderContent()}
+      <div className="bg-white [&_*]:text-black print:block" style={{
+        width: '100%',
+        minHeight: '100%',
+        overflow: 'visible',
+        position: 'relative',
+        breakInside: 'auto',
+        pageBreakInside: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        <div style={{
+          ...containerStyle,
+          minHeight: 'auto',
+          height: 'auto',
+          breakInside: 'auto',
+          pageBreakInside: 'auto',
+          margin: '0 auto',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          flexGrow: 1,
+          transform: 'none', // Ensure no scaling during export
+        }} className="[&_*]:text-black print:block" ref={contentRef}>
+          {renderContent()}
+        </div>
       </div>
     );
   }
@@ -479,13 +514,16 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         <div 
           style={wrapperStyle} 
           className={cn(
-            "relative bg-white shadow-lg transition-transform duration-200",
-            isMobile && "touch-pan-y"
+            "relative bg-white shadow-lg transition-transform duration-200 [&_*]:text-black",
+            isMobile && "touch-pan-y md:touch-auto"
           )}
         >
           <div
             ref={contentRef}
-            style={containerStyle}
+            style={{
+              ...containerStyle,
+              marginTop: 0,
+            }}
             className={cn(
               "bg-white transition-transform duration-200",
               !forExport && "hover:shadow-xl"
@@ -495,48 +533,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           </div>
         </div>
       </div>
-      
-      {!forExport && totalPages > 1 && (
-        <div className={cn(
-          "absolute bottom-4 left-1/2 transform -translate-x-1/2",
-          "flex items-center gap-2 bg-background/95 backdrop-blur-sm",
-          "px-3 py-1.5 rounded-full border shadow-sm",
-          "touch-none" // Prevent touch events from interfering with mobile scrolling
-        )}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium">
-            {currentPage} / {totalPages}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
 
       {isCalculating && (
         <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      )}
-
-      {/* Mobile Zoom Hint */}
-      {isMobile && !forExport && (
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground bg-background/95 backdrop-blur-sm px-2 py-1 rounded-full border shadow-sm pointer-events-none">
-          Pinch to zoom
         </div>
       )}
     </div>

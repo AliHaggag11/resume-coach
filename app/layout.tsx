@@ -35,7 +35,7 @@ export default function RootLayout({
             <SubscriptionProvider>
               <Navbar />
               <Toaster position="top-center" />
-              <main className="min-h-screen pt-[5.5rem]">
+              <main className="min-h-screen">
                 {children}
               </main>
             </SubscriptionProvider>

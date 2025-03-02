@@ -52,63 +52,55 @@ export default function EditCoverLetterPage() {
 
   useEffect(() => {
     const fetchCoverLetter = async () => {
-      if (!user || !id) {
-        router.push("/cover-letter");
-        return;
-      }
-
       try {
-        const { data, error } = await supabase
-          .from("cover_letter_forms")
-          .select("*")
-          .eq("id", id)
-          .eq("user_id", user.id)
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        if (!data) {
-          toast.error("Cover letter not found");
-          router.push("/cover-letter");
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/auth/signin');
           return;
         }
 
-        // Transform database data to form data format
-        const formattedData: FormData = {
-          fullName: data.full_name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          companyName: data.company_name || '',
-          jobTitle: data.job_title || '',
-          jobDescription: data.job_description || '',
-          relevantExperience: data.relevant_experience || '',
-          recipientName: data.recipient_name || '',
-          recipientTitle: data.recipient_title || '',
-          companyAddress: data.company_address || '',
-          tone: data.tone || 'professional'
-        };
+        const { data, error } = await supabase
+          .from('cover_letter_forms')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-        setFormData(formattedData);
-      } catch (err: any) {
-        console.error("Error fetching cover letter:", err);
-        toast.error(err.message || "Failed to load cover letter");
-        router.push("/cover-letter");
+        if (error) {
+          toast.error('Cover letter not found');
+          router.push('/dashboard');
+          return;
+        }
+
+        setFormData({
+          fullName: data.full_name,
+          email: data.email,
+          phone: data.phone,
+          companyName: data.company_name,
+          jobTitle: data.job_title,
+          jobDescription: data.job_description,
+          relevantExperience: data.relevant_experience,
+          recipientName: data.recipient_name,
+          recipientTitle: data.recipient_title,
+          companyAddress: data.company_address,
+          tone: data.tone,
+        });
+      } catch (error) {
+        console.error('Error fetching cover letter:', error);
+        toast.error('Failed to load cover letter');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCoverLetter();
-  }, [id, user, router]);
+  }, [id, router]);
 
   if (isLoading) {
     return (
-      <div className="container max-w-4xl py-8 space-y-8">
+      <div className="container max-w-4xl py-4 md:py-8 space-y-4 md:space-y-8">
         <Skeleton className="h-8 w-64" />
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="space-y-4">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
@@ -125,7 +117,7 @@ export default function EditCoverLetterPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
+    <div className="container max-w-4xl py-4 md:py-8">
       <CoverLetterForm initialValues={formData} formId={id as string} />
     </div>
   );
