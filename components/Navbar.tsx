@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { motion } from "framer-motion";
-import { Menu, LogOut, User, Sparkles, CreditCard, Layout, PenLine, Mail, HeadphonesIcon, MessageSquare, Sun, Moon, Laptop } from "lucide-react";
+import { Menu, LogOut, User, Sparkles, CreditCard, Layout, PenLine, Mail, HeadphonesIcon, MessageSquare, Sun, Moon, Laptop, BriefcaseIcon } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -79,6 +79,12 @@ export default function Navbar() {
         label: "Dashboard",
         icon: User,
         description: "Manage your resumes and profile",
+      },
+      {
+        href: "/jobs",
+        label: "Jobs",
+        icon: BriefcaseIcon,
+        description: "Track your job applications",
       },
       ...(!isSupport ? [
         {
