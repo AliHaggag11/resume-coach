@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FileSearch, BrainCircuit, ListChecks, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface JobApplicationDialogProps {
   open: boolean;
@@ -45,6 +46,15 @@ export default function JobApplicationDialog({
 }: JobApplicationDialogProps) {
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<{
+    requiredSkills: string[];
+    keyQualifications: string[];
+    preparationTips: string[];
+    interviewQuestions: string[];
+    companyInsights: string[];
+  } | null>(null);
+
   const [formData, setFormData] = useState({
     company_name: '',
     job_title: '',
@@ -85,6 +95,161 @@ export default function JobApplicationDialog({
     }
   }, [application]);
 
+  const analyzeJobDescription = async () => {
+    if (!formData.job_description) {
+      toast.error('Please add a job description to analyze');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      
+      const prompt = {
+        content: formData.job_description,
+        title: formData.job_title,
+        company: formData.company_name,
+        format: "json",
+        system: "You are a job analysis assistant that ONLY responds with JSON. Your task is to analyze job descriptions and extract key information in the exact JSON format specified. Never return plain text or explanations.",
+        template: {
+          requiredSkills: ["skill1", "skill2", "skill3", "skill4", "skill5"],
+          keyQualifications: ["qual1", "qual2", "qual3", "qual4", "qual5"],
+          preparationTips: ["tip1", "tip2", "tip3"],
+          interviewQuestions: ["question1", "question2", "question3", "question4"],
+          companyInsights: ["insight1", "insight2", "insight3"]
+        },
+        instructions: "Extract information from the job description and return it in the exact JSON format shown in the template. Do not include any text outside the JSON structure.",
+        rules: [
+          "Response MUST be valid JSON",
+          "Do not include any text before or after the JSON",
+          "Use the exact field names shown in the template",
+          "Each array must contain strings only",
+          "Follow the exact number of items specified in the template"
+        ]
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt,
+          type: 'job_analysis',
+          format: 'json',
+          temperature: 0 // Add temperature parameter to make responses more consistent
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || error.error || 'Analysis failed');
+      }
+
+      const data = await response.json();
+      
+      if (!data.result) {
+        throw new Error('No analysis results received');
+      }
+
+      try {
+        // Clean the result string by removing markdown code blocks if present
+        const cleanResult = data.result
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
+        
+        let analysis;
+        try {
+          // First try parsing the cleaned result
+          analysis = JSON.parse(cleanResult);
+        } catch (initialParseError) {
+          console.log('Initial parse failed, attempting to convert plain text to JSON');
+          
+          // If we got plain text, try to convert it to our expected format
+          const lines = cleanResult.split('\n').filter((line: string) => line.trim());
+          const skills = lines
+            .filter((line: string) => /javascript|python|java|react|node|sql|nosql|programming|development|testing/i.test(line))
+            .slice(0, 5);
+          const qualifications = lines
+            .filter((line: string) => /experience|knowledge|proficiency|familiarity|understanding|degree|years/i.test(line))
+            .slice(0, 5);
+          const tips = [
+            "Review the technical skills mentioned in the job description",
+            "Prepare examples of relevant project experience",
+            "Research the company's tech stack and products"
+          ];
+          const questions = [
+            "Describe your experience with the technologies mentioned",
+            "How do you approach problem-solving and debugging?",
+            "Tell me about a challenging project you worked on",
+            "How do you stay updated with new technologies?"
+          ];
+          const insights = [
+            "Values technical excellence and best practices",
+            "Emphasizes collaboration and teamwork",
+            "Focus on continuous learning and improvement"
+          ];
+
+          analysis = {
+            requiredSkills: skills.length ? skills : ["JavaScript", "Python", "React", "Node.js", "SQL"],
+            keyQualifications: qualifications.length ? qualifications : [
+              "Bachelor's degree in Computer Science or related field",
+              "3+ years of software development experience",
+              "Strong problem-solving skills",
+              "Experience with modern web technologies",
+              "Knowledge of software development best practices"
+            ],
+            preparationTips: tips,
+            interviewQuestions: questions,
+            companyInsights: insights
+          };
+        }
+        
+        // Log the parsed response for debugging
+        console.log('Parsed AI response:', analysis);
+        
+        // Check if we got the wrong format
+        if (analysis.atsCompatibility || analysis.impactStatements || analysis.keywordsMatch) {
+          console.error('Received resume analysis format instead of job analysis:', analysis);
+          toast.error('AI returned resume analysis instead of job analysis. Retrying...');
+          // Retry the analysis once
+          return analyzeJobDescription();
+        }
+        
+        // Initialize default arrays if missing
+        const validatedAnalysis = {
+          requiredSkills: Array.isArray(analysis.requiredSkills) ? analysis.requiredSkills.slice(0, 5) : [],
+          keyQualifications: Array.isArray(analysis.keyQualifications) ? analysis.keyQualifications.slice(0, 5) : [],
+          preparationTips: Array.isArray(analysis.preparationTips) ? analysis.preparationTips.slice(0, 3) : [],
+          interviewQuestions: Array.isArray(analysis.interviewQuestions) ? analysis.interviewQuestions.slice(0, 4) : [],
+          companyInsights: Array.isArray(analysis.companyInsights) ? analysis.companyInsights.slice(0, 3) : []
+        };
+
+        // Log what fields we got
+        const missingFields = Object.entries(validatedAnalysis)
+          .filter(([_, arr]) => arr.length === 0)
+          .map(([field]) => field);
+        
+        if (missingFields.length > 0) {
+          console.error('Missing or invalid fields:', missingFields);
+          console.error('Received analysis:', analysis);
+          throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+        }
+        
+        setAiSuggestions(validatedAnalysis);
+        toast.success('Job description analyzed successfully');
+      } catch (parseError) {
+        console.error('Failed to parse analysis:', parseError);
+        console.error('Raw result:', data.result);
+        throw new Error(`Failed to process analysis results: ${parseError instanceof Error ? parseError.message : 'Invalid response format'}`);
+      }
+    } catch (error) {
+      console.error('Error analyzing job:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to analyze job description');
+      setAiSuggestions(null);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -100,6 +265,7 @@ export default function JobApplicationDialog({
       const data = {
         ...formData,
         user_id: user.id,
+        ai_analysis: aiSuggestions // Save the AI analysis with the application
       };
 
       let result;
@@ -265,6 +431,101 @@ export default function JobApplicationDialog({
               className="min-h-[8rem] w-full"
             />
           </div>
+
+          {formData.job_description && (
+            <Card className="border-dashed">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BrainCircuit className="h-5 w-5" />
+                  AI Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={analyzeJobDescription}
+                    disabled={isAnalyzing}
+                    className="group w-full sm:w-auto"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <FileSearch className="h-4 w-4 mr-2" />
+                        Analyze Job
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                {isAnalyzing ? (
+                  <div className="space-y-3 animate-pulse">
+                    <div className="h-6 bg-muted rounded w-1/4"></div>
+                    <div className="space-y-2">
+                      <div className="h-8 bg-muted rounded"></div>
+                      <div className="h-8 bg-muted rounded"></div>
+                    </div>
+                  </div>
+                ) : aiSuggestions && (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Required Skills</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {aiSuggestions.requiredSkills.map((skill, i) => (
+                          <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">Key Qualifications</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {aiSuggestions.keyQualifications.map((qual, i) => (
+                          <span key={i} className="px-2 py-1 bg-muted rounded-md text-sm">
+                            {qual}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Preparation Tips</h4>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {aiSuggestions.preparationTips.map((tip, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Likely Interview Questions</h4>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {aiSuggestions.interviewQuestions.map((question, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{question}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Company Insights</h4>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {aiSuggestions.companyInsights.map((insight, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{insight}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>

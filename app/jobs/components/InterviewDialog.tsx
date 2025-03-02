@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BrainCircuit, Sparkles, MessageSquare } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface InterviewDialogProps {
   open: boolean;
@@ -39,6 +40,14 @@ export default function InterviewDialog({
   onClose,
 }: InterviewDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiPreparation, setAiPreparation] = useState<{
+    questions: string[];
+    tips: string[];
+    topics: string[];
+    answers: string[];
+  } | null>(null);
+
   const [formData, setFormData] = useState({
     interview_type: 'phone_screening',
     scheduled_at: '',
@@ -48,6 +57,120 @@ export default function InterviewDialog({
     notes: '',
     preparation_notes: '',
   });
+
+  const generatePreparationGuide = async () => {
+    if (!applicationId) return;
+
+    try {
+      setIsGenerating(true);
+
+      // First, fetch the job application details
+      const { data: jobApp, error: jobError } = await supabase
+        .from('job_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+
+      if (jobError) throw jobError;
+
+      const prompt = {
+        jobTitle: jobApp.job_title,
+        companyName: jobApp.company_name,
+        jobDescription: jobApp.job_description,
+        interviewType: formData.interview_type,
+        type: 'interview_preparation',
+        context: `Generate an interview preparation guide in the exact format specified below. Return ONLY the JSON structure shown - no other text or formatting.
+
+{
+  "questions": ["question1", "question2", "question3", "question4", "question5"],
+  "tips": ["tip1", "tip2", "tip3", "tip4"],
+  "topics": ["topic1", "topic2", "topic3", "topic4"],
+  "answers": ["answer1", "answer2", "answer3", "answer4"]
+}
+
+Instructions:
+1. questions: Generate 5 specific interview questions for this role and stage
+2. tips: Provide 4 preparation tips for this interview type
+3. topics: List 4 key topics to research and prepare
+4. answers: Write 4 example STAR-format answers
+
+Keep all responses concise and focused on interview preparation.`
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, type: 'analyze' }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.details || error.error || 'Failed to generate preparation guide');
+      }
+
+      const data = await response.json();
+      
+      if (!data.result) {
+        throw new Error('No preparation guide received');
+      }
+
+      try {
+        // Clean the result string by removing markdown code blocks if present
+        const cleanResult = data.result
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
+        
+        const guide = JSON.parse(cleanResult);
+        
+        // Log the parsed response for debugging
+        console.log('Parsed AI response:', guide);
+        
+        // Check if we got the wrong format
+        if (guide.atsCompatibility || guide.impactStatements || guide.keywordsMatch) {
+          // We received resume analysis format instead of interview guide
+          toast.error('Received incorrect guide format. Please try again.');
+          return;
+        }
+        
+        // Initialize default arrays if missing
+        const validatedGuide = {
+          questions: Array.isArray(guide.questions) ? guide.questions.slice(0, 5) : [],
+          tips: Array.isArray(guide.tips) ? guide.tips.slice(0, 4) : [],
+          topics: Array.isArray(guide.topics) ? guide.topics.slice(0, 4) : [],
+          answers: Array.isArray(guide.answers) ? guide.answers.slice(0, 4) : []
+        };
+
+        // Validate that we have at least some data
+        if (validatedGuide.questions.length === 0 &&
+            validatedGuide.tips.length === 0 &&
+            validatedGuide.topics.length === 0 &&
+            validatedGuide.answers.length === 0) {
+          throw new Error('No valid guide data received');
+        }
+        
+        setAiPreparation(validatedGuide);
+        
+        // Add the preparation guide to the notes
+        setFormData(prev => ({
+          ...prev,
+          preparation_notes: `${prev.preparation_notes ? prev.preparation_notes + '\n\n' : ''}AI-Generated Interview Preparation Guide:\n\nKey Topics to Prepare:\n${validatedGuide.topics.map((t: string) => `- ${t}`).join('\n')}\n\nPreparation Tips:\n${validatedGuide.tips.map((t: string) => `- ${t}`).join('\n')}\n\nPractice Questions:\n${validatedGuide.questions.map((q: string) => `- ${q}`).join('\n')}\n\nSample STAR Answers:\n${validatedGuide.answers.map((a: string) => `- ${a}`).join('\n')}`
+        }));
+
+        toast.success('Interview preparation guide generated');
+      } catch (parseError) {
+        console.error('Failed to parse guide:', parseError);
+        console.error('Raw result:', data.result);
+        throw new Error('Failed to process preparation guide. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error generating preparation guide:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate preparation guide');
+      setAiPreparation(null);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +191,7 @@ export default function InterviewDialog({
           .split(',')
           .map((name) => name.trim())
           .filter(Boolean),
+        ai_preparation: aiPreparation // Save the AI preparation with the interview
       };
 
       const { error } = await supabase.from('job_interviews').insert([data]);
@@ -179,6 +303,89 @@ export default function InterviewDialog({
               className="w-full"
             />
           </div>
+
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5" />
+                Interview Preparation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={generatePreparationGuide}
+                  disabled={isGenerating || !applicationId}
+                  className="group w-full sm:w-auto"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate Preparation Guide
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {isGenerating ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-6 bg-muted rounded w-1/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-8 bg-muted rounded"></div>
+                    <div className="h-8 bg-muted rounded"></div>
+                  </div>
+                </div>
+              ) : aiPreparation && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Practice Questions</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {aiPreparation.questions.map((question, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{question}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Key Topics to Research</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {aiPreparation.topics.map((topic, i) => (
+                        <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Preparation Tips</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {aiPreparation.tips.map((tip, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium mb-2">Sample STAR Answers</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {aiPreparation.answers.map((answer, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{answer}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Interview Details</Label>
