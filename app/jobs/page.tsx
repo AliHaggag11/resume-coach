@@ -875,6 +875,7 @@ export default function JobsPage() {
                               size="sm"
                               className="hidden sm:inline-flex"
                               onClick={() => {
+                                setSelectedInterview(null);
                                 setSelectedApplication(application);
                                 setShowInterviewDialog(true);
                               }}
@@ -886,6 +887,7 @@ export default function JobsPage() {
                               size="icon"
                               className="h-8 w-8 sm:hidden"
                               onClick={() => {
+                                setSelectedInterview(null);
                                 setSelectedApplication(application);
                                 setShowInterviewDialog(true);
                               }}
