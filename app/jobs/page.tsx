@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface JobApplication {
   id: string;
@@ -638,45 +639,74 @@ export default function JobsPage() {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Job Applications</h1>
+        <p className="text-muted-foreground mt-2">Track and manage your job applications, save interesting positions, and search for new opportunities.</p>
+      </div>
+
       <Tabs defaultValue="applications" className="w-full space-y-6">
         <div className="flex flex-col space-y-4 sm:space-y-0">
           <div className="w-full overflow-x-auto pb-2">
-            <TabsList className="w-full grid grid-cols-3 gap-1 rounded-md bg-muted p-1 text-muted-foreground">
-              <TabsTrigger value="applications" className="flex items-center justify-center gap-2">
+            <TabsList className="w-full grid grid-cols-4 gap-1 rounded-md bg-muted p-1 text-muted-foreground">
+              <TabsTrigger value="applications" className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <BriefcaseIcon className="h-4 w-4" />
                 Applications
               </TabsTrigger>
-              <TabsTrigger value="saved" className="flex items-center justify-center gap-2">
+              <TabsTrigger value="interviews" className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Calendar className="h-4 w-4" />
+                Interviews
+              </TabsTrigger>
+              <TabsTrigger value="saved" className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Plus className="h-4 w-4" />
                 Saved Jobs
               </TabsTrigger>
-              <TabsTrigger value="search" className="flex items-center justify-center gap-2">
+              <TabsTrigger value="search" className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Search className="h-4 w-4" />
                 Job Search
               </TabsTrigger>
             </TabsList>
+          </div>
         </div>
 
-          {/* Upcoming Interviews Section */}
-          {upcomingInterviews.length > 0 && (
-            <Card className="w-full">
-          <CardHeader>
-                <CardTitle className="text-lg font-bold">Upcoming Interviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                  {upcomingInterviews.map((interview) => {
-                  const application = applications.find(app => app.id === interview.job_application_id);
-                  const interviewDate = new Date(interview.scheduled_at);
-                  return (
-                      <div key={interview.id} className="flex flex-col gap-4 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+        <TabsContent value="interviews" className="space-y-6 mt-2">
+          <div className="space-y-6">
+            {interviews.length === 0 ? (
+              <div className="text-center py-12 bg-muted/50 rounded-lg">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground">No upcoming interviews</p>
+                <Button 
+                  variant="link" 
+                  onClick={() => {
+                    const applicationsTab = document.querySelector('[value="applications"]') as HTMLButtonElement;
+                    applicationsTab?.click();
+                  }}
+                  className="mt-2"
+                >
+                  Schedule an interview
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                {interviews
+                  .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+                  .map((interview) => {
+                    const application = applications.find(app => app.id === interview.job_application_id);
+                    const interviewDate = new Date(interview.scheduled_at);
+                    const isPast = interviewDate < new Date();
+                    
+                    return (
+                      <div key={interview.id} className={cn(
+                        "flex flex-col gap-4 p-4 rounded-lg border bg-card transition-colors",
+                        isPast ? "opacity-60" : "hover:bg-accent/5"
+                      )}>
                         <div className="flex items-start gap-4">
                           {/* Date Display */}
                           <div className="flex flex-col items-center justify-center w-14 h-14 rounded-lg bg-primary/5 text-primary">
                             <span className="text-xs font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
                             <span className="text-xl font-bold leading-none mt-0.5">{interviewDate.getDate()}</span>
-                      </div>
-                      
+                          </div>
+                          
                           {/* Interview Details */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start gap-3">
@@ -702,11 +732,11 @@ export default function JobsPage() {
                               <div className="min-w-0">
                                 <h4 className="font-medium truncate">{application?.company_name}</h4>
                                 <Badge variant="outline" className="mt-1 mb-1.5">
-                            {interview.interview_type.replace('_', ' ')}
-                          </Badge>
+                                  {interview.interview_type.replace('_', ' ')}
+                                </Badge>
                                 <p className="text-sm text-muted-foreground truncate">
-                          {application?.job_title}
-                        </p>
+                                  {application?.job_title}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -721,8 +751,8 @@ export default function JobsPage() {
                           <div className="flex items-center gap-1.5">
                             <MapPin className="h-4 w-4 shrink-0" />
                             <span className="truncate">{interview.location || 'Remote'}</span>
+                          </div>
                         </div>
-                      </div>
 
                         {/* Actions */}
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -770,125 +800,68 @@ export default function JobsPage() {
                             <div className="flex items-center justify-center gap-1.5">
                               <Calendar className="h-4 w-4" />
                               <span>Add to Calendar</span>
-                        </div>
+                            </div>
                           </Button>
                         
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-8 min-w-[100px]"
-                          disabled={isPracticing[interview.id]}
-                          onClick={async () => {
-                            if (!application) return;
-                              
-                            // First, generate AI preparation content
-                            try {
-                              setIsPracticing(prev => ({ ...prev, [interview.id]: true }));
-                              const prompt = {
-                                type: 'interview_preparation',
-                                format: 'structured',
-                                context: {
-                                  jobTitle: application.job_title,
-                                  companyName: application.company_name,
-                                  jobDescription: application.job_description.split('\n\njob_id:')[0],
-                                  interviewType: interview.interview_type
-                                },
-                                instructions: `Analyze the job description and prepare interview content.
-                                Return a JSON object with:
-                                {
-                                  "questions": [5-8 likely interview questions],
-                                  "topics": [4-6 key technical topics to focus on],
-                                  "tips": [3-4 preparation tips]
-                                }`
-                              };
-
-                              const response = await fetch('/api/ai', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ prompt, type: 'prepare' }),
-                              });
-
-                              if (!response.ok) {
-                                throw new Error('Failed to generate interview preparation');
-                              }
-
-                              const data = await response.json();
-                              const preparation = data.result;
-
-                              // Update the interview with AI preparation
-                              const updatedInterview = {
-                                ...interview,
-                                ai_preparation: preparation
-                              };
-
-                              setSelectedInterview(updatedInterview);
-                            setSelectedJobDetails({
-                              company_name: application.company_name,
-                              job_title: application.job_title,
-                                job_description: application.job_description.split('\n\njob_id:')[0]
-                            });
-                            setShowMockInterviewDialog(true);
-                            } catch (error) {
-                              console.error('Error preparing interview:', error);
-                              toast.error('Failed to prepare interview content');
-                            } finally {
-                              setIsPracticing(prev => ({ ...prev, [interview.id]: false }));
-                            }
-                          }}
-                        >
-                          {isPracticing[interview.id] ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                              <span>Preparing...</span>
-                            </div>
-                          ) : (
-                            <>
-                              <MessageSquare className="h-4 w-4 mr-1.5" />
-                          Practice
-                            </>
-                          )}
-                        </Button>
-                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-8 min-w-[100px]"
+                            disabled={isPracticing[interview.id]}
+                            onClick={() => handlePractice(interview)}
+                          >
+                            {isPracticing[interview.id] ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                <span>Preparing...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <MessageSquare className="h-4 w-4 mr-1.5" />
+                                Practice
+                              </>
+                            )}
+                          </Button>
+                            
                           <div className="flex gap-2 w-full">
-                        <Button
-                          variant="outline"
-                          size="sm"
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="flex-1 h-8"
-                          onClick={() => {
-                            setSelectedInterview(interview);
-                            setSelectedApplication(application || null);
-                            setShowInterviewDialog(true);
-                          }}
-                        >
+                              onClick={() => {
+                                setSelectedInterview(interview);
+                                setSelectedApplication(application || null);
+                                setShowInterviewDialog(true);
+                              }}
+                            >
                               <PenLine className="h-4 w-4 mr-1.5" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="h-8 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
+                              onClick={() => {
                                 setItemToDelete({ type: 'interview', id: interview.id });
                                 setDeleteConfirmOpen(true);
-                          }}
-                        >
+                              }}
+                            >
                               <Trash2 className="h-5 w-5" />
-                        </Button>
+                            </Button>
                           </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
-          </CardContent>
-        </Card>
-          )}
-        </div>
+            )}
+          </div>
+        </TabsContent>
 
         <TabsContent value="applications" className="space-y-6 mt-2">
           <div className="space-y-6">
             {/* Applications Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50 p-4 rounded-lg">
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="relative flex-1 sm:flex-none">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -896,10 +869,10 @@ export default function JobsPage() {
                     placeholder="Search applications..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-full sm:w-[300px]"
+                    className="pl-9 w-full sm:w-[300px] bg-background"
                   />
                 </div>
-                <Button onClick={() => setShowNewApplicationDialog(true)}>
+                <Button onClick={() => setShowNewApplicationDialog(true)} className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Job
                 </Button>
@@ -907,7 +880,7 @@ export default function JobsPage() {
             </div>
 
             {/* Filters Row */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 bg-muted/50 p-4 rounded-lg">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="Status" />
@@ -959,11 +932,11 @@ export default function JobsPage() {
                   Clear Filters
                 </Button>
               )}
-      </div>
+            </div>
 
-      {/* Applications Grid */}
+            {/* Applications Grid */}
             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-        {filteredApplications.length === 0 ? (
+              {filteredApplications.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground">
@@ -978,17 +951,17 @@ export default function JobsPage() {
                   >
                     Add your first application
                   </Button>
-          </div>
-        ) : (
+                </div>
+              ) : (
                 filteredApplications.map(application => {
                   const employerLogo = application.job_description.includes('employer_logo:') 
                     ? application.job_description.split('employer_logo:')[1]?.split('\n')[0]
                     : null;
 
                   return (
-            <Card key={application.id} className="group">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
+                    <Card key={application.id} className="group">
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-start gap-3">
                               <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
@@ -1013,101 +986,101 @@ export default function JobsPage() {
                               <div className="min-w-0 flex-1">
                                 <CardTitle className="truncate">
                                   {application.company_name}
-                    </CardTitle>
+                                </CardTitle>
                                 <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                      <BriefcaseIcon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{application.job_title}</span>
-                    </div>
-                    {application.location && (
+                                  <BriefcaseIcon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{application.job_title}</span>
+                                </div>
+                                {application.location && (
                                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{application.location}</span>
-                      </div>
-                    )}
+                                    <MapPin className="h-4 w-4 shrink-0" />
+                                    <span className="truncate">{application.location}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                  </div>
-                  <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
-                    {application.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    Applied {formatDate(application.created_at)}
-                  </div>
-                  <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex"
-                      onClick={() => {
+                          </div>
+                          <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
+                            {application.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-muted-foreground">
+                            Applied {formatDate(application.created_at)}
+                          </div>
+                          <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hidden sm:inline-flex"
+                              onClick={() => {
                                 setSelectedInterview(null);
-                        setSelectedApplication(application);
-                        setShowInterviewDialog(true);
-                      }}
-                    >
-                      Add Interview
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden"
-                      onClick={() => {
+                                setSelectedApplication(application);
+                                setShowInterviewDialog(true);
+                              }}
+                            >
+                              Add Interview
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 sm:hidden"
+                              onClick={() => {
                                 setSelectedInterview(null);
-                        setSelectedApplication(application);
-                        setShowInterviewDialog(true);
-                      }}
-                    >
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex"
-                      onClick={() => {
-                        setSelectedApplication(application);
-                        setShowNewApplicationDialog(true);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden"
-                      onClick={() => {
-                        setSelectedApplication(application);
-                        setShowNewApplicationDialog(true);
-                      }}
-                    >
-                      <PenLine className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex text-destructive hover:text-destructive"
-                      onClick={() => {
+                                setSelectedApplication(application);
+                                setShowInterviewDialog(true);
+                              }}
+                            >
+                              <Calendar className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hidden sm:inline-flex"
+                              onClick={() => {
+                                setSelectedApplication(application);
+                                setShowNewApplicationDialog(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 sm:hidden"
+                              onClick={() => {
+                                setSelectedApplication(application);
+                                setShowNewApplicationDialog(true);
+                              }}
+                            >
+                              <PenLine className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hidden sm:inline-flex text-destructive hover:text-destructive"
+                              onClick={() => {
                                 setItemToDelete({ type: 'application', id: application.id });
                                 setDeleteConfirmOpen(true);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
-                      onClick={() => {
+                              }}
+                            >
+                              Delete
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
+                              onClick={() => {
                                 setItemToDelete({ type: 'application', id: application.id });
                                 setDeleteConfirmOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   );
@@ -1120,7 +1093,7 @@ export default function JobsPage() {
         <TabsContent value="saved" className="space-y-6 mt-2">
           <div className="space-y-6">
             {savedJobs.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12 bg-muted/50 rounded-lg">
                 <Plus className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                 <p className="text-muted-foreground">No saved jobs yet</p>
                 <Button 
@@ -1263,13 +1236,13 @@ export default function JobsPage() {
         <TabsContent value="search" className="space-y-6 mt-2">
           <div className="space-y-6">
             {/* Search Controls */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 bg-muted/50 p-4 rounded-lg">
               <div className="flex-1">
                 <Input
                   placeholder="Job title, keywords, or company"
                   value={jobSearchQuery}
                   onChange={(e) => setJobSearchQuery(e.target.value)}
-                  className="w-full"
+                  className="w-full bg-background"
                 />
               </div>
               <div className="flex-1">
@@ -1277,13 +1250,13 @@ export default function JobsPage() {
                   placeholder="Location or 'Remote'"
                   value={jobLocation}
                   onChange={(e) => setJobLocation(e.target.value)}
-                  className="w-full"
+                  className="w-full bg-background"
                 />
               </div>
               <Button 
                 onClick={handleJobSearch} 
                 disabled={isLoadingJobs}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-primary hover:bg-primary/90"
               >
                 <Search className="h-4 w-4 mr-2" />
                 Search Jobs
@@ -1301,9 +1274,9 @@ export default function JobsPage() {
                     </CardHeader>
                     <CardContent>
                       <Skeleton className="h-20 w-full" />
-              </CardContent>
-            </Card>
-          ))
+                    </CardContent>
+                  </Card>
+                ))
               ) : jobListings.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -1444,8 +1417,8 @@ export default function JobsPage() {
                     </Card>
                   );
                 })
-        )}
-      </div>
+              )}
+            </div>
 
             {/* Load More Button */}
             {jobListings.length > 0 && hasMoreJobs && (

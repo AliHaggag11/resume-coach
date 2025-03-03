@@ -16,6 +16,62 @@ const genAI = new GoogleGenerativeAI(apiKey);
 function generatePrompt(type: string, content: any) {
   switch (type) {
     case 'analyze':
+      if (content.type === 'response_analysis') {
+        return `You are an interview response analyzer. Analyze the following interview response and return ONLY a JSON object with scores and feedback. The response must be a valid JSON object with no additional text, markdown, or formatting.
+
+Response to analyze:
+${content.context.response}
+
+Previous question:
+${content.context.question}
+
+Interview stage:
+${content.context.stage}
+
+Required JSON format:
+{
+  "scores": {
+    "clarity": number between 0-100,
+    "relevance": number between 0-100,
+    "depth": number between 0-100,
+    "confidence": number between 0-100
+  },
+  "feedback": "Brief feedback with both a strength and area for improvement"
+}
+
+Scoring Criteria:
+1. Clarity (0-100):
+   - Well-organized thoughts
+   - Clear communication
+   - Logical flow
+   - Easy to understand
+
+2. Relevance (0-100):
+   - Directly answers the question
+   - Stays on topic
+   - Provides requested information
+   - Appropriate level of detail
+
+3. Depth (0-100):
+   - Specific examples
+   - Technical accuracy
+   - Detailed explanations
+   - Supporting evidence
+
+4. Confidence (0-100):
+   - Professional tone
+   - Assertive language
+   - Clear articulation
+   - Engaging delivery
+
+Important:
+1. All scores must be integers between 0-100
+2. Never use 70 as a default score
+3. Feedback must include both a strength and area for improvement
+4. Return ONLY the JSON object with no additional text
+5. Ensure all score fields are present
+6. Do not add any text before or after the JSON`;
+      }
       return `You are an ATS (Applicant Tracking System) analyzer. Analyze the following resume data and return ONLY a JSON object with scores and feedback. The response must be a valid JSON object with no additional text, markdown, or formatting.
 
 Resume to analyze:
