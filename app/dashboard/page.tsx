@@ -618,9 +618,9 @@ export default function DashboardPage() {
       {/* Resume and Cover Letter Management */}
       <div className="space-y-6">
         <Tabs defaultValue="resumes" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-            <TabsTrigger value="resumes">Resumes</TabsTrigger>
-            <TabsTrigger value="cover-letters">Cover Letters</TabsTrigger>
+          <TabsList className="w-full flex flex-wrap sm:grid sm:grid-cols-2 sm:w-[400px] gap-1">
+            <TabsTrigger value="resumes" className="flex-1 sm:flex-none">Resumes</TabsTrigger>
+            <TabsTrigger value="cover-letters" className="flex-1 sm:flex-none">Cover Letters</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resumes" className="mt-6">
