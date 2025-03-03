@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, Search, Calendar, BriefcaseIcon, Building2, MapPin, PenLine, MessageSquare, Clock, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Search, Calendar, BriefcaseIcon, Building2, MapPin, PenLine, MessageSquare, Clock, Trash2, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -202,6 +202,7 @@ export default function JobsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'interview' | 'application', id: string } | null>(null);
   const [isPracticing, setIsPracticing] = useState<Record<string, boolean>>({});
+  const [isSearchExpanded, setIsSearchExpanded] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -641,14 +642,256 @@ export default function JobsPage() {
     <div className="container mx-auto px-4 py-6">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Job Applications</h1>
-        <p className="text-muted-foreground mt-2">Track and manage your job applications, save interesting positions, and search for new opportunities.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Find Your Next Role</h1>
+        <p className="text-muted-foreground mt-2">Search and apply for jobs, track your applications, and manage interviews all in one place.</p>
       </div>
 
+      {/* Collapsible Job Search Section */}
+      {!isSearchExpanded ? (
+        <Button
+          variant="outline"
+          className="w-full flex items-center justify-between mb-8"
+          onClick={() => setIsSearchExpanded(true)}
+        >
+          <div className="flex items-center">
+            <Search className="h-4 w-4 mr-2" />
+            Click to search for jobs
+          </div>
+          <ChevronDown className="h-4 w-4 ml-2" />
+        </Button>
+      ) : (
+        <div className={`transition-all duration-300 ease-in-out`}>
+          <Card className="mb-8">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Search Jobs</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSearchExpanded(false)}
+                  className="h-8 w-8 hover:bg-muted"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Job title, keywords, or company"
+                      value={jobSearchQuery}
+                      onChange={(e) => setJobSearchQuery(e.target.value)}
+                      className="w-full bg-background"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Location or 'Remote'"
+                      value={jobLocation}
+                      onChange={(e) => setJobLocation(e.target.value)}
+                      className="w-full bg-background"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleJobSearch} 
+                    disabled={isLoadingJobs}
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    Search Jobs
+                  </Button>
+                </div>
+
+                {/* Job Listings Grid */}
+                {isLoadingJobs ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+                    {Array(4).fill(0).map((_, i) => (
+                      <Card key={i} className="w-full">
+                        <CardHeader>
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-4 w-1/2 mt-2" />
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-20 w-full" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : jobListings.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+                      {jobListings.map((job) => {
+                        const isExpanded = expandedDescriptions.has(job.job_id);
+
+                        return (
+                          <Card key={job.job_id} className="w-full">
+                            <CardHeader>
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0 flex-1">
+                                  <CardTitle className="text-lg sm:text-xl truncate">{job.job_title}</CardTitle>
+                                  <div className="flex items-center mt-2 text-muted-foreground">
+                                    <Building2 className="h-4 w-4 mr-2 shrink-0" />
+                                    <span className="truncate">{job.employer_name}</span>
+                                  </div>
+                                  <div className="flex items-center mt-1 text-muted-foreground">
+                                    <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                                    <span className="truncate">{job.job_location}</span>
+                                  </div>
+                                </div>
+                                <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
+                                  {job.employer_logo ? (
+                                    <img 
+                                      src={job.employer_logo}
+                                      alt={`${job.employer_name} logo`}
+                                      className="h-10 w-10 object-contain"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.parentElement?.classList.add('fallback');
+                                        target.style.display = 'none';
+                                        const fallbackIcon = document.createElement('div');
+                                        fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
+                                        target.parentElement?.appendChild(fallbackIcon.firstChild!);
+                                      }}
+                                    />
+                                  ) : (
+                                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                                  )}
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="secondary" className="text-xs sm:text-sm">
+                                    {job.job_employment_type}
+                                  </Badge>
+                                  {job.job_salary && (
+                                    <Badge variant="outline" className="text-xs sm:text-sm">
+                                      {job.job_salary}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-3'}`}>
+                                    {job.job_description}
+                                  </p>
+                                  <Button
+                                    variant="link"
+                                    className="px-0 h-8 text-xs font-medium"
+                                    onClick={() => toggleDescription(job.job_id)}
+                                  >
+                                    {isExpanded ? 'Show Less' : 'Show More'}
+                                  </Button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="default"
+                                    className="flex-1"
+                                    disabled={loadingJobIds.has(job.job_id)}
+                                    onClick={() => applyToJob(job)}
+                                  >
+                                    {loadingJobIds.has(job.job_id) ? (
+                                      <div className="flex items-center justify-center gap-2">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                        Processing...
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <BriefcaseIcon className="h-4 w-4 mr-2" />
+                                        Apply Now
+                                      </>
+                                    )}
+                                  </Button>
+                                  {savedJobIds.has(job.job_id) ? (
+                                    <Button
+                                      variant="outline"
+                                      className="flex-1"
+                                      disabled={loadingJobIds.has(job.job_id)}
+                                      onClick={() => removeSavedJob(job.job_id)}
+                                    >
+                                      {loadingJobIds.has(job.job_id) ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                          Removing...
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Remove
+                                        </>
+                                      )}
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      className="flex-1"
+                                      disabled={loadingJobIds.has(job.job_id)}
+                                      onClick={() => saveJobToApplications(job)}
+                                    >
+                                      {loadingJobIds.has(job.job_id) ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                          Saving...
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <Plus className="h-4 w-4 mr-2" />
+                                          Save
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+
+                    {/* Load More Button */}
+                    {hasMoreJobs && (
+                      <div className="flex justify-center mt-8">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={() => fetchJobs(currentPage + 1, true)}
+                          disabled={isLoadingMore}
+                          className="w-full sm:w-auto min-w-[200px]"
+                        >
+                          {isLoadingMore ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              Loading more jobs...
+                            </div>
+                          ) : (
+                            'Load More Jobs'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-muted-foreground">
+                      {jobSearchQuery || jobLocation 
+                        ? 'No jobs found matching your search' 
+                        : 'Search for jobs to get started'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Applications and Interviews Management */}
       <Tabs defaultValue="applications" className="w-full space-y-6">
         <div className="flex flex-col space-y-4 sm:space-y-0">
           <div className="w-full overflow-x-auto pb-2">
-            <TabsList className="w-full grid grid-cols-4 gap-1 rounded-md bg-muted p-1 text-muted-foreground">
+            <TabsList className="w-full grid grid-cols-3 gap-1 rounded-md bg-muted p-1 text-muted-foreground">
               <TabsTrigger value="applications" className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <BriefcaseIcon className="h-4 w-4" />
                 Applications
@@ -660,10 +903,6 @@ export default function JobsPage() {
               <TabsTrigger value="saved" className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Plus className="h-4 w-4" />
                 Saved Jobs
-              </TabsTrigger>
-              <TabsTrigger value="search" className="flex items-center justify-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Search className="h-4 w-4" />
-                Job Search
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1228,217 +1467,6 @@ export default function JobsPage() {
                     </Card>
                   );
                 })}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="search" className="space-y-6 mt-2">
-          <div className="space-y-6">
-            {/* Search Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 bg-muted/50 p-4 rounded-lg">
-              <div className="flex-1">
-                <Input
-                  placeholder="Job title, keywords, or company"
-                  value={jobSearchQuery}
-                  onChange={(e) => setJobSearchQuery(e.target.value)}
-                  className="w-full bg-background"
-                />
-              </div>
-              <div className="flex-1">
-                <Input
-                  placeholder="Location or 'Remote'"
-                  value={jobLocation}
-                  onChange={(e) => setJobLocation(e.target.value)}
-                  className="w-full bg-background"
-                />
-              </div>
-              <Button 
-                onClick={handleJobSearch} 
-                disabled={isLoadingJobs}
-                className="w-full sm:w-auto bg-primary hover:bg-primary/90"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Search Jobs
-              </Button>
-            </div>
-
-            {/* Job Listings Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {isLoadingJobs ? (
-                Array(4).fill(0).map((_, i) => (
-                  <Card key={i} className="w-full">
-                    <CardHeader>
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/2 mt-2" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-20 w-full" />
-                    </CardContent>
-                  </Card>
-                ))
-              ) : jobListings.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground">
-                    {jobSearchQuery || jobLocation 
-                      ? 'No jobs found matching your search' 
-                      : 'Search for jobs to get started'}
-                  </p>
-                </div>
-              ) : (
-                jobListings.map((job) => {
-                  const isExpanded = expandedDescriptions.has(job.job_id);
-
-                  return (
-                    <Card key={job.job_id} className="w-full">
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <CardTitle className="text-lg sm:text-xl truncate">{job.job_title}</CardTitle>
-                            <div className="flex items-center mt-2 text-muted-foreground">
-                              <Building2 className="h-4 w-4 mr-2 shrink-0" />
-                              <span className="truncate">{job.employer_name}</span>
-                            </div>
-                            <div className="flex items-center mt-1 text-muted-foreground">
-                              <MapPin className="h-4 w-4 mr-2 shrink-0" />
-                              <span className="truncate">{job.job_location}</span>
-                            </div>
-                          </div>
-                          <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
-                            {job.employer_logo ? (
-                              <img 
-                                src={job.employer_logo}
-                                alt={`${job.employer_name} logo`}
-                                className="h-10 w-10 object-contain"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.parentElement?.classList.add('fallback');
-                                  target.style.display = 'none';
-                                  const fallbackIcon = document.createElement('div');
-                                  fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
-                                  target.parentElement?.appendChild(fallbackIcon.firstChild!);
-                                }}
-                              />
-                            ) : (
-                              <Building2 className="h-6 w-6 text-muted-foreground" />
-                            )}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="secondary" className="text-xs sm:text-sm">
-                              {job.job_employment_type}
-                            </Badge>
-                            {job.job_salary && (
-                              <Badge variant="outline" className="text-xs sm:text-sm">
-                                {job.job_salary}
-                              </Badge>
-                            )}
-                          </div>
-                          <div>
-                            <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-3'}`}>
-                              {job.job_description}
-                            </p>
-                            <Button
-                              variant="link"
-                              className="px-0 h-8 text-xs font-medium"
-                              onClick={() => toggleDescription(job.job_id)}
-                            >
-                              {isExpanded ? 'Show Less' : 'Show More'}
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="default"
-                              className="flex-1"
-                              disabled={loadingJobIds.has(job.job_id)}
-                              onClick={() => {
-                                applyToJob(job);
-                                removeSavedJob(job.job_id);
-                              }}
-                            >
-                              {loadingJobIds.has(job.job_id) ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                  Processing...
-                                </div>
-                              ) : (
-                                <>
-                                  <BriefcaseIcon className="h-4 w-4 mr-2" />
-                                  Apply Now
-                                </>
-                              )}
-                            </Button>
-                            {savedJobIds.has(job.job_id) ? (
-                              <Button
-                                variant="outline"
-                                className="flex-1"
-                                disabled={loadingJobIds.has(job.job_id)}
-                                onClick={() => removeSavedJob(job.job_id)}
-                              >
-                                {loadingJobIds.has(job.job_id) ? (
-                                  <div className="flex items-center justify-center gap-2">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    Removing...
-                                  </div>
-                                ) : (
-                                  <>
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Remove
-                                  </>
-                                )}
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                className="flex-1"
-                                disabled={loadingJobIds.has(job.job_id)}
-                                onClick={() => saveJobToApplications(job)}
-                              >
-                                {loadingJobIds.has(job.job_id) ? (
-                                  <div className="flex items-center justify-center gap-2">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    Saving...
-                                  </div>
-                                ) : (
-                                  <>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Save
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Load More Button */}
-            {jobListings.length > 0 && hasMoreJobs && (
-              <div className="flex justify-center mt-8">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => fetchJobs(currentPage + 1, true)}
-                  disabled={isLoadingMore}
-                  className="w-full sm:w-auto min-w-[200px]"
-                >
-                  {isLoadingMore ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      Loading more jobs...
-                    </div>
-                  ) : (
-                    'Load More Jobs'
-                  )}
-                </Button>
               </div>
             )}
           </div>
