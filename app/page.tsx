@@ -170,7 +170,7 @@ export default function HomePage() {
                   transition={{ duration: 0.5 }}
                   className="space-y-2"
                 >
-                  <div className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-muted px-4 py-1.5 mt-8">
                     <Sparkles className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium">Powered by Gemini AI</span>
                   </div>

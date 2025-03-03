@@ -24,10 +24,16 @@ import {
   Pencil,
   BriefcaseIcon,
   Calendar,
+  Building2,
+  MapPin,
+  MessageSquare,
+  Plus,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from 'date-fns';
 
 interface Resume {
   id: string;
@@ -60,6 +66,7 @@ interface JobApplication {
   remote_type: string;
   created_at: string;
   updated_at: string;
+  employer_logo?: string;
 }
 
 interface Interview {
@@ -76,6 +83,35 @@ interface ResumeError {
   message: string;
   code?: string;
 }
+
+const statusColors = {
+  applied: 'bg-blue-100 text-blue-800',
+  screening: 'bg-yellow-100 text-yellow-800',
+  interview_scheduled: 'bg-purple-100 text-purple-800',
+  interview_completed: 'bg-indigo-100 text-indigo-800',
+  offer_received: 'bg-green-100 text-green-800',
+  offer_accepted: 'bg-emerald-100 text-emerald-800',
+  offer_declined: 'bg-orange-100 text-orange-800',
+  rejected: 'bg-red-100 text-red-800',
+};
+
+const formatDate = (date: string) => {
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const formatDateTime = (date: string) => {
+  return new Date(date).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true,
+  });
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -154,13 +190,28 @@ export default function DashboardPage() {
           if (applicationsResult.error) {
             throw applicationsResult.error;
           }
+
+          // Extract employer logos from job descriptions
+          const processedApplications = applicationsResult.data.map(app => {
+            try {
+              const jobDescription = app.job_description || '';
+              const logoMatch = jobDescription.match(/employer_logo:([^\n]*)/);
+              return {
+                ...app,
+                employer_logo: logoMatch ? logoMatch[1].trim() : null
+              };
+            } catch (error) {
+              console.error('Error processing application:', error);
+              return app;
+            }
+          });
+
+          // Set applications state with processed data
+          setApplications(processedApplications || []);
         } catch (applicationsError: any) {
           console.error('Applications fetch error:', applicationsError);
           throw new Error(applicationsError?.message || 'Failed to fetch applications');
         }
-
-        // Set applications state
-        setApplications(applicationsResult?.data || []);
 
         // Fetch interviews
         let interviewsResult;
@@ -295,477 +346,417 @@ export default function DashboardPage() {
 
   const stats = getStats();
 
-  if (!user) {
-    return null;
+  const upcomingInterviews = interviews
+    .filter(interview => new Date(interview.scheduled_at) > new Date())
+    .slice(0, 3);
+
+  const recentApplications = applications
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
+  if (isLoading) {
+  return (
+      <div className="container py-6 space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2].map(i => (
+            <Skeleton key={i} className="h-[400px]" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="relative">
-        {/* Background decoration */}
-        <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-dot-pattern opacity-40" />
-          <div className="absolute inset-0 bg-circles-pattern opacity-50" />
-          <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-primary/5 rounded-full blur-3xl" />
-        </div>
-
-    <div className="container max-w-7xl py-8 space-y-8">
-      {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b">
-        <div>
-              <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-                Manage your job search journey and track your progress
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/builder">
-                <Button className="w-full md:w-auto group">
-                  <PlusCircle className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
-              Create Resume
-            </Button>
-          </Link>
-          <Link href="/jobs">
-                <Button variant="outline" className="w-full md:w-auto group">
-                  <PlusCircle className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
-              Add Job
-            </Button>
-          </Link>
-        </div>
-      </div>
-
+    <div className="container mx-auto p-4 sm:p-6 space-y-6">
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Job Applications Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <Card className="group hover:shadow-md transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Job Applications</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <BriefcaseIcon className="h-4 w-4 text-primary" />
-                  </div>
+            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+            <BriefcaseIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.applicationStats.total}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.applicationStats.active} active • {stats.applicationStats.offers} offers
-            </div>
-            <div className="mt-3">
-              <Link href="/jobs">
-                      <Button variant="ghost" size="sm" className="w-full group">
-                  View Applications
-                        <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </Link>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              {stats.applicationStats.active} active applications
+            </p>
           </CardContent>
         </Card>
-            </motion.div>
-
-        {/* Interviews Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            >
-              <Card className="group hover:shadow-md transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Interviews</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <Calendar className="h-4 w-4 text-primary" />
-                  </div>
+            <CardTitle className="text-sm font-medium">Interviews</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.interviewStats.upcoming}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.interviewStats.thisWeek} this week • {stats.interviewStats.completed} completed
-            </div>
-            <div className="mt-3">
-              <Link href="/jobs">
-                      <Button variant="ghost" size="sm" className="w-full group">
-                  View Interviews
-                        <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </Link>
-            </div>
+            <div className="text-2xl font-bold">{stats.applicationStats.interviews}</div>
+            <p className="text-xs text-muted-foreground">
+              {upcomingInterviews.length} upcoming
+            </p>
           </CardContent>
         </Card>
-            </motion.div>
-
-        {/* Resumes Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <Card className="group hover:shadow-md transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Resumes</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-4 w-4 text-primary" />
-                  </div>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.resumeStats.completed}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.resumeStats.drafts} drafts • {stats.resumeStats.shared} shared
-            </div>
-            <div className="mt-3">
-              <Link href="/builder">
-                      <Button variant="ghost" size="sm" className="w-full group">
-                  View Resumes
-                        <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </Link>
-            </div>
+            <div className="text-2xl font-bold">{resumes.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {resumes.filter(r => r.status === 'completed').length} completed
+            </p>
           </CardContent>
         </Card>
-            </motion.div>
-
-        {/* Cover Letters Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-            >
-              <Card className="group hover:shadow-md transition-shadow">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Cover Letters</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-4 w-4 text-primary" />
-                  </div>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.coverLetterStats.total}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.coverLetterStats.withLetter} completed • {stats.coverLetterStats.recent} recent
+            <div className="text-2xl font-bold">{coverLetters.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {coverLetters.filter(cl => cl.status === 'completed').length} completed
+            </p>
+          </CardContent>
+        </Card>
             </div>
-            <div className="mt-3">
-              <Link href="/cover-letter">
-                      <Button variant="ghost" size="sm" className="w-full group">
-                  View Cover Letters
-                        <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        {/* Upcoming Interviews */}
+        <Card className="md:col-span-2 lg:col-span-4">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold">Upcoming Interviews</CardTitle>
+              <Link href="/jobs">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  View All
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
-          </CardContent>
-        </Card>
-            </motion.div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-        <Card className="bg-destructive/10 border-destructive/20">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              <div>
-                <h3 className="font-medium text-destructive">Error Loading Data</h3>
-                <p className="text-sm text-muted-foreground">{error.message}</p>
+          </CardHeader>
+          <CardContent>
+            {upcomingInterviews.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p>No upcoming interviews scheduled</p>
+                <Link href="/jobs">
+                  <Button variant="link" className="mt-2">
+                    Schedule an interview
+                  </Button>
+                </Link>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-            </motion.div>
-      )}
-
-      {/* Content */}
-      {!error && (
-        <>
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Resume Stats */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                >
-                  <Card className="group hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Resume Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                  <div className="text-2xl font-bold">{stats.resumeStats.completed}</div>
-                  <p className="text-muted-foreground text-sm">Completed</p>
-                </div>
-                      <div className="space-y-1">
-                  <div className="text-2xl font-bold">{stats.resumeStats.drafts}</div>
-                  <p className="text-muted-foreground text-sm">Drafts</p>
-                </div>
-                      <div className="space-y-1">
-                  <div className="text-2xl font-bold">{stats.resumeStats.shared}</div>
-                  <p className="text-muted-foreground text-sm">Shared</p>
-                </div>
-              </CardContent>
-            </Card>
-                </motion.div>
-
-            {/* Cover Letter Stats */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.5 }}
-                >
-                  <Card className="group hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Cover Letter Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                  <div className="text-2xl font-bold">{stats.coverLetterStats.total}</div>
-                  <p className="text-muted-foreground text-sm">Total</p>
-                </div>
-                      <div className="space-y-1">
-                  <div className="text-2xl font-bold">{stats.coverLetterStats.withLetter}</div>
-                  <p className="text-muted-foreground text-sm">Generated</p>
-                </div>
-                      <div className="space-y-1">
-                  <div className="text-2xl font-bold">{stats.coverLetterStats.recent}</div>
-                  <p className="text-muted-foreground text-sm">Last 30 Days</p>
-                </div>
-              </CardContent>
-            </Card>
-                </motion.div>
-          </div>
-
-          {/* Usage Progress */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.6 }}
-              >
-                <Card className="group hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle>Usage</CardTitle>
-              <CardDescription>
-                Your current plan allows up to {features.maxResumes} resumes and {features.maxCoverLetters || "unlimited"} cover letters
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Resumes Created</span>
-                        <span className="font-medium">{resumes.length} / {features.maxResumes}</span>
-                </div>
-                <Progress 
-                  value={(resumes.length / features.maxResumes) * 100} 
-                  className="h-2"
-                />
-              </div>
-              {features.maxCoverLetters && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Cover Letters Created</span>
-                          <span className="font-medium">{coverLetters.length} / {features.maxCoverLetters}</span>
-                  </div>
-                  <Progress 
-                    value={(coverLetters.length / features.maxCoverLetters) * 100} 
-                    className="h-2"
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-              </motion.div>
-
-          {/* Content Tabs */}
-          <div className="space-y-4">
-                <Tabs defaultValue="resumes" onValueChange={(value) => setActiveTab(value as 'resumes' | 'cover-letters')} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-                <TabsTrigger value="resumes">Resumes</TabsTrigger>
-                <TabsTrigger value="cover-letters">Cover Letters</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {isLoading ? (
+            ) : (
               <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                      <Card key={i} className="overflow-hidden">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-4">
-                        <Skeleton className="h-12 w-12 rounded-lg" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-[200px]" />
-                          <Skeleton className="h-3 w-[150px]" />
+                {upcomingInterviews.map(interview => {
+                  const application = applications.find(app => app.id === interview.job_application_id);
+                  const interviewDate = new Date(interview.scheduled_at);
+                  return (
+                    <div key={interview.id} className="flex items-start gap-4 p-3 rounded-lg border bg-card">
+                      <div className="flex flex-col items-center justify-center w-16 h-16 rounded-lg bg-primary/5 text-primary">
+                        <span className="text-sm font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
+                        <span className="text-2xl font-bold">{interviewDate.getDate()}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{application?.company_name}</p>
+                        <p className="text-sm text-muted-foreground truncate">{application?.job_title}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{formatDateTime(interview.scheduled_at)}</span>
+                          <span className="mx-1">•</span>
+                          <MapPin className="h-3.5 w-3.5" />
+                          <span>{interview.location || 'Remote'}</span>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <Badge variant="outline" className="shrink-0">
+                        {interview.interview_type.replace('_', ' ')}
+                      </Badge>
+      </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card className="md:col-span-2 lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Link href="/jobs">
+              <Button className="w-full justify-start gap-2" variant="outline">
+                <Search className="h-4 w-4" />
+                Search Jobs
+              </Button>
+            </Link>
+            <Link href="/builder">
+              <Button className="w-full justify-start gap-2" variant="outline">
+                <FileText className="h-4 w-4" />
+                Create Resume
+              </Button>
+            </Link>
+            <Link href="/cover-letter">
+              <Button className="w-full justify-start gap-2" variant="outline">
+                <FileText className="h-4 w-4" />
+                Write Cover Letter
+              </Button>
+            </Link>
+            <Link href="/jobs">
+              <Button className="w-full justify-start gap-2" variant="outline">
+                <Plus className="h-4 w-4" />
+                Add Job Application
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Recent Applications */}
+        <Card className="md:col-span-2 lg:col-span-4">
+              <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold">Recent Applications</CardTitle>
+              <Link href="/jobs">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  View All
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+          </div>
+            </CardHeader>
+          <CardContent>
+            {recentApplications.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p>No job applications yet</p>
+                <Link href="/jobs">
+                  <Button variant="link" className="mt-2">
+                    Add your first application
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentApplications.map(application => (
+                  <div key={application.id} className="flex items-start gap-4 p-3 rounded-lg border bg-card">
+                    <div className="h-10 w-10 rounded-md border bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
+                      {application.employer_logo ? (
+                        <img 
+                          src={application.employer_logo} 
+                          alt={`${application.company_name} logo`}
+                          className="h-full w-full object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '';
+                            target.onerror = null;
+                            target.parentElement?.classList.add('bg-muted/30');
+                            const icon = document.createElement('div');
+                            icon.innerHTML = '<svg class="h-5 w-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="M3 9V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"/></svg>';
+                            target.parentElement?.appendChild(icon.firstChild as Node);
+                          }}
+                        />
+                      ) : (
+                        <Building2 className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{application.company_name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{application.job_title}</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>Applied {formatDistanceToNow(new Date(application.created_at))} ago</span>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className={statusColors[application.status as keyof typeof statusColors]}>
+                      {application.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
                 ))}
               </div>
-            ) : activeTab === 'resumes' ? (
-              resumes.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-center space-y-2">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                            <FileText className="h-6 w-6 text-primary" />
-                          </div>
-                          <h3 className="font-medium text-lg mt-4">No resumes yet</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Create your first resume to get started
-                      </p>
-                      <Link href="/builder">
-                            <Button className="mt-4">
-                          <PlusCircle className="h-4 w-4 mr-2" />
-                          Create Resume
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {resumes.map((resume, index) => (
-                    <motion.div
-                      key={resume.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.4, delay: index * 0.1 }}
-                    >
-                          <Card className="group hover:shadow-md transition-shadow">
-                        <CardContent className="p-6 space-y-4">
-                          <div className="flex items-start gap-4">
-                                <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                              <FileText className="h-8 w-8 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{resume.title}</h3>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <Clock className="h-3 w-3" />
-                                <span>
-                                  Last modified {new Date(resume.last_modified).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Link href={`/builder/${resume.id}`} className="flex-1">
-                                  <Button variant="outline" className="w-full group">
-                                Edit
-                                    <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="shrink-0"
-                              onClick={() => handleDeleteResume(resume.id)}
-                              disabled={isDeletingId === resume.id}
-                            >
-                              {isDeletingId === resume.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              )}
-                            </Button>
-                          </div>
+            )}
                         </CardContent>
                       </Card>
-                    </motion.div>
-                  ))}
+
+        {/* Activity Summary */}
+        <Card className="md:col-span-2 lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Activity Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">Application Progress</span>
+                  <span className="font-medium">{Math.round((stats.applicationStats.active / stats.applicationStats.total) * 100 || 0)}%</span>
                 </div>
-              )
-            ) : (
-              coverLetters.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-center space-y-2">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                            <FileText className="h-6 w-6 text-primary" />
-                          </div>
-                          <h3 className="font-medium text-lg mt-4">No cover letters yet</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Create your first cover letter to get started
-                      </p>
-                      <Link href="/cover-letter">
-                            <Button className="mt-4">
-                          <PlusCircle className="h-4 w-4 mr-2" />
-                          Create Cover Letter
-                        </Button>
-                      </Link>
+                <Progress value={(stats.applicationStats.active / stats.applicationStats.total) * 100 || 0} className="h-2" />
                     </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {coverLetters.map((letter, index) => (
-                        <motion.div
-                          key={letter.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.4, delay: index * 0.1 }}
-                        >
-                          <Card className="group hover:shadow-md transition-shadow">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                              {letter.job_title ? letter.job_title : `Untitled ${index + 1}`}
-                            </CardTitle>
-                            <CardDescription>{letter.company_name || 'No company specified'}</CardDescription>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">Interview Success Rate</span>
+                  <span className="font-medium">{Math.round((stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0)}%</span>
                           </div>
-                          <Badge variant={letter.status === 'completed' ? 'default' : 'secondary'}>
-                            {letter.status === 'completed' ? 'Completed' : 'Draft'}
-                          </Badge>
+                <Progress value={(stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0} className="h-2" />
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            {new Date(letter.updated_at).toLocaleDateString()}
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">Offer Rate</span>
+                  <span className="font-medium">{Math.round((stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0)}%</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              asChild
-                              className="hover:bg-primary/10 hover:text-primary transition-colors"
-                            >
-                              <Link href={`/cover-letter/${letter.id}`}>
-                                <Pencil className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteCoverLetter(letter.id)}
-                              disabled={isDeletingId === letter.id}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              {isDeletingId === letter.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
+                <Progress value={(stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0} className="h-2" />
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                        </motion.div>
-                  ))}
-                </div>
-              )
-            )}
-          </div>
-        </>
-      )}
-        </div>
+      </div>
+
+      {/* Resume and Cover Letter Management */}
+      <div className="space-y-6">
+        <Tabs defaultValue="resumes" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+            <TabsTrigger value="resumes">Resumes</TabsTrigger>
+            <TabsTrigger value="cover-letters">Cover Letters</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="resumes" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Add New Resume Card */}
+              <Link href="/builder/new">
+                <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
+                  <CardContent className="pt-6 text-center h-full flex flex-col items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <PlusCircle className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="font-medium">Create New Resume</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Start building your professional resume
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {/* Existing Resumes */}
+              {resumes.map(resume => (
+                <Card key={resume.id} className="group">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <FileText className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">{resume.title}</h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            Last modified {formatDistanceToNow(new Date(resume.last_modified))} ago
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Link href={`/builder/${resume.id}`} className="flex-1">
+                        <Button variant="outline" className="w-full group">
+                          Edit
+                          <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => handleDeleteResume(resume.id)}
+                        disabled={isDeletingId === resume.id}
+                      >
+                        {isDeletingId === resume.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="cover-letters" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Add New Cover Letter Card */}
+              <Link href="/cover-letter/new">
+                <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
+                  <CardContent className="pt-6 text-center h-full flex flex-col items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <PlusCircle className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="font-medium">Create New Cover Letter</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Write a compelling cover letter
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {/* Existing Cover Letters */}
+              {coverLetters.map(letter => (
+                <Card key={letter.id} className="group">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <FileText className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">
+                          {letter.job_title || 'Untitled Cover Letter'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {letter.company_name || 'No company specified'}
+                        </p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            Last modified {formatDistanceToNow(new Date(letter.updated_at))} ago
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant={letter.status === 'completed' ? 'default' : 'secondary'}>
+                        {letter.status === 'completed' ? 'Completed' : 'Draft'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Link href={`/cover-letter/${letter.id}`} className="flex-1">
+                        <Button variant="outline" className="w-full group">
+                          Edit
+                          <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => handleDeleteCoverLetter(letter.id)}
+                        disabled={isDeletingId === letter.id}
+                      >
+                        {isDeletingId === letter.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
