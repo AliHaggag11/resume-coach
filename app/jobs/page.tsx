@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, Search, Calendar, BriefcaseIcon, Building2, MapPin, PenLine } from 'lucide-react';
+import { Plus, Search, Calendar, BriefcaseIcon, Building2, MapPin, PenLine, MessageSquare, Clock, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import JobApplicationDialog from './components/JobApplicationDialog';
 import InterviewDialog from './components/InterviewDialog';
+import MockInterviewDialog from './components/MockInterviewDialog';
 import { toast } from 'sonner';
 
 interface JobApplication {
@@ -22,6 +23,7 @@ interface JobApplication {
   remote_type: string;
   created_at: string;
   updated_at: string;
+  job_description: string;
 }
 
 interface Interview {
@@ -53,6 +55,27 @@ const formatDate = (date: string) => {
   });
 };
 
+const formatDateTime = (date: string) => {
+  // Convert UTC to local time
+  const utcDate = new Date(date);
+  const localDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000);
+  
+  return localDate.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const formatInterviewType = (type: string) => {
+  return type
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 export default function JobsPage() {
   const { user } = useAuth();
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -62,6 +85,13 @@ export default function JobsPage() {
   const [showNewApplicationDialog, setShowNewApplicationDialog] = useState(false);
   const [showInterviewDialog, setShowInterviewDialog] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
+  const [showMockInterviewDialog, setShowMockInterviewDialog] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
+  const [selectedJobDetails, setSelectedJobDetails] = useState<{
+    company_name: string;
+    job_title: string;
+    job_description: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -110,6 +140,23 @@ export default function JobsPage() {
     .filter(interview => new Date(interview.scheduled_at) > new Date())
     .slice(0, 3);
 
+  const deleteInterview = async (interviewId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_interviews')
+        .delete()
+        .eq('id', interviewId);
+
+      if (error) throw error;
+      
+      setInterviews(prev => prev.filter(interview => interview.id !== interviewId));
+      toast.success('Interview deleted successfully');
+    } catch (error) {
+      console.error('Error deleting interview:', error);
+      toast.error('Failed to delete interview');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container py-6 space-y-6">
@@ -151,26 +198,98 @@ export default function JobsPage() {
         {/* Upcoming Interviews Card - Always show at top on mobile */}
         <Card className="sm:col-span-2 lg:col-span-3">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Upcoming Interviews
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Upcoming Interviews
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setShowInterviewDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Schedule Interview
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingInterviews.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming interviews</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {upcomingInterviews.map(interview => {
                   const application = applications.find(app => app.id === interview.job_application_id);
+                  const interviewDate = new Date(interview.scheduled_at);
                   return (
-                    <div key={interview.id} className="flex items-start gap-3">
-                      <div className="size-2 rounded-full bg-blue-500 mt-2" />
-                      <div>
-                        <p className="font-medium">{application?.company_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(interview.scheduled_at).toLocaleString()}
+                    <div key={interview.id} className="group flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                      {/* Date Column */}
+                      <div className="flex flex-col items-center justify-center w-16 h-16 rounded-lg bg-primary/5 text-primary">
+                        <span className="text-sm font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
+                        <span className="text-2xl font-bold">{interviewDate.getDate()}</span>
+                      </div>
+                      
+                      {/* Details Column */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{application?.company_name}</p>
+                          <Badge variant="outline" className="shrink-0">
+                            {formatInterviewType(interview.interview_type)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate mt-1">
+                          {application?.job_title}
                         </p>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4 shrink-0" />
+                          <span>{formatDateTime(interview.scheduled_at)}</span>
+                          <span className="mx-1">•</span>
+                          <MapPin className="h-4 w-4" />
+                          {interview.location || 'Remote'}
+                        </div>
+                      </div>
+
+                      {/* Actions Column */}
+                      <div className="flex items-center gap-2 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={() => {
+                            if (!application) return;
+                            setSelectedInterview(interview);
+                            setSelectedJobDetails({
+                              company_name: application.company_name,
+                              job_title: application.job_title,
+                              job_description: application.job_description
+                            });
+                            setShowMockInterviewDialog(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Practice
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={() => {
+                            setSelectedInterview(interview);
+                            setSelectedApplication(application || null);
+                            setShowInterviewDialog(true);
+                          }}
+                        >
+                          <PenLine className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this interview?')) {
+                              deleteInterview(interview.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   );
@@ -279,11 +398,22 @@ export default function JobsPage() {
         open={showInterviewDialog}
         onOpenChange={setShowInterviewDialog}
         applicationId={selectedApplication?.id}
+        interview={selectedInterview}
         onClose={() => {
           setSelectedApplication(null);
+          setSelectedInterview(null);
           fetchInterviews();
         }}
       />
+
+      {selectedInterview && selectedJobDetails && (
+        <MockInterviewDialog
+          open={showMockInterviewDialog}
+          onOpenChange={setShowMockInterviewDialog}
+          interview={selectedInterview}
+          jobDetails={selectedJobDetails}
+        />
+      )}
     </div>
   );
 } 

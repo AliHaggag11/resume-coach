@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,29 @@ import { toast } from 'sonner';
 import { Loader2, BrainCircuit, Sparkles, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+interface Interview {
+  id: string;
+  job_application_id: string;
+  interview_type: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  location: string;
+  interviewer_names: string[];
+  notes?: string;
+  preparation_notes?: string;
+  ai_preparation?: {
+    questions: string[];
+    tips: string[];
+    topics: string[];
+    answers: string[];
+  };
+}
+
 interface InterviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   applicationId?: string;
+  interview?: Interview | null;
   onClose: () => void;
 }
 
@@ -37,6 +56,7 @@ export default function InterviewDialog({
   open,
   onOpenChange,
   applicationId,
+  interview,
   onClose,
 }: InterviewDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
@@ -49,17 +69,42 @@ export default function InterviewDialog({
   } | null>(null);
 
   const [formData, setFormData] = useState({
-    interview_type: 'phone_screening',
-    scheduled_at: '',
-    duration_minutes: 60,
-    location: '',
-    interviewer_names: '',
+    interview_type: interview?.interview_type || 'phone_screening',
+    scheduled_at: interview?.scheduled_at ? new Date(interview.scheduled_at).toISOString().slice(0, 16) : '',
+    duration_minutes: interview?.duration_minutes || 60,
+    location: interview?.location || '',
+    interviewer_names: Array.isArray(interview?.interviewer_names) ? interview.interviewer_names.join(', ') : '',
     notes: '',
     preparation_notes: '',
   });
 
+  // Reset form when interview changes
+  useEffect(() => {
+    if (interview) {
+      setFormData({
+        interview_type: interview.interview_type,
+        scheduled_at: new Date(interview.scheduled_at).toISOString().slice(0, 16),
+        duration_minutes: interview.duration_minutes,
+        location: interview.location,
+        interviewer_names: Array.isArray(interview.interviewer_names) ? interview.interviewer_names.join(', ') : '',
+        notes: '',
+        preparation_notes: '',
+      });
+    } else {
+      setFormData({
+        interview_type: 'phone_screening',
+        scheduled_at: '',
+        duration_minutes: 60,
+        location: '',
+        interviewer_names: '',
+        notes: '',
+        preparation_notes: '',
+      });
+    }
+  }, [interview]);
+
   const generatePreparationGuide = async () => {
-    if (!applicationId) return;
+    if (!applicationId && !interview?.job_application_id) return;
 
     try {
       setIsGenerating(true);
@@ -68,7 +113,7 @@ export default function InterviewDialog({
       const { data: jobApp, error: jobError } = await supabase
         .from('job_applications')
         .select('*')
-        .eq('id', applicationId)
+        .eq('id', applicationId || interview?.job_application_id)
         .single();
 
       if (jobError) throw jobError;
@@ -174,7 +219,7 @@ Keep all responses concise and focused on interview preparation.`
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!applicationId) return;
+    if (!applicationId && !interview?.job_application_id) return;
 
     try {
       setIsSaving(true);
@@ -184,31 +229,52 @@ Keep all responses concise and focused on interview preparation.`
         return;
       }
 
+      // Convert local datetime to UTC for storage
+      const localDate = new Date(formData.scheduled_at);
+      const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+
       const data = {
         ...formData,
-        job_application_id: applicationId,
+        scheduled_at: utcDate.toISOString(),
+        job_application_id: applicationId || interview?.job_application_id,
         interviewer_names: formData.interviewer_names
           .split(',')
           .map((name) => name.trim())
           .filter(Boolean),
-        ai_preparation: aiPreparation // Save the AI preparation with the interview
+        ai_preparation: aiPreparation
       };
 
-      const { error } = await supabase.from('job_interviews').insert([data]);
+      if (interview) {
+        // Update existing interview
+        const { error } = await supabase
+          .from('job_interviews')
+          .update(data)
+          .eq('id', interview.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success('Interview updated successfully');
+      } else {
+        // Create new interview
+        const { error } = await supabase
+          .from('job_interviews')
+          .insert([data]);
 
-      // Update the application status to interview_scheduled
-      await supabase
-        .from('job_applications')
-        .update({ status: 'interview_scheduled' })
-        .eq('id', applicationId);
+        if (error) throw error;
 
-      toast.success('Interview scheduled successfully');
+        // Update the application status to interview_scheduled
+        if (applicationId) {
+          await supabase
+            .from('job_applications')
+            .update({ status: 'interview_scheduled' })
+            .eq('id', applicationId);
+        }
+        toast.success('Interview scheduled successfully');
+      }
+
       onClose();
     } catch (error) {
-      console.error('Error scheduling interview:', error);
-      toast.error('Failed to schedule interview');
+      console.error('Error with interview:', error);
+      toast.error(interview ? 'Failed to update interview' : 'Failed to schedule interview');
     } finally {
       setIsSaving(false);
     }
@@ -218,7 +284,7 @@ Keep all responses concise and focused on interview preparation.`
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:p-6 p-4">
         <DialogHeader>
-          <DialogTitle>Schedule Interview</DialogTitle>
+          <DialogTitle>{interview ? 'Edit Interview' : 'Schedule Interview'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -422,7 +488,7 @@ Keep all responses concise and focused on interview preparation.`
             </Button>
             <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Schedule Interview
+              {interview ? 'Update Interview' : 'Schedule Interview'}
             </Button>
           </div>
         </form>
