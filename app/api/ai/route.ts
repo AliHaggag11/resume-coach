@@ -19,79 +19,42 @@ function generatePrompt(type: string, content: any) {
       return `You are an ATS (Applicant Tracking System) analyzer. Analyze the following resume data and return ONLY a JSON object with scores and feedback. The response must be a valid JSON object with no additional text, markdown, or formatting.
 
 Resume to analyze:
-${JSON.stringify(content)}
-
-Scoring Criteria:
-
-ATS Compatibility (Score out of 100):
-- Format and Structure (30 points):
-  * Clear section headings
-  * Consistent formatting
-  * Proper use of bullet points
-  * Standard resume sections present
-- Content Quality (40 points):
-  * Relevant information for each section
-  * Proper date formatting
-  * Contact information completeness
-  * Professional email address
-- Keyword Optimization (30 points):
-  * Industry-standard terminology
-  * Job-relevant skills
-  * Technical terms accuracy
-
-Impact Statements (Score out of 100):
-- Action Verbs (25 points):
-  * Strong action verbs at start
-  * Variety in verb usage
-  * Professional tone
-- Quantification (25 points):
-  * Numerical results
-  * Percentages
-  * Specific metrics
-- Achievement Focus (25 points):
-  * Results over responsibilities
-  * Problem-solution statements
-  * Impact on business
-- Clarity (25 points):
-  * Concise phrasing
-  * Clear cause-effect
-  * Professional language
-
-Keywords Match (Score out of 100):
-- Technical Skills (40 points):
-  * Relevant technical skills
-  * Current technologies
-  * Industry-standard tools
-- Soft Skills (30 points):
-  * Leadership terms
-  * Collaboration terms
-  * Communication skills
-- Industry Terms (30 points):
-  * Domain-specific terminology
-  * Role-specific keywords
-  * Industry best practices
+${content}
 
 Required JSON format:
 {
-  "atsCompatibility": {
-    "score": <number 0-100>,
-    "feedback": "<clear, specific feedback with actionable improvements>"
-  },
-  "impactStatements": {
-    "score": <number 0-100>,
-    "feedback": "<clear, specific feedback with actionable improvements>"
-  },
-  "keywordsMatch": {
-    "score": <number 0-100>,
-    "feedback": "<clear, specific feedback with actionable improvements>"
-  }
+  "score": number between 0-100,
+  "matches": [top keyword matches found in the resume],
+  "missing": [important keywords that are missing],
+  "improvements": [specific suggestions for improvement],
+  "format_score": number between 0-100,
+  "format_feedback": [formatting suggestions]
 }
+
+Scoring Criteria:
+1. Overall Score (0-100):
+   - Content relevance and completeness
+   - Professional tone and language
+   - ATS-friendly formatting
+   - Keyword optimization
+
+2. Format Score (0-100):
+   - Clear section headings
+   - Consistent formatting
+   - Proper use of bullet points
+   - Standard resume sections present
+   - Clean and professional layout
+
+3. Keyword Analysis:
+   - Identify industry-standard terminology
+   - Note missing important keywords
+   - Suggest improvements for better ATS performance
 
 Important:
 1. Scores must be integers between 0 and 100
-2. Follow the scoring criteria exactly
-3. Be consistent in scoring across analyses
-4. Provide specific, actionable feedback for improvement`;
+2. Provide specific, actionable feedback
+3. Focus on ATS optimization
+4. Return ONLY the JSON object with no additional text`;
     case 'improve':
       return `Act as a professional resume writer. Generate ONLY the actual content to be used in the resume. Do not provide explanations, suggestions, or instructions.
 
@@ -159,10 +122,12 @@ export async function POST(request: Request) {
 
       // Set generation config to encourage consistent, deterministic responses
       const generationConfig = {
-        temperature: 0.1,
+        temperature: 0,
         topK: 1,
         topP: 0.1,
         maxOutputTokens: 1000,
+        candidateCount: 1,
+        stopSequences: [],
       };
 
       // Generate content

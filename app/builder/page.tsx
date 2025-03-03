@@ -7,9 +7,9 @@ import { BuilderPageContent } from "./components/BuilderPageContent";
 export default function BuilderPage() {
   return (
     <ResumeProvider>
-    <ResumeStyleProvider>
+      <ResumeStyleProvider>
         <BuilderPageContent />
       </ResumeStyleProvider>
-      </ResumeProvider>
+    </ResumeProvider>
   );
 } 

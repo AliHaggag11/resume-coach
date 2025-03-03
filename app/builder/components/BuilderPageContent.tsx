@@ -5,6 +5,7 @@ import type { ReactElement } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { LucideIcon } from 'lucide-react';
 import {
   Download,
   Share2,
@@ -37,6 +38,9 @@ import {
   Save,
   Trash2,
   Loader2,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -94,12 +98,19 @@ export interface DatabaseResume {
   last_modified: string;
 }
 
+interface Section {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  component: ReactElement;
+}
+
 interface BuilderPageContentProps {
   initialData?: DatabaseResume;
 }
 
 export function BuilderPageContent({ initialData }: BuilderPageContentProps): ReactElement {
-  const { loadResume, saveResume } = useResume();
+  const { loadResume, saveResume, resumeData } = useResume();
   const { style, updateStyle } = useResumeStyle();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<string>("personal-info");
@@ -109,6 +120,10 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [atsScore, setAtsScore] = useState<any>(null);
+  const [showAtsDialog, setShowAtsDialog] = useState(false);
+  const [isAtsMinimized, setIsAtsMinimized] = useState(false);
 
   useEffect(() => {
     if (initialData?.id) {
@@ -145,7 +160,171 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
     }
   };
 
-  const sections = [
+  const generateResumeText = async () => {
+    if (!resumeData) return '';
+
+    const sections = {
+      'Personal Info': resumeData.personalInfo ? [resumeData.personalInfo] : [],
+      'Experience': resumeData.experiences || [],
+      'Education': resumeData.education || [],
+      'Skills': resumeData.skills || [],
+      'Projects': resumeData.projects || [],
+      'Awards': resumeData.awards || []
+    };
+
+    const text = Object.entries(sections)
+      .filter(([_, sectionData]) => sectionData && sectionData.length > 0)
+      .map(([sectionName, sectionData]) => {
+        if (sectionName === 'Personal Info' && sectionData[0]) {
+          const info = sectionData[0] as any;
+          return `${sectionName.toUpperCase()}\n\n${info.fullName || ''}\n${info.title || ''}\n${info.email || ''}\n${info.phone || ''}\n${info.location || ''}\n\n${info.summary || ''}`;
+        }
+
+        if (sectionName === 'Skills' && sectionData.length > 0) {
+          return `${sectionName.toUpperCase()}\n\n${(sectionData as any[]).map(category => 
+            `${category.name || ''}\n${(category.skills || []).join(', ')}`
+          ).join('\n\n')}`;
+        }
+
+        if (sectionName === 'Experience' || sectionName === 'Projects') {
+          return `${sectionName.toUpperCase()}\n\n${(sectionData as any[]).map((item: any) => {
+            if (!item) return '';
+            const lines = [
+              `${item.title || ''}${item.company ? ` at ${item.company}` : ''}`,
+              item.date ? `Date: ${item.date}` : '',
+              item.location ? `Location: ${item.location}` : '',
+              item.description ? `Description: ${item.description}` : '',
+              item.achievements ? `Achievements:\n${item.achievements.map((a: string) => `- ${a}`).join('\n')}` : '',
+              item.technologies ? `Technologies: ${item.technologies.join(', ')}` : ''
+            ].filter(Boolean);
+            return lines.join('\n');
+          }).filter(Boolean).join('\n\n')}`;
+        }
+
+        if (sectionName === 'Education') {
+          return `${sectionName.toUpperCase()}\n\n${(sectionData as any[]).map((item: any) => {
+            if (!item) return '';
+            const lines = [
+              item.degree ? `Degree: ${item.degree}` : '',
+              item.school ? `School: ${item.school}` : '',
+              item.date ? `Date: ${item.date}` : '',
+              item.location ? `Location: ${item.location}` : '',
+              item.gpa ? `GPA: ${item.gpa}` : '',
+              item.honors ? `Honors: ${item.honors.join(', ')}` : ''
+            ].filter(Boolean);
+            return lines.join('\n');
+          }).filter(Boolean).join('\n\n')}`;
+        }
+
+        if (sectionName === 'Awards') {
+          return `${sectionName.toUpperCase()}\n\n${(sectionData as any[]).map((item: any) => {
+            if (!item) return '';
+            const lines = [
+              item.title ? `Title: ${item.title}` : '',
+              item.issuer ? `Issuer: ${item.issuer}` : '',
+              item.date ? `Date: ${item.date}` : '',
+              item.description ? `Description: ${item.description}` : ''
+            ].filter(Boolean);
+            return lines.join('\n');
+          }).filter(Boolean).join('\n\n')}`;
+        }
+
+        return `${sectionName.toUpperCase()}\n\n${(sectionData as any[]).map((item: any) => {
+          if (!item) return '';
+          return Object.entries(item)
+            .filter(([key]) => !['id', 'userId', 'current'].includes(key))
+            .map(([_, value]) => {
+              if (Array.isArray(value)) return value.join('\n- ');
+              return value || '';
+            })
+            .filter(Boolean)
+            .join('\n');
+        }).filter(Boolean).join('\n\n')}`;
+      }).filter(Boolean).join('\n\n');
+
+    return text;
+  };
+
+  const handleAnalyze = async () => {
+    try {
+      setIsAnalyzing(true);
+      const resumeContent = await generateResumeText();
+      
+      if (!resumeContent) {
+        toast.error('Please add some content to your resume before analyzing');
+        return;
+      }
+
+      // Format the resume content for analysis
+      const formattedContent = `Resume Content for ATS Analysis:
+
+${resumeContent}
+
+Please analyze this resume for ATS optimization and provide a detailed analysis in the following JSON format:
+{
+  "score": number between 0-100,
+  "matches": [top keyword matches found in the resume],
+  "missing": [important keywords that are missing],
+  "improvements": [specific suggestions for improvement],
+  "format_score": number between 0-100,
+  "format_feedback": [formatting suggestions]
+}`;
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: formattedContent,
+          type: 'analyze'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.result) {
+        throw new Error('No analysis results received');
+      }
+
+      // Parse the JSON string from the response
+      let parsedResult;
+      try {
+        // Clean the string of any markdown or extra formatting
+        const cleanJson = data.result
+          .replace(/```json\s*|\s*```/g, '')  // Remove code blocks
+          .replace(/[\r\n]+/g, '') // Remove newlines
+          .replace(/\/\/.*/g, '')  // Remove comments
+          .trim();
+        
+        parsedResult = JSON.parse(cleanJson);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        throw new Error('Failed to parse AI response. Please try again.');
+      }
+
+      // Validate the response structure
+      const requiredFields = ['score', 'matches', 'missing', 'improvements', 'format_score', 'format_feedback'];
+      const missingFields = requiredFields.filter(field => !(field in parsedResult));
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Invalid analysis response: missing fields ${missingFields.join(', ')}`);
+      }
+
+      setAtsScore(parsedResult);
+      setShowAtsDialog(true);
+    } catch (error: any) {
+      console.error('Error analyzing resume:', error);
+      toast.error(error.message || 'Failed to analyze resume. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const builderSections: Section[] = [
     {
       id: "personal-info",
       label: "Personal Info",
@@ -184,20 +363,20 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
     },
   ];
 
-  const currentSectionIndex = sections.findIndex((s) => s.id === activeSection);
-  const currentSection = sections[currentSectionIndex];
-  const hasNext = currentSectionIndex < sections.length - 1;
+  const currentSectionIndex = builderSections.findIndex((section: Section) => section.id === activeSection);
+  const currentSection = builderSections[currentSectionIndex];
+  const hasNext = currentSectionIndex < builderSections.length - 1;
   const hasPrev = currentSectionIndex > 0;
 
   const goToNextSection = () => {
     if (hasNext) {
-      setActiveSection(sections[currentSectionIndex + 1].id);
+      setActiveSection(builderSections[currentSectionIndex + 1].id);
     }
   };
 
   const goToPrevSection = () => {
     if (hasPrev) {
-      setActiveSection(sections[currentSectionIndex - 1].id);
+      setActiveSection(builderSections[currentSectionIndex - 1].id);
     }
   };
 
@@ -226,7 +405,7 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
                   <SheetTitle>Resume Sections</SheetTitle>
                 </SheetHeader>
                 <nav className="grid gap-1 p-4">
-                  {sections.map((section) => {
+                  {builderSections.map((section: Section) => {
                     const Icon = section.icon;
                     const isActive = activeSection === section.id;
                     return (
@@ -266,7 +445,7 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
                 onValueChange={(value) => setActiveSection(value)}
               >
                 <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full">
-                  {sections.map((section) => {
+                  {builderSections.map((section: Section) => {
                     const Icon = section.icon;
                     return (
                       <TabsTrigger
@@ -314,6 +493,24 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Style
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleAnalyze}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <LineChart className="h-4 w-4" />
+                    Analyze Resume
+                  </>
+                )}
               </Button>
               <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
                 <DialogTrigger asChild>
@@ -411,6 +608,19 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
                     </Button>
                     <Button
                       variant="outline"
+                      onClick={handleAnalyze}
+                      disabled={isAnalyzing}
+                      className="justify-start"
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <LineChart className="h-4 w-4 mr-2" />
+                      )}
+                      {isAnalyzing ? "Analyzing..." : "Analyze Resume"}
+                    </Button>
+                    <Button
+                      variant="outline"
                       onClick={() => setShowSaveDialog(true)}
                       className="justify-start"
                     >
@@ -423,6 +633,135 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
             </div>
           </div>
         </div>
+
+        {/* ATS Analysis Section */}
+        {atsScore && (
+          <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container py-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-6">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-muted-foreground">Overall ATS Score</h4>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-4xl font-bold">{atsScore.score}</p>
+                      <span className="text-muted-foreground">/100</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-muted-foreground">Format Score</h4>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-4xl font-bold">{atsScore.format_score}</p>
+                      <span className="text-muted-foreground">/100</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAnalyze}
+                    disabled={isAnalyzing}
+                    className="gap-2"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Reanalyzing...
+                      </>
+                    ) : (
+                      <>
+                        <LineChart className="h-4 w-4" />
+                        Reanalyze
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsAtsMinimized(!isAtsMinimized)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {isAtsMinimized ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronUp className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              {!isAtsMinimized && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <Card className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <h4 className="text-sm font-medium">Top Keyword Matches</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {atsScore.matches?.map((keyword: string, i: number) => (
+                          <Badge key={i} variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-yellow-500" />
+                        <h4 className="text-sm font-medium">Missing Keywords</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {atsScore.missing?.map((keyword: string, i: number) => (
+                          <Badge key={i} variant="outline" className="border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-blue-500" />
+                        <h4 className="text-sm font-medium">Suggested Improvements</h4>
+                      </div>
+                      <ul className="space-y-2">
+                        {atsScore.improvements?.map((improvement: string, i: number) => (
+                          <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <ArrowRight className="h-4 w-4 mt-1 shrink-0 text-blue-500" />
+                            {improvement}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Layout className="h-4 w-4 text-purple-500" />
+                        <h4 className="text-sm font-medium">Format Feedback</h4>
+                      </div>
+                      <ul className="space-y-2">
+                        {atsScore.format_feedback?.map((feedback: string, i: number) => (
+                          <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <ArrowRight className="h-4 w-4 mt-1 shrink-0 text-purple-500" />
+                            {feedback}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="container py-4 md:py-8 relative z-10">
           <div className="grid gap-8 lg:grid-cols-2">

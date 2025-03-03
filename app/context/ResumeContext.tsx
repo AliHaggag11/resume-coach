@@ -72,7 +72,10 @@ interface ResumeData {
   awards: Award[];
 }
 
-interface ResumeContextType {
+export interface ResumeContextType {
+  resumeSections: {
+    [key: string]: any[];
+  };
   resumeData: ResumeData;
   currentResumeId: string | null;
   updatePersonalInfo: (info: Partial<PersonalInfo>) => void;
@@ -82,7 +85,7 @@ interface ResumeContextType {
   updateProjects: (projects: Project[]) => void;
   updateAwards: (awards: Award[]) => void;
   setCurrentResumeId: (id: string | null) => void;
-  saveResume: (status?: 'draft' | 'completed') => Promise<void>;
+  saveResume: (status: string) => Promise<void>;
   loadResume: (id: string) => Promise<void>;
 }
 
@@ -105,9 +108,23 @@ const defaultResumeData: ResumeData = {
   awards: [],
 };
 
-const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
+export const ResumeContext = createContext<ResumeContextType>({
+  resumeSections: {},
+  resumeData: defaultResumeData,
+  currentResumeId: null,
+  updatePersonalInfo: () => {},
+  updateExperiences: () => {},
+  updateEducation: () => {},
+  updateSkills: () => {},
+  updateProjects: () => {},
+  updateAwards: () => {},
+  setCurrentResumeId: () => {},
+  saveResume: async () => {},
+  loadResume: async () => {},
+});
 
 export function ResumeProvider({ children }: { children: React.ReactNode }) {
+  const [resumeSections, setResumeSections] = useState<{ [key: string]: any[] }>({});
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
   const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
 
@@ -138,7 +155,7 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
     setResumeData(prev => ({ ...prev, awards }));
   };
 
-  const saveResume = async (status?: 'draft' | 'completed') => {
+  const saveResume = async (status: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -153,7 +170,7 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
           .from('resumes')
           .update({
             content: resumeData,
-            status: status || 'draft',
+            status: status,
             title: resumeData.personalInfo.fullName ? 
               `${resumeData.personalInfo.fullName}'s Resume` : 
               'Untitled Resume'
@@ -169,7 +186,7 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
           .insert({
             user_id: session.user.id,
             content: resumeData,
-            status: status || 'draft',
+            status: status,
             title: resumeData.personalInfo.fullName ? 
               `${resumeData.personalInfo.fullName}'s Resume` : 
               'Untitled Resume'
@@ -183,9 +200,7 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
 
       setCurrentResumeId(result.data.id);
       
-      if (status) {
-        toast.success(status === 'completed' ? 'Resume saved as completed' : 'Resume saved as draft');
-      }
+      toast.success('Resume saved successfully');
     } catch (error: any) {
       console.error('Failed to save resume:', error);
       toast.error(error.message || 'Failed to save resume');
@@ -226,22 +241,23 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const value: ResumeContextType = {
+    resumeSections,
+    resumeData,
+    currentResumeId,
+    updatePersonalInfo,
+    updateExperiences,
+    updateEducation,
+    updateSkills,
+    updateProjects,
+    updateAwards,
+    setCurrentResumeId,
+    saveResume,
+    loadResume,
+  };
+
   return (
-    <ResumeContext.Provider
-      value={{
-        resumeData,
-        currentResumeId,
-        updatePersonalInfo,
-        updateExperiences,
-        updateEducation,
-        updateSkills,
-        updateProjects,
-        updateAwards,
-        setCurrentResumeId,
-        saveResume,
-        loadResume,
-      }}
-    >
+    <ResumeContext.Provider value={value}>
       {children}
     </ResumeContext.Provider>
   );

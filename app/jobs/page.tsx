@@ -770,7 +770,7 @@ export default function JobsPage() {
                             <div className="flex items-center justify-center gap-1.5">
                               <Calendar className="h-4 w-4" />
                               <span>Add to Calendar</span>
-                            </div>
+                        </div>
                           </Button>
                         
                         <Button
@@ -822,12 +822,12 @@ export default function JobsPage() {
                               };
 
                               setSelectedInterview(updatedInterview);
-                              setSelectedJobDetails({
-                                company_name: application.company_name,
-                                job_title: application.job_title,
+                            setSelectedJobDetails({
+                              company_name: application.company_name,
+                              job_title: application.job_title,
                                 job_description: application.job_description.split('\n\njob_id:')[0]
-                              });
-                              setShowMockInterviewDialog(true);
+                            });
+                            setShowMockInterviewDialog(true);
                             } catch (error) {
                               console.error('Error preparing interview:', error);
                               toast.error('Failed to prepare interview content');
@@ -844,7 +844,7 @@ export default function JobsPage() {
                           ) : (
                             <>
                               <MessageSquare className="h-4 w-4 mr-1.5" />
-                              Practice
+                          Practice
                             </>
                           )}
                         </Button>
