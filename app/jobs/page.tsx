@@ -547,28 +547,28 @@ export default function JobsPage() {
                 Job Search
               </TabsTrigger>
             </TabsList>
-          </div>
+        </div>
 
           {/* Upcoming Interviews Section */}
           {upcomingInterviews.length > 0 && (
             <Card className="w-full">
-              <CardHeader>
+          <CardHeader>
                 <CardTitle className="text-lg font-bold">Upcoming Interviews</CardTitle>
-              </CardHeader>
-              <CardContent>
+          </CardHeader>
+          <CardContent>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                   {upcomingInterviews.map((interview) => {
-                    const application = applications.find(app => app.id === interview.job_application_id);
-                    const interviewDate = new Date(interview.scheduled_at);
-                    return (
+                  const application = applications.find(app => app.id === interview.job_application_id);
+                  const interviewDate = new Date(interview.scheduled_at);
+                  return (
                       <div key={interview.id} className="flex flex-col gap-4 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
                         <div className="flex items-start gap-4">
                           {/* Date Display */}
                           <div className="flex flex-col items-center justify-center w-14 h-14 rounded-lg bg-primary/5 text-primary">
                             <span className="text-xs font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
                             <span className="text-xl font-bold leading-none mt-0.5">{interviewDate.getDate()}</span>
-                          </div>
-
+                      </div>
+                      
                           {/* Interview Details */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start gap-3">
@@ -594,11 +594,11 @@ export default function JobsPage() {
                               <div className="min-w-0">
                                 <h4 className="font-medium truncate">{application?.company_name}</h4>
                                 <Badge variant="outline" className="mt-1 mb-1.5">
-                                  {interview.interview_type.replace('_', ' ')}
-                                </Badge>
+                            {interview.interview_type.replace('_', ' ')}
+                          </Badge>
                                 <p className="text-sm text-muted-foreground truncate">
-                                  {application?.job_title}
-                                </p>
+                          {application?.job_title}
+                        </p>
                               </div>
                             </div>
                           </div>
@@ -613,8 +613,8 @@ export default function JobsPage() {
                           <div className="flex items-center gap-1.5">
                             <MapPin className="h-4 w-4 shrink-0" />
                             <span className="truncate">{interview.location || 'Remote'}</span>
-                          </div>
                         </div>
+                      </div>
 
                         {/* Actions */}
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -661,59 +661,103 @@ export default function JobsPage() {
                             <Calendar className="h-4 w-4 mr-1.5" />
                             Add to Calendar
                           </Button>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
                             className="flex-1 h-8 min-w-[100px]"
-                            onClick={() => {
-                              if (!application) return;
-                              setSelectedInterview(interview);
-                              setSelectedJobDetails({
-                                company_name: application.company_name,
-                                job_title: application.job_title,
-                                job_description: application.job_description
-                              });
-                              setShowMockInterviewDialog(true);
-                            }}
-                          >
+                            onClick={async () => {
+                            if (!application) return;
+                              
+                              // First, generate AI preparation content
+                              try {
+                                const prompt = {
+                                  type: 'interview_preparation',
+                                  format: 'structured',
+                                  context: {
+                                    jobTitle: application.job_title,
+                                    companyName: application.company_name,
+                                    jobDescription: application.job_description.split('\n\njob_id:')[0],
+                                    interviewType: interview.interview_type
+                                  },
+                                  instructions: `Analyze the job description and prepare interview content.
+                                  Return a JSON object with:
+                                  {
+                                    "questions": [5-8 likely interview questions],
+                                    "topics": [4-6 key technical topics to focus on],
+                                    "tips": [3-4 preparation tips]
+                                  }`
+                                };
+
+                                const response = await fetch('/api/ai', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ prompt, type: 'prepare' }),
+                                });
+
+                                if (!response.ok) {
+                                  throw new Error('Failed to generate interview preparation');
+                                }
+
+                                const data = await response.json();
+                                const preparation = data.result;
+
+                                // Update the interview with AI preparation
+                                const updatedInterview = {
+                                  ...interview,
+                                  ai_preparation: preparation
+                                };
+
+                                setSelectedInterview(updatedInterview);
+                            setSelectedJobDetails({
+                              company_name: application.company_name,
+                              job_title: application.job_title,
+                                  job_description: application.job_description.split('\n\njob_id:')[0]
+                            });
+                            setShowMockInterviewDialog(true);
+                              } catch (error) {
+                                console.error('Error preparing interview:', error);
+                                toast.error('Failed to prepare interview content');
+                              }
+                          }}
+                        >
                             <MessageSquare className="h-4 w-4 mr-1.5" />
-                            Practice
-                          </Button>
+                          Practice
+                        </Button>
                           
                           <div className="flex gap-2 w-full">
-                            <Button
-                              variant="outline"
-                              size="sm"
+                        <Button
+                          variant="outline"
+                          size="sm"
                               className="flex-1 h-8"
-                              onClick={() => {
-                                setSelectedInterview(interview);
-                                setSelectedApplication(application || null);
-                                setShowInterviewDialog(true);
-                              }}
-                            >
+                          onClick={() => {
+                            setSelectedInterview(interview);
+                            setSelectedApplication(application || null);
+                            setShowInterviewDialog(true);
+                          }}
+                        >
                               <PenLine className="h-4 w-4 mr-1.5" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                               className="h-8 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => {
+                          onClick={() => {
                                 setItemToDelete({ type: 'interview', id: interview.id });
                                 setDeleteConfirmOpen(true);
-                              }}
-                            >
+                          }}
+                        >
                               <Trash2 className="h-5 w-5" />
-                            </Button>
+                        </Button>
                           </div>
-                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                    </div>
+                  );
+                })}
+              </div>
+          </CardContent>
+        </Card>
           )}
         </div>
 
@@ -791,11 +835,11 @@ export default function JobsPage() {
                   Clear Filters
                 </Button>
               )}
-            </div>
+      </div>
 
-            {/* Applications Grid */}
+      {/* Applications Grid */}
             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-              {filteredApplications.length === 0 ? (
+        {filteredApplications.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground">
@@ -810,17 +854,17 @@ export default function JobsPage() {
                   >
                     Add your first application
                   </Button>
-                </div>
-              ) : (
+          </div>
+        ) : (
                 filteredApplications.map(application => {
                   const employerLogo = application.job_description.includes('employer_logo:') 
                     ? application.job_description.split('employer_logo:')[1]?.split('\n')[0]
                     : null;
 
                   return (
-                    <Card key={application.id} className="group">
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-3">
+            <Card key={application.id} className="group">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-start gap-3">
                               <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
@@ -845,101 +889,101 @@ export default function JobsPage() {
                               <div className="min-w-0 flex-1">
                                 <CardTitle className="truncate">
                                   {application.company_name}
-                                </CardTitle>
+                    </CardTitle>
                                 <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                                  <BriefcaseIcon className="h-4 w-4 shrink-0" />
-                                  <span className="truncate">{application.job_title}</span>
-                                </div>
-                                {application.location && (
+                      <BriefcaseIcon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{application.job_title}</span>
+                    </div>
+                    {application.location && (
                                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                                    <MapPin className="h-4 w-4 shrink-0" />
-                                    <span className="truncate">{application.location}</span>
-                                  </div>
-                                )}
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{application.location}</span>
+                      </div>
+                    )}
                               </div>
                             </div>
-                          </div>
-                          <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
-                            {application.status.replace('_', ' ')}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">
-                            Applied {formatDate(application.created_at)}
-                          </div>
-                          <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hidden sm:inline-flex"
-                              onClick={() => {
+                  </div>
+                  <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
+                    {application.status.replace('_', ' ')}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Applied {formatDate(application.created_at)}
+                  </div>
+                  <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:inline-flex"
+                      onClick={() => {
                                 setSelectedInterview(null);
-                                setSelectedApplication(application);
-                                setShowInterviewDialog(true);
-                              }}
-                            >
-                              Add Interview
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 sm:hidden"
-                              onClick={() => {
+                        setSelectedApplication(application);
+                        setShowInterviewDialog(true);
+                      }}
+                    >
+                      Add Interview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 sm:hidden"
+                      onClick={() => {
                                 setSelectedInterview(null);
-                                setSelectedApplication(application);
-                                setShowInterviewDialog(true);
-                              }}
-                            >
-                              <Calendar className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hidden sm:inline-flex"
-                              onClick={() => {
-                                setSelectedApplication(application);
-                                setShowNewApplicationDialog(true);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 sm:hidden"
-                              onClick={() => {
-                                setSelectedApplication(application);
-                                setShowNewApplicationDialog(true);
-                              }}
-                            >
-                              <PenLine className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hidden sm:inline-flex text-destructive hover:text-destructive"
-                              onClick={() => {
+                        setSelectedApplication(application);
+                        setShowInterviewDialog(true);
+                      }}
+                    >
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:inline-flex"
+                      onClick={() => {
+                        setSelectedApplication(application);
+                        setShowNewApplicationDialog(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 sm:hidden"
+                      onClick={() => {
+                        setSelectedApplication(application);
+                        setShowNewApplicationDialog(true);
+                      }}
+                    >
+                      <PenLine className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:inline-flex text-destructive hover:text-destructive"
+                      onClick={() => {
                                 setItemToDelete({ type: 'application', id: application.id });
                                 setDeleteConfirmOpen(true);
-                              }}
-                            >
-                              Delete
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
-                              onClick={() => {
+                      }}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
+                      onClick={() => {
                                 setItemToDelete({ type: 'application', id: application.id });
                                 setDeleteConfirmOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
                       </CardContent>
                     </Card>
                   );
@@ -1133,9 +1177,9 @@ export default function JobsPage() {
                     </CardHeader>
                     <CardContent>
                       <Skeleton className="h-20 w-full" />
-                    </CardContent>
-                  </Card>
-                ))
+              </CardContent>
+            </Card>
+          ))
               ) : jobListings.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -1276,8 +1320,8 @@ export default function JobsPage() {
                     </Card>
                   );
                 })
-              )}
-            </div>
+        )}
+      </div>
 
             {/* Load More Button */}
             {jobListings.length > 0 && hasMoreJobs && (

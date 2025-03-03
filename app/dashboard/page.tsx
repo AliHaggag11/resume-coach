@@ -423,7 +423,7 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-      </div>
+            </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
         {/* Upcoming Interviews */}
@@ -485,9 +485,9 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <Card className="lg:col-span-3">
-          <CardHeader>
+              <CardHeader>
             <CardTitle className="text-lg font-bold">Quick Actions</CardTitle>
-          </CardHeader>
+              </CardHeader>
           <CardContent className="space-y-4">
             <Link href="/jobs">
               <Button className="w-full justify-start gap-2" variant="outline">
@@ -513,8 +513,8 @@ export default function DashboardPage() {
                 Add Job Application
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
         {/* Recent Applications */}
         <Card className="lg:col-span-4">
@@ -577,10 +577,10 @@ export default function DashboardPage() {
                     </Badge>
                   </div>
                 ))}
-              </div>
-            )}
-                        </CardContent>
-                      </Card>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
         {/* Activity Summary */}
         <Card className="lg:col-span-3">
@@ -588,7 +588,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg font-bold">Activity Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+          <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Application Progress</span>
@@ -609,11 +609,11 @@ export default function DashboardPage() {
                   <span className="font-medium">{Math.round((stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0)}%</span>
                           </div>
                 <Progress value={(stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0} className="h-2" />
-                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-      </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+              </div>
 
       {/* Resume and Cover Letter Management */}
       <div className="space-y-6">
@@ -643,47 +643,47 @@ export default function DashboardPage() {
               {/* Existing Resumes */}
               {resumes.map(resume => (
                 <Card key={resume.id} className="group">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex items-start gap-4">
+                        <CardContent className="p-6 space-y-4">
+                          <div className="flex items-start gap-4">
                       <div className="p-2 bg-primary/10 rounded-lg">
-                        <FileText className="h-8 w-8 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{resume.title}</h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3" />
-                          <span>
+                              <FileText className="h-8 w-8 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium truncate">{resume.title}</h3>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                <Clock className="h-3 w-3" />
+                                <span>
                             Last modified {formatDistanceToNow(new Date(resume.last_modified))} ago
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
 
-                    <div className="flex items-center gap-2">
-                      <Link href={`/builder/${resume.id}`} className="flex-1">
-                        <Button variant="outline" className="w-full group">
-                          Edit
-                          <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0"
-                        onClick={() => handleDeleteResume(resume.id)}
-                        disabled={isDeletingId === resume.id}
-                      >
-                        {isDeletingId === resume.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                          <div className="flex items-center gap-2">
+                            <Link href={`/builder/${resume.id}`} className="flex-1">
+                                  <Button variant="outline" className="w-full group">
+                                Edit
+                                    <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="shrink-0"
+                              onClick={() => handleDeleteResume(resume.id)}
+                              disabled={isDeletingId === resume.id}
+                            >
+                              {isDeletingId === resume.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                  ))}
+                </div>
           </TabsContent>
 
           <TabsContent value="cover-letters" className="mt-6">
@@ -724,37 +724,37 @@ export default function DashboardPage() {
                             Last modified {formatDistanceToNow(new Date(letter.updated_at))} ago
                           </span>
                         </div>
-                      </div>
-                      <Badge variant={letter.status === 'completed' ? 'default' : 'secondary'}>
-                        {letter.status === 'completed' ? 'Completed' : 'Draft'}
-                      </Badge>
-                    </div>
+                          </div>
+                          <Badge variant={letter.status === 'completed' ? 'default' : 'secondary'}>
+                            {letter.status === 'completed' ? 'Completed' : 'Draft'}
+                          </Badge>
+                        </div>
 
-                    <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                       <Link href={`/cover-letter/${letter.id}`} className="flex-1">
                         <Button variant="outline" className="w-full group">
                           Edit
                           <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
                         </Button>
-                      </Link>
-                      <Button
+                              </Link>
+                            <Button
                         variant="outline"
                         size="icon"
                         className="shrink-0"
-                        onClick={() => handleDeleteCoverLetter(letter.id)}
-                        disabled={isDeletingId === letter.id}
-                      >
-                        {isDeletingId === letter.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
+                              onClick={() => handleDeleteCoverLetter(letter.id)}
+                              disabled={isDeletingId === letter.id}
+                            >
+                              {isDeletingId === letter.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
                           <Trash2 className="h-4 w-4 text-destructive" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                              )}
+                            </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
           </TabsContent>
         </Tabs>
       </div>

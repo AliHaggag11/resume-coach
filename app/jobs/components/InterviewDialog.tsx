@@ -118,39 +118,131 @@ export default function InterviewDialog({
 
       if (jobError) throw jobError;
 
-      const prompt = {
-        jobTitle: jobApp.job_title,
-        companyName: jobApp.company_name,
-        jobDescription: jobApp.job_description,
-        interviewType: formData.interview_type,
-        type: 'interview_preparation',
-        context: `Generate an interview preparation guide in the exact format specified below. Return ONLY the JSON structure shown - no other text or formatting.
+      // Step 1: Extract relevant interview topics from job description
+      const topicsPrompt = {
+        role: "interview preparation specialist",
+        task: "extract_interview_topics",
+        input: {
+          job_title: jobApp.job_title,
+          company_name: jobApp.company_name,
+          job_description: jobApp.job_description,
+          interview_type: formData.interview_type
+        },
+        output_format: {
+          type: "json",
+          fields: ["technical_skills", "soft_skills", "domain_knowledge", "company_values"]
+        }
+      };
 
-{
-  "questions": ["question1", "question2", "question3", "question4", "question5"],
-  "tips": ["tip1", "tip2", "tip3", "tip4"],
-  "topics": ["topic1", "topic2", "topic3", "topic4"],
-  "answers": ["answer1", "answer2", "answer3", "answer4"]
-}
+      const topicsResponse = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: topicsPrompt,
+          type: 'extract_topics',
+          temperature: 0
+        })
+      });
 
-Instructions:
-1. questions: Generate 5 specific interview questions for this role and stage
-2. tips: Provide 4 preparation tips for this interview type
-3. topics: List 4 key topics to research and prepare
-4. answers: Write 4 example STAR-format answers
+      if (!topicsResponse.ok) {
+        throw new Error('Failed to extract interview topics');
+      }
 
-Keep all responses concise and focused on interview preparation.`
+      const topicsData = await topicsResponse.json();
+      const topics = topicsData.result;
+
+      // Step 2: Generate interview preparation content
+      const prepPrompt = {
+        role: "interview coach",
+        task: "prepare_interview_guide",
+        context: {
+          position: {
+            title: jobApp.job_title,
+            company: jobApp.company_name,
+            type: formData.interview_type
+          },
+          key_areas: topics
+        },
+        output_requirements: {
+          format: "json",
+          structure: {
+            questions: "Array of 5 interview questions",
+            topics: "Array of 4 key topics to study",
+            tips: "Array of 4 preparation tips",
+            answers: "Array of 4 STAR format answers"
+          },
+          example: {
+            "questions": [
+              "What experience do you have with...?",
+              "Tell me about a time when..."
+            ],
+            "topics": [
+              "Technical skill 1",
+              "Domain knowledge 1"
+            ],
+            "tips": [
+              "Research the company",
+              "Practice STAR answers"
+            ],
+            "answers": [
+              "Example STAR answer 1",
+              "Example STAR answer 2"
+            ]
+          }
+        },
+        constraints: [
+          "Return ONLY arrays of strings in the specified format",
+          "NO nested objects or metadata",
+          "NO descriptions or additional fields",
+          "Focus ONLY on interview preparation",
+          "NO resume analysis"
+        ]
       };
 
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, type: 'analyze' }),
+        body: JSON.stringify({
+          prompt: prepPrompt,
+          type: 'interview_preparation',
+          format: 'strict_json',
+          temperature: 0,
+          response_format: {
+            type: "object",
+            required: ["questions", "topics", "tips", "answers"],
+            properties: {
+              questions: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 5,
+                maxItems: 5
+              },
+              topics: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 4,
+                maxItems: 4
+              },
+              tips: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 4,
+                maxItems: 4
+              },
+              answers: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 4,
+                maxItems: 4
+              }
+            },
+            additionalProperties: false
+          }
+        })
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.details || error.error || 'Failed to generate preparation guide');
+        throw new Error('Failed to generate preparation guide');
       }
 
       const data = await response.json();
@@ -159,55 +251,98 @@ Keep all responses concise and focused on interview preparation.`
         throw new Error('No preparation guide received');
       }
 
+      let rawGuide;
       try {
-        // Clean the result string by removing markdown code blocks if present
-        const cleanResult = data.result
-          .replace(/```json\n?/g, '')
-          .replace(/```\n?/g, '')
-          .trim();
-        
-        const guide = JSON.parse(cleanResult);
-        
-        // Log the parsed response for debugging
-        console.log('Parsed AI response:', guide);
-        
-        // Check if we got the wrong format
-        if (guide.atsCompatibility || guide.impactStatements || guide.keywordsMatch) {
-          // We received resume analysis format instead of interview guide
-          toast.error('Received incorrect guide format. Please try again.');
-          return;
+        // Handle both string and object responses
+        if (typeof data.result === 'string') {
+          // Strip markdown code block formatting if present
+          const cleanJson = data.result
+            .replace(/^```json\s*/, '') // Remove opening ```json
+            .replace(/```\s*$/, '')     // Remove closing ```
+            .trim();                    // Remove any extra whitespace
+          rawGuide = JSON.parse(cleanJson);
+        } else {
+          rawGuide = data.result;
         }
-        
-        // Initialize default arrays if missing
-        const validatedGuide = {
-          questions: Array.isArray(guide.questions) ? guide.questions.slice(0, 5) : [],
-          tips: Array.isArray(guide.tips) ? guide.tips.slice(0, 4) : [],
-          topics: Array.isArray(guide.topics) ? guide.topics.slice(0, 4) : [],
-          answers: Array.isArray(guide.answers) ? guide.answers.slice(0, 4) : []
-        };
 
-        // Validate that we have at least some data
-        if (validatedGuide.questions.length === 0 &&
-            validatedGuide.tips.length === 0 &&
-            validatedGuide.topics.length === 0 &&
-            validatedGuide.answers.length === 0) {
-          throw new Error('No valid guide data received');
+        console.log('Raw guide type:', typeof rawGuide);
+        console.log('Received raw guide:', rawGuide);
+
+        if (!rawGuide || typeof rawGuide !== 'object') {
+          throw new Error('Invalid guide format received');
         }
-        
-        setAiPreparation(validatedGuide);
-        
-        // Add the preparation guide to the notes
-        setFormData(prev => ({
-          ...prev,
-          preparation_notes: `${prev.preparation_notes ? prev.preparation_notes + '\n\n' : ''}AI-Generated Interview Preparation Guide:\n\nKey Topics to Prepare:\n${validatedGuide.topics.map((t: string) => `- ${t}`).join('\n')}\n\nPreparation Tips:\n${validatedGuide.tips.map((t: string) => `- ${t}`).join('\n')}\n\nPractice Questions:\n${validatedGuide.questions.map((q: string) => `- ${q}`).join('\n')}\n\nSample STAR Answers:\n${validatedGuide.answers.map((a: string) => `- ${a}`).join('\n')}`
-        }));
-
-        toast.success('Interview preparation guide generated');
-      } catch (parseError) {
-        console.error('Failed to parse guide:', parseError);
-        console.error('Raw result:', data.result);
-        throw new Error('Failed to process preparation guide. Please try again.');
+      } catch (e) {
+        console.error('Error parsing guide:', e);
+        throw new Error('Failed to parse preparation guide');
       }
+
+      // Extract arrays directly from the raw guide
+      const guide = {
+        questions: Array.isArray(rawGuide.questions) ? rawGuide.questions : [],
+        topics: Array.isArray(rawGuide.topics) ? rawGuide.topics : [],
+        tips: Array.isArray(rawGuide.tips) ? rawGuide.tips : [],
+        answers: Array.isArray(rawGuide.answers) ? rawGuide.answers : []
+      };
+
+      console.log('Processed guide:', guide);
+
+      // Validate arrays and their lengths
+      const requirements = {
+        questions: { min: 5, max: 5 },
+        topics: { min: 4, max: 4 },
+        tips: { min: 4, max: 4 },
+        answers: { min: 4, max: 4 }
+      };
+
+      // Log the array lengths for debugging
+      console.log('Array lengths:', {
+        questions: guide.questions.length,
+        topics: guide.topics.length,
+        tips: guide.tips.length,
+        answers: guide.answers.length
+      });
+
+      const validationErrors = Object.entries(requirements).reduce((errors: string[], [field, req]) => {
+        const array = guide[field as keyof typeof guide];
+        if (!Array.isArray(array)) {
+          errors.push(`${field} is not an array`);
+        } else if (array.length < req.min) {
+          errors.push(`${field} has too few items (${array.length}/${req.min})`);
+        } else if (array.length > req.max) {
+          errors.push(`${field} has too many items (${array.length}/${req.max})`);
+        }
+        return errors;
+      }, []);
+
+      if (validationErrors.length > 0) {
+        console.error('Validation errors:', validationErrors);
+        throw new Error(`Invalid guide structure: ${validationErrors.join(', ')}`);
+      }
+
+      // All arrays are valid, create the validated guide
+      const validatedGuide = {
+        questions: guide.questions.slice(0, requirements.questions.max),
+        topics: guide.topics.slice(0, requirements.topics.max),
+        tips: guide.tips.slice(0, requirements.tips.max),
+        answers: guide.answers.slice(0, requirements.answers.max)
+      };
+
+      // Check for any resume-related content
+      const fullContent = JSON.stringify(validatedGuide).toLowerCase();
+      if (fullContent.includes('resume') || fullContent.includes('ats') || 
+          fullContent.includes('keyword match') || fullContent.includes('compatibility')) {
+        throw new Error('Received resume-related content instead of interview preparation');
+      }
+
+      setAiPreparation(validatedGuide);
+      
+      // Add the preparation guide to the notes
+      setFormData(prev => ({
+        ...prev,
+        preparation_notes: `${prev.preparation_notes ? prev.preparation_notes + '\n\n' : ''}AI-Generated Interview Preparation Guide:\n\nKey Topics to Prepare:\n${validatedGuide.topics.map((t: string) => `- ${t}`).join('\n')}\n\nPreparation Tips:\n${validatedGuide.tips.map((t: string) => `- ${t}`).join('\n')}\n\nPractice Questions:\n${validatedGuide.questions.map((q: string) => `- ${q}`).join('\n')}\n\nSample STAR Answers:\n${validatedGuide.answers.map((a: string) => `- ${a}`).join('\n')}`
+      }));
+
+      toast.success('Interview preparation guide generated');
     } catch (error) {
       console.error('Error generating preparation guide:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to generate preparation guide');
@@ -395,7 +530,7 @@ Keep all responses concise and focused on interview preparation.`
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Preparation Guide
+                      Generate Preparation Guide 
                     </>
                   )}
                 </Button>
