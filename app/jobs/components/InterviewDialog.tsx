@@ -87,9 +87,11 @@ export default function InterviewDialog({
         duration_minutes: interview.duration_minutes,
         location: interview.location,
         interviewer_names: Array.isArray(interview.interviewer_names) ? interview.interviewer_names.join(', ') : '',
-        notes: '',
-        preparation_notes: '',
+        notes: interview.notes || '',
+        preparation_notes: interview.preparation_notes || '',
       });
+      // Set the AI preparation guide if it exists
+      setAiPreparation(interview.ai_preparation || null);
     } else {
       setFormData({
         interview_type: 'phone_screening',
@@ -100,6 +102,8 @@ export default function InterviewDialog({
         notes: '',
         preparation_notes: '',
       });
+      // Clear the AI preparation guide
+      setAiPreparation(null);
     }
   }, [interview]);
 
@@ -332,17 +336,17 @@ export default function InterviewDialog({
       if (fullContent.includes('resume') || fullContent.includes('ats') || 
           fullContent.includes('keyword match') || fullContent.includes('compatibility')) {
         throw new Error('Received resume-related content instead of interview preparation');
-      }
+        }
+        
+        setAiPreparation(validatedGuide);
+        
+        // Add the preparation guide to the notes
+        setFormData(prev => ({
+          ...prev,
+          preparation_notes: `${prev.preparation_notes ? prev.preparation_notes + '\n\n' : ''}AI-Generated Interview Preparation Guide:\n\nKey Topics to Prepare:\n${validatedGuide.topics.map((t: string) => `- ${t}`).join('\n')}\n\nPreparation Tips:\n${validatedGuide.tips.map((t: string) => `- ${t}`).join('\n')}\n\nPractice Questions:\n${validatedGuide.questions.map((q: string) => `- ${q}`).join('\n')}\n\nSample STAR Answers:\n${validatedGuide.answers.map((a: string) => `- ${a}`).join('\n')}`
+        }));
 
-      setAiPreparation(validatedGuide);
-      
-      // Add the preparation guide to the notes
-      setFormData(prev => ({
-        ...prev,
-        preparation_notes: `${prev.preparation_notes ? prev.preparation_notes + '\n\n' : ''}AI-Generated Interview Preparation Guide:\n\nKey Topics to Prepare:\n${validatedGuide.topics.map((t: string) => `- ${t}`).join('\n')}\n\nPreparation Tips:\n${validatedGuide.tips.map((t: string) => `- ${t}`).join('\n')}\n\nPractice Questions:\n${validatedGuide.questions.map((q: string) => `- ${q}`).join('\n')}\n\nSample STAR Answers:\n${validatedGuide.answers.map((a: string) => `- ${a}`).join('\n')}`
-      }));
-
-      toast.success('Interview preparation guide generated');
+        toast.success('Interview preparation guide generated');
     } catch (error) {
       console.error('Error generating preparation guide:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to generate preparation guide');
@@ -530,7 +534,7 @@ export default function InterviewDialog({
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Preparation Guide 
+                      Generate Preparation Guide
                     </>
                   )}
                 </Button>
