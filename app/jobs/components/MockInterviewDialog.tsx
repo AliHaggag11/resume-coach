@@ -572,12 +572,12 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl w-[calc(100%-2rem)] h-[95vh] sm:h-[90vh] md:h-[80vh] flex flex-col p-0 gap-0 mx-auto">
-        <DialogHeader className="px-4 py-3 sm:px-5 md:px-6 md:py-4 border-b">
-          <DialogTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-              <span className="font-semibold text-base sm:text-lg">Mock Interview</span>
-              <div className="flex items-center gap-1.5 sm:gap-2">
+      <DialogContent className="sm:max-w-2xl w-[calc(100%-2rem)] h-[85vh] sm:h-[90vh] md:h-[80vh] flex flex-col p-0 gap-0 mx-auto rounded-2xl sm:rounded-lg overflow-hidden">
+        <DialogHeader className="px-3 py-2 sm:px-5 md:px-6 md:py-4 border-b">
+          <DialogTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-semibold text-sm sm:text-lg">Mock Interview</span>
+              <div className="flex items-center gap-1 sm:gap-2">
                 <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">-</span>
                 <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none">
                   {jobDetails.job_title}
@@ -590,11 +590,11 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                 </Badge>
               </div>
             </div>
-            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 md:gap-4 mt-2 sm:mt-0">
+            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 md:gap-4 mt-1 sm:mt-0">
               <Button 
                 variant="outline" 
                 size="sm"
-                className="h-7 sm:h-8 px-2 text-[10px] sm:text-xs"
+                className="h-6 sm:h-8 px-2 text-[10px] sm:text-xs"
                 onClick={() => {
                   setMessages([]);
                   setInterviewState({
@@ -621,15 +621,15 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-4 py-2 sm:px-5 sm:py-2 md:px-6 border-b bg-muted/5">
-          <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-1.5">
+        <div className="px-3 py-1.5 sm:px-5 sm:py-2 md:px-6 border-b bg-muted/5">
+          <div className="flex items-center justify-between text-[10px] sm:text-sm text-muted-foreground mb-1 sm:mb-1.5">
             <span>Interview Progress</span>
             <span>{interviewState.progress}%</span>
           </div>
           <Progress value={interviewState.progress} className="h-1 sm:h-1.5" />
         </div>
 
-        <ScrollArea className="flex-1 p-3 sm:p-4 md:p-6">
+        <ScrollArea className="flex-1 p-2 sm:p-4 md:p-6 overflow-hidden">
           <div className="space-y-4 sm:space-y-6">
             {messages.length === 0 ? (
               <div className="h-[40vh] sm:h-[50vh] flex flex-col items-center justify-center text-center space-y-3 sm:space-y-4 text-muted-foreground">
@@ -730,7 +730,7 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
           </div>
         </ScrollArea>
 
-        <div className="p-3 sm:p-4 md:p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="p-2 sm:p-4 md:p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex gap-2 sm:gap-3 md:gap-3 max-w-4xl mx-auto">
             <Input
               placeholder={messages.length === 0 ? "Click 'Start Interview' to begin..." : "Type your response..."}
@@ -738,13 +738,13 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={isLoading || messages.length === 0}
-              className="flex-1 text-xs sm:text-sm md:text-base h-8 sm:h-10"
+              className="flex-1 text-xs sm:text-sm md:text-base h-7 sm:h-10 rounded-xl sm:rounded-lg"
             />
             <Button
               onClick={sendMessage}
               disabled={isLoading || !inputValue.trim() || messages.length === 0}
               size="icon"
-              className="shrink-0 h-8 w-8 sm:h-10 sm:w-10"
+              className="shrink-0 h-7 w-7 sm:h-10 sm:w-10 rounded-xl sm:rounded-lg"
             >
               {isLoading ? (
                 <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
