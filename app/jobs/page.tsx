@@ -13,6 +13,7 @@ import JobApplicationDialog from './components/JobApplicationDialog';
 import InterviewDialog from './components/InterviewDialog';
 import MockInterviewDialog from './components/MockInterviewDialog';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface JobApplication {
   id: string;
@@ -132,6 +133,9 @@ export default function JobsPage() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [remoteFilter, setRemoteFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'company' | 'title'>('newest');
   const [showNewApplicationDialog, setShowNewApplicationDialog] = useState(false);
   const [showInterviewDialog, setShowInterviewDialog] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
@@ -181,10 +185,45 @@ export default function JobsPage() {
     }
   };
 
-  const filteredApplications = applications.filter(app => 
-    app.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.job_title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const deleteApplication = async (applicationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_applications')
+        .delete()
+        .eq('id', applicationId);
+
+      if (error) throw error;
+      
+      setApplications(prev => prev.filter(app => app.id !== applicationId));
+      toast.success('Job application deleted successfully');
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      toast.error('Failed to delete job application');
+    }
+  };
+
+  const filteredApplications = applications
+    .filter(app => 
+      (app.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       app.job_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       app.location?.toLowerCase().includes(searchQuery.toLowerCase())) &&
+      (statusFilter === 'all' || app.status === statusFilter) &&
+      (remoteFilter === 'all' || app.remote_type === remoteFilter)
+    )
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'company':
+          return a.company_name.localeCompare(b.company_name);
+        case 'title':
+          return a.job_title.localeCompare(b.job_title);
+        default:
+          return 0;
+      }
+    });
 
   const upcomingInterviews = interviews
     .filter(interview => new Date(interview.scheduled_at) > new Date())
@@ -243,6 +282,62 @@ export default function JobsPage() {
               <span className="hidden sm:inline">Add Job</span>
             </Button>
           </div>
+        </div>
+
+        {/* Filters and Sort */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {Object.keys(statusColors).map(status => (
+                <SelectItem key={status} value={status}>
+                  {status.replace('_', ' ')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={remoteFilter} onValueChange={setRemoteFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="remote">Remote</SelectItem>
+              <SelectItem value="hybrid">Hybrid</SelectItem>
+              <SelectItem value="onsite">Onsite</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={(value: 'newest' | 'oldest' | 'company' | 'title') => setSortBy(value)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="company">Company Name</SelectItem>
+              <SelectItem value="title">Job Title</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {(statusFilter !== 'all' || remoteFilter !== 'all' || searchQuery) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setStatusFilter('all');
+                setRemoteFilter('all');
+                setSearchQuery('');
+              }}
+              className="text-xs"
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
 
         {/* Upcoming Interviews Card - Always show at top on mobile */}
@@ -402,86 +497,120 @@ export default function JobsPage() {
 
       {/* Applications Grid */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {filteredApplications.map(application => (
-          <Card key={application.id} className="group">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 min-w-0">
-                  <CardTitle className="flex items-center gap-2 truncate">
-                    <Building2 className="h-5 w-5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{application.company_name}</span>
-                  </CardTitle>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <BriefcaseIcon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{application.job_title}</span>
-                  </div>
-                  {application.location && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{application.location}</span>
+        {filteredApplications.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            {searchQuery || statusFilter !== 'all' || remoteFilter !== 'all' ? (
+              <p>No applications match your filters</p>
+            ) : (
+              <p>No job applications yet. Add your first one!</p>
+            )}
+          </div>
+        ) : (
+          filteredApplications.map(application => (
+            <Card key={application.id} className="group">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <CardTitle className="flex items-center gap-2 truncate">
+                      <Building2 className="h-5 w-5 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{application.company_name}</span>
+                    </CardTitle>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <BriefcaseIcon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{application.job_title}</span>
                     </div>
-                  )}
+                    {application.location && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{application.location}</span>
+                      </div>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
+                    {application.status.replace('_', ' ')}
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
-                  {application.status.replace('_', ' ')}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Applied {formatDate(application.created_at)}
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Applied {formatDate(application.created_at)}
+                  </div>
+                  <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:inline-flex"
+                      onClick={() => {
+                        setSelectedApplication(application);
+                        setShowInterviewDialog(true);
+                      }}
+                    >
+                      Add Interview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 sm:hidden"
+                      onClick={() => {
+                        setSelectedApplication(application);
+                        setShowInterviewDialog(true);
+                      }}
+                    >
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:inline-flex"
+                      onClick={() => {
+                        setSelectedApplication(application);
+                        setShowNewApplicationDialog(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 sm:hidden"
+                      onClick={() => {
+                        setSelectedApplication(application);
+                        setShowNewApplicationDialog(true);
+                      }}
+                    >
+                      <PenLine className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:inline-flex text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this application?')) {
+                          deleteApplication(application.id);
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this application?')) {
+                          deleteApplication(application.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="hidden sm:inline-flex"
-                    onClick={() => {
-                      setSelectedApplication(application);
-                      setShowInterviewDialog(true);
-                    }}
-                  >
-                    Add Interview
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 sm:hidden"
-                    onClick={() => {
-                      setSelectedApplication(application);
-                      setShowInterviewDialog(true);
-                    }}
-                  >
-                    <Calendar className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="hidden sm:inline-flex"
-                    onClick={() => {
-                      setSelectedApplication(application);
-                      setShowNewApplicationDialog(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 sm:hidden"
-                    onClick={() => {
-                      setSelectedApplication(application);
-                      setShowNewApplicationDialog(true);
-                    }}
-                  >
-                    <PenLine className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       <JobApplicationDialog
