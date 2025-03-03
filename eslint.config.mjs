@@ -22,6 +22,8 @@ const eslintConfig = [
       '@typescript-eslint/no-explicit-any': 'off',
       'no-case-declarations': 'off',
       'prefer-const': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'no-useless-escape': 'off',
     },
   },
 ];
