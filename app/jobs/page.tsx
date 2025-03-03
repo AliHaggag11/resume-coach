@@ -502,83 +502,83 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      {/* Upcoming Interviews - Always visible at top */}
-      <Card className="w-full">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Upcoming Interviews
-          </CardTitle>
-          <Button variant="outline" onClick={() => setShowInterviewDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Interview
-              </Button>
-          </CardHeader>
-          <CardContent>
-            {upcomingInterviews.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p>No upcoming interviews scheduled</p>
-              <Button 
-                variant="link" 
-                onClick={() => setShowInterviewDialog(true)}
-                className="mt-2"
-              >
-                Schedule your first interview
-              </Button>
-            </div>
-            ) : (
-              <div className="space-y-4">
-                {upcomingInterviews.map(interview => {
-                  const application = applications.find(app => app.id === interview.job_application_id);
-                  const interviewDate = new Date(interview.scheduled_at);
-                  return (
-                    <div key={interview.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
-                      {/* Date Column */}
-                      <div className="flex sm:flex-col items-center gap-2 sm:gap-0 sm:justify-center w-full sm:w-16 h-12 sm:h-16 rounded-lg bg-primary/5 text-primary">
-                        <span className="text-sm font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
-                        <span className="text-xl sm:text-2xl font-bold">{interviewDate.getDate()}</span>
-                      </div>
-                      
-                      {/* Details Column */}
-                      <div className="flex-1 min-w-0 w-full">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                          <p className="font-medium truncate">{application?.company_name}</p>
-                          <Badge variant="outline" className="w-fit shrink-0 text-[10px] sm:text-xs">
-                            {interview.interview_type.replace('_', ' ')}
-                          </Badge>
+    <div className="container mx-auto px-4 py-6">
+      <Tabs defaultValue="applications" className="w-full space-y-6">
+        <div className="flex flex-col space-y-4 sm:space-y-0">
+          <div className="w-full overflow-x-auto pb-2">
+            <TabsList className="w-full grid grid-cols-3 gap-1 rounded-md bg-muted p-1 text-muted-foreground">
+              <TabsTrigger value="applications" className="flex items-center justify-center gap-2">
+                <BriefcaseIcon className="h-4 w-4" />
+                Applications
+              </TabsTrigger>
+              <TabsTrigger value="saved" className="flex items-center justify-center gap-2">
+                <Plus className="h-4 w-4" />
+                Saved Jobs
+              </TabsTrigger>
+              <TabsTrigger value="search" className="flex items-center justify-center gap-2">
+                <Search className="h-4 w-4" />
+                Job Search
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Upcoming Interviews Section */}
+          {upcomingInterviews.length > 0 && (
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle className="text-lg font-bold">Upcoming Interviews</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                  {upcomingInterviews.map((interview) => {
+                    const application = applications.find(app => app.id === interview.job_application_id);
+                    const interviewDate = new Date(interview.scheduled_at);
+                    return (
+                      <div key={interview.id} className="flex flex-col gap-4 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
+                        <div className="flex items-start gap-4">
+                          {/* Date Display */}
+                          <div className="flex flex-col items-center justify-center w-14 h-14 rounded-lg bg-primary/5 text-primary">
+                            <span className="text-xs font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
+                            <span className="text-xl font-bold leading-none mt-0.5">{interviewDate.getDate()}</span>
+                          </div>
+
+                          {/* Interview Details */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">{application?.company_name}</h4>
+                            <Badge variant="outline" className="mt-1 mb-1.5">
+                              {interview.interview_type.replace('_', ' ')}
+                            </Badge>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {application?.job_title}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground truncate mt-1">
-                          {application?.job_title}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs sm:text-sm text-muted-foreground">
+
+                        {/* Time and Location */}
+                        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                            <Clock className="h-4 w-4 shrink-0" />
                             <span>{formatDateTime(interview.scheduled_at)}</span>
                           </div>
-                          <span className="hidden sm:inline mx-1">•</span>
                           <div className="flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span>{interview.location || 'Remote'}</span>
+                            <MapPin className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{interview.location || 'Remote'}</span>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Actions Column */}
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0">
-                        <div className="relative flex-1 sm:flex-none">
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-2 mt-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8"
+                            className="flex-1 h-8 min-w-[100px]"
                             onClick={(e) => {
                               e.preventDefault();
                               const calendarUrls = createCalendarEvent(interview, application);
                               
                               // Create dropdown menu for calendar options
                               const menu = document.createElement('div');
-                              menu.className = 'absolute left-0 sm:right-0 sm:left-auto top-full mt-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50';
+                              menu.className = 'absolute left-0 bottom-full mb-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50';
                               menu.innerHTML = `
                                 <div class="py-1" role="menu">
                                   <a href="${calendarUrls.googleUrl}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Add to Google Calendar</a>
@@ -608,91 +608,67 @@ export default function JobsPage() {
                               }, 0);
                             }}
                           >
-                            <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                            <Calendar className="h-4 w-4 mr-1.5" />
                             Add to Calendar
                           </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-8 min-w-[100px]"
+                            onClick={() => {
+                              if (!application) return;
+                              setSelectedInterview(interview);
+                              setSelectedJobDetails({
+                                company_name: application.company_name,
+                                job_title: application.job_title,
+                                job_description: application.job_description
+                              });
+                              setShowMockInterviewDialog(true);
+                            }}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-1.5" />
+                            Practice
+                          </Button>
+                          
+                          <div className="flex gap-2 w-full">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-8"
+                              onClick={() => {
+                                setSelectedInterview(interview);
+                                setSelectedApplication(application || null);
+                                setShowInterviewDialog(true);
+                              }}
+                            >
+                              <PenLine className="h-4 w-4 mr-1.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this interview?')) {
+                                  deleteInterview(interview.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          </div>
                         </div>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 sm:flex-none text-[10px] sm:text-xs h-7 sm:h-8"
-                          onClick={() => {
-                            if (!application) return;
-                            setSelectedInterview(interview);
-                            setSelectedJobDetails({
-                              company_name: application.company_name,
-                              job_title: application.job_title,
-                              job_description: application.job_description
-                            });
-                            setShowMockInterviewDialog(true);
-                          }}
-                        >
-                          <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                          Practice
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 sm:flex-none text-[10px] sm:text-xs h-7 sm:h-8"
-                          onClick={() => {
-                            setSelectedInterview(interview);
-                            setSelectedApplication(application || null);
-                            setShowInterviewDialog(true);
-                          }}
-                        >
-                          <PenLine className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 sm:flex-none text-[10px] sm:text-xs h-7 sm:h-8 text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this interview?')) {
-                              deleteInterview(interview.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        </Button>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="applications" className="w-full">
-        <TabsList className="w-full justify-start mb-6 bg-background border-b rounded-none h-auto p-0 space-x-6">
-          <TabsTrigger 
-            value="applications" 
-            className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-          >
-            <BriefcaseIcon className="h-4 w-4 mr-2" />
-            Applications
-          </TabsTrigger>
-          <TabsTrigger 
-            value="saved" 
-            className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Saved Jobs
-          </TabsTrigger>
-          <TabsTrigger 
-            value="search" 
-            className="relative h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-          >
-            <Search className="h-4 w-4 mr-2" />
-            Job Search
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Applications Tab */}
-        <TabsContent value="applications" className="mt-0">
+        <TabsContent value="applications" className="space-y-6 mt-2">
           <div className="space-y-6">
             {/* Applications Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -766,11 +742,11 @@ export default function JobsPage() {
                   Clear Filters
                 </Button>
               )}
-      </div>
+            </div>
 
-      {/* Applications Grid */}
+            {/* Applications Grid */}
             <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-        {filteredApplications.length === 0 ? (
+              {filteredApplications.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground">
@@ -785,17 +761,17 @@ export default function JobsPage() {
                   >
                     Add your first application
                   </Button>
-          </div>
-        ) : (
+                </div>
+              ) : (
                 filteredApplications.map(application => {
                   const employerLogo = application.job_description.includes('employer_logo:') 
                     ? application.job_description.split('employer_logo:')[1]?.split('\n')[0]
                     : null;
 
                   return (
-            <Card key={application.id} className="group">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
+                    <Card key={application.id} className="group">
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-start gap-3">
                               <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
@@ -820,101 +796,101 @@ export default function JobsPage() {
                               <div className="min-w-0 flex-1">
                                 <CardTitle className="truncate">
                                   {application.company_name}
-                    </CardTitle>
+                                </CardTitle>
                                 <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                      <BriefcaseIcon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{application.job_title}</span>
-                    </div>
-                    {application.location && (
+                                  <BriefcaseIcon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{application.job_title}</span>
+                                </div>
+                                {application.location && (
                                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{application.location}</span>
-                      </div>
-                    )}
+                                    <MapPin className="h-4 w-4 shrink-0" />
+                                    <span className="truncate">{application.location}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                  </div>
-                  <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
-                    {application.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    Applied {formatDate(application.created_at)}
-                  </div>
-                  <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex"
-                      onClick={() => {
-                        setSelectedApplication(application);
-                        setShowInterviewDialog(true);
-                      }}
-                    >
-                      Add Interview
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden"
-                      onClick={() => {
-                        setSelectedApplication(application);
-                        setShowInterviewDialog(true);
-                      }}
-                    >
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex"
-                      onClick={() => {
-                        setSelectedApplication(application);
-                        setShowNewApplicationDialog(true);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden"
-                      onClick={() => {
-                        setSelectedApplication(application);
-                        setShowNewApplicationDialog(true);
-                      }}
-                    >
-                      <PenLine className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this application?')) {
-                          deleteApplication(application.id);
-                        }
-                      }}
-                    >
-                      Delete
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this application?')) {
-                          deleteApplication(application.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                          </div>
+                          <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
+                            {application.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-muted-foreground">
+                            Applied {formatDate(application.created_at)}
+                          </div>
+                          <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hidden sm:inline-flex"
+                              onClick={() => {
+                                setSelectedApplication(application);
+                                setShowInterviewDialog(true);
+                              }}
+                            >
+                              Add Interview
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 sm:hidden"
+                              onClick={() => {
+                                setSelectedApplication(application);
+                                setShowInterviewDialog(true);
+                              }}
+                            >
+                              <Calendar className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hidden sm:inline-flex"
+                              onClick={() => {
+                                setSelectedApplication(application);
+                                setShowNewApplicationDialog(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 sm:hidden"
+                              onClick={() => {
+                                setSelectedApplication(application);
+                                setShowNewApplicationDialog(true);
+                              }}
+                            >
+                              <PenLine className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hidden sm:inline-flex text-destructive hover:text-destructive"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this application?')) {
+                                  deleteApplication(application.id);
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this application?')) {
+                                  deleteApplication(application.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   );
@@ -924,8 +900,7 @@ export default function JobsPage() {
           </div>
         </TabsContent>
 
-        {/* Saved Jobs Tab */}
-        <TabsContent value="saved" className="mt-0">
+        <TabsContent value="saved" className="space-y-6 mt-2">
           <div className="space-y-6">
             {savedJobs.length === 0 ? (
               <div className="text-center py-12">
@@ -1059,8 +1034,7 @@ export default function JobsPage() {
           </div>
         </TabsContent>
 
-        {/* Job Search Tab */}
-        <TabsContent value="search" className="mt-0">
+        <TabsContent value="search" className="space-y-6 mt-2">
           <div className="space-y-6">
             {/* Search Controls */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -1226,11 +1200,11 @@ export default function JobsPage() {
                           )}
                         </div>
                       </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
 
             {/* Load More Button */}
             {jobListings.length > 0 && hasMoreJobs && (

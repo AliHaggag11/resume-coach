@@ -372,9 +372,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
@@ -423,11 +423,11 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-            </div>
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
         {/* Upcoming Interviews */}
-        <Card className="md:col-span-2 lg:col-span-4">
+        <Card className="lg:col-span-4">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-bold">Upcoming Interviews</CardTitle>
@@ -484,7 +484,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="md:col-span-2 lg:col-span-3">
+        <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Quick Actions</CardTitle>
           </CardHeader>
@@ -517,7 +517,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Applications */}
-        <Card className="md:col-span-2 lg:col-span-4">
+        <Card className="lg:col-span-4">
               <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-bold">Recent Applications</CardTitle>
@@ -583,7 +583,7 @@ export default function DashboardPage() {
                       </Card>
 
         {/* Activity Summary */}
-        <Card className="md:col-span-2 lg:col-span-3">
+        <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Activity Summary</CardTitle>
           </CardHeader>
@@ -618,13 +618,13 @@ export default function DashboardPage() {
       {/* Resume and Cover Letter Management */}
       <div className="space-y-6">
         <Tabs defaultValue="resumes" className="w-full">
-          <TabsList className="w-full flex flex-wrap sm:grid sm:grid-cols-2 sm:w-[400px] gap-1">
+          <TabsList className="w-full flex flex-wrap gap-1">
             <TabsTrigger value="resumes" className="flex-1 sm:flex-none">Resumes</TabsTrigger>
             <TabsTrigger value="cover-letters" className="flex-1 sm:flex-none">Cover Letters</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resumes" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Add New Resume Card */}
               <Link href="/builder/new">
                 <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
@@ -687,7 +687,7 @@ export default function DashboardPage() {
           </TabsContent>
 
           <TabsContent value="cover-letters" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Add New Cover Letter Card */}
               <Link href="/cover-letter/new">
                 <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
