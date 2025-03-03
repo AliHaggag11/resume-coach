@@ -372,15 +372,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
             <BriefcaseIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{stats.applicationStats.total}</div>
             <p className="text-xs text-muted-foreground">
               {stats.applicationStats.active} active applications
@@ -388,11 +388,11 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium">Interviews</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{stats.applicationStats.interviews}</div>
             <p className="text-xs text-muted-foreground">
               {upcomingInterviews.length} upcoming
@@ -400,11 +400,11 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium">Resumes</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{resumes.length}</div>
             <p className="text-xs text-muted-foreground">
               {resumes.filter(r => r.status === 'completed').length} completed
@@ -412,37 +412,37 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
             <CardTitle className="text-sm font-medium">Cover Letters</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{coverLetters.length}</div>
             <p className="text-xs text-muted-foreground">
               {coverLetters.filter(cl => cl.status === 'completed').length} completed
             </p>
           </CardContent>
         </Card>
-            </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-6">
         {/* Upcoming Interviews */}
         <Card className="lg:col-span-4">
-          <CardHeader>
+          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-bold">Upcoming Interviews</CardTitle>
+              <CardTitle className="text-base md:text-lg font-bold">Upcoming Interviews</CardTitle>
               <Link href="/jobs">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  View All
+                <Button variant="ghost" size="sm" className="gap-1 md:gap-2 h-8 px-2 md:px-3">
+                  <span className="hidden sm:inline">View All</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
             {upcomingInterviews.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <div className="text-center py-6 md:py-8 text-muted-foreground">
+                <Calendar className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 md:mb-4 text-muted-foreground/50" />
                 <p>No upcoming interviews scheduled</p>
                 <Link href="/jobs">
                   <Button variant="link" className="mt-2">
@@ -451,31 +451,31 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {upcomingInterviews.map(interview => {
                   const application = applications.find(app => app.id === interview.job_application_id);
                   const interviewDate = new Date(interview.scheduled_at);
                   return (
-                    <div key={interview.id} className="flex items-start gap-4 p-3 rounded-lg border bg-card">
-                      <div className="flex flex-col items-center justify-center w-16 h-16 rounded-lg bg-primary/5 text-primary">
-                        <span className="text-sm font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
-                        <span className="text-2xl font-bold">{interviewDate.getDate()}</span>
+                    <div key={interview.id} className="flex items-start gap-3 md:gap-4 p-3 rounded-lg border bg-card">
+                      <div className="flex flex-col items-center justify-center w-12 md:w-16 h-12 md:h-16 rounded-lg bg-primary/5 text-primary">
+                        <span className="text-xs md:text-sm font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
+                        <span className="text-xl md:text-2xl font-bold">{interviewDate.getDate()}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{application?.company_name}</p>
                         <p className="text-sm text-muted-foreground truncate">{application?.job_title}</p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5" />
+                        <div className="flex flex-wrap items-center gap-1 md:gap-2 mt-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3 md:h-3.5 md:w-3.5" />
                           <span>{formatDateTime(interview.scheduled_at)}</span>
                           <span className="mx-1">•</span>
-                          <MapPin className="h-3.5 w-3.5" />
+                          <MapPin className="h-3 w-3 md:h-3.5 md:w-3.5" />
                           <span>{interview.location || 'Remote'}</span>
                         </div>
                       </div>
-                      <Badge variant="outline" className="shrink-0">
+                      <Badge variant="outline" className="shrink-0 text-xs">
                         {interview.interview_type.replace('_', ' ')}
                       </Badge>
-      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -485,10 +485,10 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <Card className="lg:col-span-3">
-              <CardHeader>
-            <CardTitle className="text-lg font-bold">Quick Actions</CardTitle>
-              </CardHeader>
-          <CardContent className="space-y-4">
+          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
+            <CardTitle className="text-base md:text-lg font-bold">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 md:px-6 pb-4 md:pb-6 space-y-3 md:space-y-4">
             <Link href="/jobs">
               <Button className="w-full justify-start gap-2" variant="outline">
                 <Search className="h-4 w-4" />
@@ -513,26 +513,26 @@ export default function DashboardPage() {
                 Add Job Application
               </Button>
             </Link>
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
 
         {/* Recent Applications */}
         <Card className="lg:col-span-4">
-              <CardHeader>
+          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-bold">Recent Applications</CardTitle>
+              <CardTitle className="text-base md:text-lg font-bold">Recent Applications</CardTitle>
               <Link href="/jobs">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  View All
+                <Button variant="ghost" size="sm" className="gap-1 md:gap-2 h-8 px-2 md:px-3">
+                  <span className="hidden sm:inline">View All</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-          </div>
-            </CardHeader>
-          <CardContent>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
             {recentApplications.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <div className="text-center py-6 md:py-8 text-muted-foreground">
+                <BriefcaseIcon className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 md:mb-4 text-muted-foreground/50" />
                 <p>No job applications yet</p>
                 <Link href="/jobs">
                   <Button variant="link" className="mt-2">
@@ -541,9 +541,9 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {recentApplications.map(application => (
-                  <div key={application.id} className="flex items-start gap-4 p-3 rounded-lg border bg-card">
+                  <div key={application.id} className="flex items-start gap-3 md:gap-4 p-3 rounded-lg border bg-card">
                     <div className="h-10 w-10 rounded-md border bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
                       {application.employer_logo ? (
                         <img 
@@ -568,72 +568,72 @@ export default function DashboardPage() {
                       <p className="font-medium truncate">{application.company_name}</p>
                       <p className="text-sm text-muted-foreground truncate">{application.job_title}</p>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
+                        <Clock className="h-3 w-3 md:h-3.5 md:w-3.5" />
                         <span>Applied {formatDistanceToNow(new Date(application.created_at))} ago</span>
                       </div>
                     </div>
-                    <Badge variant="secondary" className={statusColors[application.status as keyof typeof statusColors]}>
+                    <Badge variant="secondary" className={`${statusColors[application.status as keyof typeof statusColors]} text-xs whitespace-nowrap`}>
                       {application.status.replace('_', ' ')}
                     </Badge>
                   </div>
                 ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Activity Summary */}
         <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">Activity Summary</CardTitle>
+          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
+            <CardTitle className="text-base md:text-lg font-bold">Activity Summary</CardTitle>
           </CardHeader>
-          <CardContent>
-          <div className="space-y-4">
+          <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+            <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Application Progress</span>
                   <span className="font-medium">{Math.round((stats.applicationStats.active / stats.applicationStats.total) * 100 || 0)}%</span>
                 </div>
                 <Progress value={(stats.applicationStats.active / stats.applicationStats.total) * 100 || 0} className="h-2" />
-                    </div>
-                          <div>
+              </div>
+              <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Interview Success Rate</span>
                   <span className="font-medium">{Math.round((stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0)}%</span>
-                          </div>
+                </div>
                 <Progress value={(stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0} className="h-2" />
-                        </div>
+              </div>
               <div>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Offer Rate</span>
                   <span className="font-medium">{Math.round((stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0)}%</span>
-                          </div>
+                </div>
                 <Progress value={(stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0} className="h-2" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Resume and Cover Letter Management */}
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <Tabs defaultValue="resumes" className="w-full">
-          <TabsList className="w-full flex flex-wrap gap-1">
-            <TabsTrigger value="resumes" className="flex-1 sm:flex-none">Resumes</TabsTrigger>
-            <TabsTrigger value="cover-letters" className="flex-1 sm:flex-none">Cover Letters</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-2 gap-1">
+            <TabsTrigger value="resumes">Resumes</TabsTrigger>
+            <TabsTrigger value="cover-letters">Cover Letters</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="resumes" className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <TabsContent value="resumes" className="mt-4 md:mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {/* Add New Resume Card */}
               <Link href="/builder/new">
                 <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
-                  <CardContent className="pt-6 text-center h-full flex flex-col items-center justify-center">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <PlusCircle className="h-6 w-6 text-primary" />
+                  <CardContent className="p-4 md:p-6 text-center h-full flex flex-col items-center justify-center">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 md:mb-4">
+                      <PlusCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
                     <h3 className="font-medium">Create New Resume</h3>
-                    <p className="text-sm text-muted-foreground mt-2">
+                    <p className="text-sm text-muted-foreground mt-1 md:mt-2">
                       Start building your professional resume
                     </p>
                   </CardContent>
@@ -643,60 +643,60 @@ export default function DashboardPage() {
               {/* Existing Resumes */}
               {resumes.map(resume => (
                 <Card key={resume.id} className="group">
-                        <CardContent className="p-6 space-y-4">
-                          <div className="flex items-start gap-4">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                              <FileText className="h-8 w-8 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{resume.title}</h3>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <Clock className="h-3 w-3" />
-                                <span>
+                  <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
+                    <div className="flex items-start gap-3 md:gap-4">
+                      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                        <FileText className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">{resume.title}</h3>
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mt-1">
+                          <Clock className="h-3 w-3" />
+                          <span className="truncate">
                             Last modified {formatDistanceToNow(new Date(resume.last_modified))} ago
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                          <div className="flex items-center gap-2">
-                            <Link href={`/builder/${resume.id}`} className="flex-1">
-                                  <Button variant="outline" className="w-full group">
-                                Edit
-                                    <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="shrink-0"
-                              onClick={() => handleDeleteResume(resume.id)}
-                              disabled={isDeletingId === resume.id}
-                            >
-                              {isDeletingId === resume.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              )}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/builder/${resume.id}`} className="flex-1">
+                        <Button variant="outline" className="w-full group">
+                          Edit
+                          <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => handleDeleteResume(resume.id)}
+                        disabled={isDeletingId === resume.id}
+                      >
+                        {isDeletingId === resume.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
-          <TabsContent value="cover-letters" className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <TabsContent value="cover-letters" className="mt-4 md:mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {/* Add New Cover Letter Card */}
               <Link href="/cover-letter/new">
                 <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
-                  <CardContent className="pt-6 text-center h-full flex flex-col items-center justify-center">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <PlusCircle className="h-6 w-6 text-primary" />
+                  <CardContent className="p-4 md:p-6 text-center h-full flex flex-col items-center justify-center">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 md:mb-4">
+                      <PlusCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
                     <h3 className="font-medium">Create New Cover Letter</h3>
-                    <p className="text-sm text-muted-foreground mt-2">
+                    <p className="text-sm text-muted-foreground mt-1 md:mt-2">
                       Write a compelling cover letter
                     </p>
                   </CardContent>
@@ -706,10 +706,10 @@ export default function DashboardPage() {
               {/* Existing Cover Letters */}
               {coverLetters.map(letter => (
                 <Card key={letter.id} className="group">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <FileText className="h-8 w-8 text-primary" />
+                  <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
+                    <div className="flex items-start gap-3 md:gap-4">
+                      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                        <FileText className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium truncate">
@@ -718,43 +718,43 @@ export default function DashboardPage() {
                         <p className="text-sm text-muted-foreground truncate">
                           {letter.company_name || 'No company specified'}
                         </p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mt-1">
                           <Clock className="h-3 w-3" />
                           <span>
                             Last modified {formatDistanceToNow(new Date(letter.updated_at))} ago
                           </span>
                         </div>
-                          </div>
-                          <Badge variant={letter.status === 'completed' ? 'default' : 'secondary'}>
-                            {letter.status === 'completed' ? 'Completed' : 'Draft'}
-                          </Badge>
-                        </div>
+                      </div>
+                      <Badge variant={letter.status === 'completed' ? 'default' : 'secondary'}>
+                        {letter.status === 'completed' ? 'Completed' : 'Draft'}
+                      </Badge>
+                    </div>
 
-                          <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Link href={`/cover-letter/${letter.id}`} className="flex-1">
                         <Button variant="outline" className="w-full group">
                           Edit
                           <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
                         </Button>
-                              </Link>
-                            <Button
+                      </Link>
+                      <Button
                         variant="outline"
                         size="icon"
                         className="shrink-0"
-                              onClick={() => handleDeleteCoverLetter(letter.id)}
-                              disabled={isDeletingId === letter.id}
-                            >
-                              {isDeletingId === letter.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
+                        onClick={() => handleDeleteCoverLetter(letter.id)}
+                        disabled={isDeletingId === letter.id}
+                      >
+                        {isDeletingId === letter.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
                           <Trash2 className="h-4 w-4 text-destructive" />
-                              )}
-                            </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

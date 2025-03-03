@@ -992,8 +992,8 @@ export default function JobsPage() {
                           <div className="flex items-center gap-1.5">
                             <MapPin className="h-4 w-4 shrink-0" />
                             <span className="truncate">{interview.location || application?.location || 'Location not specified'}</span>
-                          </div>
                         </div>
+                      </div>
 
                         {/* Actions */}
                         <div className="flex flex-wrap gap-2 mt-2">

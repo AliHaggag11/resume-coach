@@ -259,14 +259,14 @@ function StaffManagement() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add New Staff Member</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Add New Staff Member</CardTitle>
           <CardDescription>
             Add support agents or administrators to help manage customer inquiries
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAddStaff} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <Input
                 placeholder="Email address"
                 type="email"
@@ -295,13 +295,13 @@ function StaffManagement() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent align="end">
                   <SelectItem value="support">Support Agent</SelectItem>
                   <SelectItem value="admin">Administrator</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={isAddingStaff}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={isAddingStaff}>
               {isAddingStaff ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -317,35 +317,35 @@ function StaffManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Staff Members</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Staff Members</CardTitle>
           <CardDescription>
             Manage existing support staff and administrators
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {staffUsers.map((staffUser) => (
               <div
                 key={staffUser.id}
-                className="flex items-center justify-between p-4 rounded-lg border"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border gap-3"
               >
-                <div>
-                  <div className="font-medium">{staffUser.full_name}</div>
-                  <div className="text-sm text-muted-foreground">
+                <div className="w-full sm:w-auto">
+                  <div className="font-medium truncate">{staffUser.full_name}</div>
+                  <div className="text-sm text-muted-foreground truncate">
                     {staffUser.email}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <Select
                     value={staffUser.role}
                     onValueChange={(value: 'support' | 'admin') =>
                       handleUpdateRole(staffUser.id, value)
                     }
                   >
-                    <SelectTrigger className="w-[110px]">
+                    <SelectTrigger className="w-[120px]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent align="end">
                       <SelectItem value="support">Support</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
@@ -355,6 +355,7 @@ function StaffManagement() {
                     size="icon"
                     onClick={() => handleDeleteClick(staffUser)}
                     disabled={isDeleting === staffUser.id}
+                    className="h-10 w-10 shrink-0"
                   >
                     {isDeleting === staffUser.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -435,22 +436,22 @@ function TicketReplies({ ticket }: { ticket: Ticket }) {
           >
             <div 
               className={`
-                rounded-lg p-4 max-w-[80%]
+                rounded-lg p-4 max-w-[95%] sm:max-w-[80%] break-words
                 ${item.is_staff 
                   ? 'bg-primary text-primary-foreground' 
                   : 'bg-muted'
                 }
               `}
             >
-              <div className="flex items-center justify-between gap-4 mb-2">
-                <span className="text-sm font-medium">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 mb-2">
+                <span className="text-sm font-medium truncate">
                   {item.sender_name}
                 </span>
                 <span className="text-xs opacity-75">
                   {new Date(item.created_at).toLocaleString()}
                 </span>
               </div>
-              <p className="whitespace-pre-wrap">{item.content}</p>
+              <p className="whitespace-pre-wrap break-words overflow-hidden">{item.content}</p>
             </div>
           </div>
         ))}
@@ -569,17 +570,17 @@ function TicketManagement() {
         tickets.map((ticket) => (
           <Card key={ticket.id} className={ticket.status === 'closed' ? 'opacity-75' : ''}>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle>{ticket.subject}</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">{ticket.subject}</CardTitle>
                   <CardDescription>
                     From: {ticket.email}
-                    <span className="ml-2 text-xs text-muted-foreground">
+                    <span className="block sm:inline sm:ml-2 text-xs text-muted-foreground">
                       {new Date(ticket.created_at).toLocaleString()}
                     </span>
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge 
                     variant={
                       ticket.status === 'unread' 
@@ -616,12 +617,14 @@ function TicketManagement() {
                       )}
                       disabled={assigningTicket === ticket.id || ticket.status === 'closed'}
                     >
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-[160px] sm:w-[200px]">
                         <SelectValue>
                           {ticket.assigned_to ? (
                             <div className="flex items-center gap-2">
                               <UserCheck className="h-4 w-4" />
-                              {staffUsers.find(staff => staff.id === ticket.assigned_to)?.full_name || 'Unknown'}
+                              <span className="truncate">
+                                {staffUsers.find(staff => staff.id === ticket.assigned_to)?.full_name || 'Unknown'}
+                              </span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
@@ -790,7 +793,7 @@ function UserMessages() {
             </CardHeader>
             <CardContent>
               <div className="mt-4 p-4 rounded-lg bg-muted/50">
-                <p className="whitespace-pre-wrap">{message.message}</p>
+                <p className="whitespace-pre-wrap break-words overflow-hidden">{message.message}</p>
               </div>
 
               {selectedMessage?.id === message.id && (
@@ -831,7 +834,7 @@ function UserMessages() {
                 onClick={() => handleMessageSelect(message)}
               >
                 View Replies
-      </Button>
+              </Button>
             </CardContent>
           </Card>
         ))
@@ -842,40 +845,79 @@ function UserMessages() {
 
 export default function SupportDashboard() {
   const { user } = useAuth();
-  const isAdmin = user?.user_metadata?.role === 'admin';
+  const role = user?.user_metadata?.role;
+
+  if (!user || !role || !['support', 'admin'].includes(role)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-[400px]">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>
+              You don't have permission to access this page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href="/dashboard">Return to Dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <Tabs defaultValue="tickets" className="space-y-6">
-      <TabsList>
-        <TabsTrigger value="tickets" className="flex items-center gap-2">
-          <HeadphonesIcon className="h-4 w-4" />
-          Support Tickets
-        </TabsTrigger>
-        <TabsTrigger value="messages" className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
-          My Messages
-        </TabsTrigger>
-        {isAdmin && (
-          <TabsTrigger value="staff" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Staff Management
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] p-4 md:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-semibold">Support Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage support tickets and staff members
+          </p>
+        </div>
+        <Badge variant="outline" className="self-start sm:self-center text-sm">
+          {role === 'admin' ? 'Admin' : 'Support Staff'}
+        </Badge>
+      </div>
+
+      <Tabs defaultValue="tickets" className="flex-1">
+        <TabsList className="mb-4 w-full grid grid-cols-3 gap-2">
+          <TabsTrigger value="tickets" className="flex items-center justify-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Tickets</span>
+            <span className="sm:hidden">Tix</span>
           </TabsTrigger>
-        )}
-      </TabsList>
+          <TabsTrigger value="messages" className="flex items-center justify-center gap-2">
+            <Mail className="h-4 w-4" />
+            <span className="hidden sm:inline">User Messages</span>
+            <span className="sm:hidden">Msgs</span>
+          </TabsTrigger>
+          {role === 'admin' && (
+            <TabsTrigger value="staff" className="flex items-center justify-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Staff Management</span>
+              <span className="sm:hidden">Staff</span>
+            </TabsTrigger>
+          )}
+        </TabsList>
 
-      <TabsContent value="tickets">
-        <TicketManagement />
-      </TabsContent>
+        <div className="bg-card rounded-lg border flex-1 overflow-hidden">
+          <TabsContent value="tickets" className="m-0 p-3 md:p-4 h-full overflow-auto">
+            <TicketManagement />
+          </TabsContent>
 
-      <TabsContent value="messages">
-        <UserMessages />
-      </TabsContent>
+          <TabsContent value="messages" className="m-0 p-3 md:p-4 h-full overflow-auto">
+            <UserMessages />
+          </TabsContent>
 
-      {isAdmin && (
-        <TabsContent value="staff">
-          <StaffManagement />
-        </TabsContent>
-      )}
-    </Tabs>
+          {role === 'admin' && (
+            <TabsContent value="staff" className="m-0 p-3 md:p-4 h-full overflow-auto">
+              <StaffManagement />
+            </TabsContent>
+          )}
+        </div>
+      </Tabs>
+    </div>
   );
 } 

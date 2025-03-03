@@ -41,6 +41,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -261,13 +262,13 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
 ${resumeContent}
 
 Please analyze this resume for ATS optimization and provide a detailed analysis in the following JSON format:
-{
-  "score": number between 0-100,
+        {
+          "score": number between 0-100,
   "matches": [top keyword matches found in the resume],
   "missing": [important keywords that are missing],
   "improvements": [specific suggestions for improvement],
-  "format_score": number between 0-100,
-  "format_feedback": [formatting suggestions]
+          "format_score": number between 0-100,
+          "format_feedback": [formatting suggestions]
 }`;
 
       const response = await fetch('/api/ai', {
@@ -383,16 +384,16 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="relative">
-        <div className="sticky top-[3.5rem] z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-14 max-w-screen-2xl items-center">
             {/* Mobile Navigation */}
+            <div className="flex md:hidden items-center gap-2 w-full">
             <Sheet>
               <SheetTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "md:hidden",
                     showPreview && "hidden" // Hide sections button when preview is shown
                   )}
                 >
@@ -435,6 +436,80 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                 </nav>
               </SheetContent>
             </Sheet>
+
+              {/* Mobile Actions - Moved to top */}
+              <div className="flex items-center ml-auto gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className={cn(
+                    "transition-colors",
+                    showPreview && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {showPreview ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleDownload}
+                  disabled={isGeneratingPDF}
+                >
+                  {isGeneratingPDF ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowStyleDialog(true)}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[40vh]">
+                    <SheetHeader className="text-left">
+                      <SheetTitle>More Actions</SheetTitle>
+                    </SheetHeader>
+                    <div className="grid gap-4 py-4">
+                      <Button
+                        variant="outline"
+                        onClick={handleAnalyze}
+                        disabled={isAnalyzing}
+                        className="justify-start"
+                      >
+                        {isAnalyzing ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <LineChart className="h-4 w-4 mr-2" />
+                        )}
+                        {isAnalyzing ? "Analyzing..." : "Analyze Resume"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowSaveDialog(true)}
+                        className="justify-start"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save and Exit
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-4 flex-1">
@@ -544,95 +619,8 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                 </DialogContent>
               </Dialog>
             </div>
-
-            {/* Mobile Actions */}
-            <div className="flex md:hidden items-center ml-auto gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowPreview(!showPreview)}
-                className={cn(
-                  "transition-colors",
-                  showPreview && "bg-primary text-primary-foreground"
-                )}
-              >
-                {showPreview ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleDownload}
-                disabled={isGeneratingPDF}
-              >
-                {isGeneratingPDF ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-              </Button>
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="h-[40vh]">
-                  <SheetHeader className="text-left">
-                    <SheetTitle>Actions</SheetTitle>
-                  </SheetHeader>
-                  <div className="grid gap-4 py-4">
-                    <Button
-                      variant="outline"
-                      onClick={handleDownload}
-                      disabled={isGeneratingPDF}
-                      className="justify-start"
-                    >
-                      {isGeneratingPDF ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {isGeneratingPDF ? "Generating..." : "Download Resume"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowStyleDialog(true)}
-                      className="justify-start"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Change Style
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleAnalyze}
-                      disabled={isAnalyzing}
-                      className="justify-start"
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <LineChart className="h-4 w-4 mr-2" />
-                      )}
-                      {isAnalyzing ? "Analyzing..." : "Analyze Resume"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowSaveDialog(true)}
-                      className="justify-start"
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Save and Exit
-                    </Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
           </div>
-        </div>
+            </div>
 
         {/* ATS Analysis Section */}
         {atsScore && (

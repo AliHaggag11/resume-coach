@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
 import { SubscriptionProvider } from "@/context/SubscriptionContext";
-import { ThemeProvider } from "@/components/theme-provider";
-import Navbar from "@/components/Navbar";
 import { Toaster } from "sonner";
+import ClientLayout from "./components/ClientLayout";
 
 export const metadata: Metadata = {
   title: "ResumeCoach - AI-Powered Resume Builder",
@@ -33,11 +33,8 @@ export default function RootLayout({
         >
           <AuthProvider>
             <SubscriptionProvider>
-              <Navbar />
               <Toaster position="top-center" />
-              <main className="min-h-screen">
-                {children}
-              </main>
+              <ClientLayout>{children}</ClientLayout>
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>
