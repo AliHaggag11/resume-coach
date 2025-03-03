@@ -638,127 +638,127 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
         {atsScore && (
           <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container py-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-6">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground">Overall ATS Score</h4>
-                    <div className="flex items-baseline gap-2">
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="col-span-1">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Overall ATS Score</h4>
+                    <div className="flex items-baseline gap-1">
                       <p className="text-4xl font-bold">{atsScore.score}</p>
-                      <span className="text-muted-foreground">/100</span>
+                      <span className="text-sm text-muted-foreground">/100</span>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground">Format Score</h4>
-                    <div className="flex items-baseline gap-2">
+                  <div className="col-span-1">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Format Score</h4>
+                    <div className="flex items-baseline gap-1">
                       <p className="text-4xl font-bold">{atsScore.format_score}</p>
-                      <span className="text-muted-foreground">/100</span>
+                      <span className="text-sm text-muted-foreground">/100</span>
                     </div>
                   </div>
+                  <div className="col-span-2 flex items-end justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAnalyze}
+                      disabled={isAnalyzing}
+                      className="gap-2 h-8"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span className="text-sm">Reanalyzing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LineChart className="h-3.5 w-3.5" />
+                          <span className="text-sm">Reanalyze</span>
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsAtsMinimized(!isAtsMinimized)}
+                      className="h-8 w-8 p-0"
+                    >
+                      {isAtsMinimized ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronUp className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAnalyze}
-                    disabled={isAnalyzing}
-                    className="gap-2"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Reanalyzing...
-                      </>
-                    ) : (
-                      <>
-                        <LineChart className="h-4 w-4" />
-                        Reanalyze
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsAtsMinimized(!isAtsMinimized)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {isAtsMinimized ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronUp className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
               
-              {!isAtsMinimized && (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Card className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <h4 className="text-sm font-medium">Top Keyword Matches</h4>
+                {!isAtsMinimized && (
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 mt-2">
+                    <Card className="p-3 sm:p-4 bg-card/50">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <h4 className="text-sm font-medium">Top Keyword Matches</h4>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {atsScore.matches?.map((keyword: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="bg-green-500/10 text-green-500 hover:bg-green-500/20 text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {atsScore.matches?.map((keyword: string, i: number) => (
-                          <Badge key={i} variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
-                            {keyword}
-                          </Badge>
-                        ))}
+                    </Card>
+                    
+                    <Card className="p-3 sm:p-4 bg-card/50">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          <h4 className="text-sm font-medium">Missing Keywords</h4>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {atsScore.missing?.map((keyword: string, i: number) => (
+                            <Badge key={i} variant="outline" className="border-yellow-500/20 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        <h4 className="text-sm font-medium">Missing Keywords</h4>
+                    </Card>
+                    
+                    <Card className="p-3 sm:p-4 bg-card/50">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-500" />
+                          <h4 className="text-sm font-medium">Suggested Improvements</h4>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {atsScore.improvements?.map((improvement: string, i: number) => (
+                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                              <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-blue-500" />
+                              {improvement}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {atsScore.missing?.map((keyword: string, i: number) => (
-                          <Badge key={i} variant="outline" className="border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100">
-                            {keyword}
-                          </Badge>
-                        ))}
+                    </Card>
+                    
+                    <Card className="p-3 sm:p-4 bg-card/50">
+                      <div className="space-y-2 sm:space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Layout className="h-4 w-4 text-purple-500" />
+                          <h4 className="text-sm font-medium">Format Feedback</h4>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {atsScore.format_feedback?.map((feedback: string, i: number) => (
+                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                              <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-purple-500" />
+                              {feedback}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-blue-500" />
-                        <h4 className="text-sm font-medium">Suggested Improvements</h4>
-                      </div>
-                      <ul className="space-y-2">
-                        {atsScore.improvements?.map((improvement: string, i: number) => (
-                          <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                            <ArrowRight className="h-4 w-4 mt-1 shrink-0 text-blue-500" />
-                            {improvement}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </Card>
-                  
-                  <Card className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Layout className="h-4 w-4 text-purple-500" />
-                        <h4 className="text-sm font-medium">Format Feedback</h4>
-                      </div>
-                      <ul className="space-y-2">
-                        {atsScore.format_feedback?.map((feedback: string, i: number) => (
-                          <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                            <ArrowRight className="h-4 w-4 mt-1 shrink-0 text-purple-500" />
-                            {feedback}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </Card>
-                </div>
-              )}
+                    </Card>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
