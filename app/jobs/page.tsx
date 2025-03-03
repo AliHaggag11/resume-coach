@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { Plus, Search, Calendar, BriefcaseIcon, Building2, MapPin, PenLine, MessageSquare, Clock, Trash2 } from 'lucide-react';
+import { Plus, Search, Calendar, BriefcaseIcon, Building2, MapPin, PenLine, MessageSquare, Clock, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useRouter } from 'next/navigation';
 
 interface JobApplication {
   id: string;
@@ -39,6 +40,7 @@ interface Interview {
   duration_minutes: number;
   location: string;
   interviewer_names: string[];
+  notes?: string;
 }
 
 interface JobListing {
@@ -116,11 +118,19 @@ const createCalendarEvent = (interview: Interview, application?: JobApplication)
   };
 
   // Create calendar event details
-  const title = `${interview.interview_type} Interview at ${application?.company_name || 'Company'}`;
-  const description = `Interview for ${application?.job_title || 'Position'}\n` +
-    `Type: ${interview.interview_type}\n` +
-    `Location: ${interview.location || 'Remote'}\n` +
-    `Interviewer(s): ${interview.interviewer_names?.join(', ') || 'TBD'}`;
+  const title = `${formatInterviewType(interview.interview_type)} Interview - ${application?.job_title || 'Position'} at ${application?.company_name || 'Company'}`;
+  const description = `Interview Details:
+Job Title: ${application?.job_title || 'Position'}
+Company: ${application?.company_name || 'Company'}
+Type: ${formatInterviewType(interview.interview_type)}
+Location: ${interview.location || 'Remote'}
+Interviewer(s): ${interview.interviewer_names?.join(', ') || 'TBD'}
+
+Notes:
+${interview.notes || 'No additional notes'}
+
+Job Description:
+${application?.job_description?.split('\n\njob_id:')[0] || 'No job description available'}`;
 
   // Create Google Calendar URL
   const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
@@ -190,6 +200,8 @@ export default function JobsPage() {
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'interview' | 'application', id: string } | null>(null);
+  const [isPracticing, setIsPracticing] = useState<Record<string, boolean>>({});
+  const router = useRouter();
 
   useEffect(() => {
     if (!user) return;
@@ -512,6 +524,102 @@ export default function JobsPage() {
     setItemToDelete(null);
   };
 
+  const handleAddToCalendar = (interview: Interview) => {
+    // Format date and time for calendar
+    const startTime = new Date(interview.scheduled_at);
+    const endTime = new Date(startTime.getTime() + (interview.duration_minutes * 60000));
+
+    // Create calendar event URL
+    const event = {
+      title: `${interview.interview_type.replace('_', ' ').charAt(0).toUpperCase() + interview.interview_type.slice(1)} Interview - ${selectedApplication?.job_title || 'Interview'}`,
+      description: `Interview Details:\n${interview.notes || ''}\n\nLocation: ${interview.location || 'Remote'}\n\nInterviewers: ${interview.interviewer_names?.join(', ') || 'TBD'}`,
+      location: interview.location || 'Remote',
+      start: startTime.toISOString(),
+      end: endTime.toISOString()
+    };
+
+    const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}&dates=${startTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}\/${endTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`;
+
+    window.open(googleCalendarUrl, '_blank');
+  };
+
+  const handlePractice = async (interview: Interview) => {
+    try {
+      // Clear any existing interview data first
+      setSelectedInterview(null);
+      setSelectedJobDetails(null);
+      setShowMockInterviewDialog(false);
+      
+      // Set loading state for this specific interview
+      setIsPracticing(prev => ({ ...prev, [interview.id]: true }));
+
+      // Get the application details for this interview
+      const application = applications.find(app => app.id === interview.job_application_id);
+
+      if (!application) {
+        throw new Error('Could not find application details for this interview');
+      }
+
+      // Generate AI preparation content
+      const prompt = {
+        type: 'interview_preparation',
+        format: 'structured',
+        context: {
+          jobTitle: application.job_title,
+          companyName: application.company_name,
+          jobDescription: application.job_description.split('\n\njob_id:')[0],
+          interviewType: interview.interview_type
+        },
+        instructions: `Analyze the job description and prepare interview content.
+        Return a JSON object with:
+        {
+          "questions": [5-8 likely interview questions],
+          "topics": [4-6 key technical topics to focus on],
+          "tips": [3-4 preparation tips]
+        }`
+      };
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, type: 'prepare' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate interview preparation');
+      }
+
+      const data = await response.json();
+      const preparation = data.result;
+
+      // Create a fresh interview object with the new preparation
+      const updatedInterview = {
+        ...interview,
+        ai_preparation: preparation
+      };
+
+      // Set the new interview data
+      setSelectedInterview(updatedInterview);
+      setSelectedJobDetails({
+        company_name: application.company_name,
+        job_title: application.job_title,
+        job_description: application.job_description.split('\n\njob_id:')[0]
+      });
+      
+      // Show the dialog after all data is ready
+      setShowMockInterviewDialog(true);
+    } catch (error) {
+      console.error('Error preparing interview:', error);
+      toast.error('Failed to prepare interview content');
+      // Reset all states on error
+      setSelectedInterview(null);
+      setSelectedJobDetails(null);
+      setShowMockInterviewDialog(false);
+    } finally {
+      setIsPracticing(prev => ({ ...prev, [interview.id]: false }));
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container py-6 space-y-6">
@@ -623,106 +731,122 @@ export default function JobsPage() {
                             size="sm"
                             className="flex-1 h-8 min-w-[100px]"
                             onClick={(e) => {
-                              e.preventDefault();
-                              const calendarUrls = createCalendarEvent(interview, application);
+                              const button = e.currentTarget;
+                              const rect = button.getBoundingClientRect();
+                              const dropdown = document.createElement('div');
+                              dropdown.className = 'absolute z-50 w-48 py-1 mt-1 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 border border-gray-200 dark:border-gray-700';
+                              dropdown.style.top = `${rect.bottom}px`;
+                              dropdown.style.left = `${rect.left}px`;
                               
-                              // Create dropdown menu for calendar options
-                              const menu = document.createElement('div');
-                              menu.className = 'absolute left-0 bottom-full mb-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50';
-                              menu.innerHTML = `
-                                <div class="py-1" role="menu">
-                                  <a href="${calendarUrls.googleUrl}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Add to Google Calendar</a>
-                                  <a href="${calendarUrls.outlookUrl}" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Add to Outlook</a>
-                                  <a href="${calendarUrls.iCalUrl}" download="interview.ics" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Download iCal</a>
-                                </div>
+                              const calendarUrls = createCalendarEvent(interview, applications.find(app => app.id === interview.job_application_id));
+                              
+                              dropdown.innerHTML = `
+                                <a href="${calendarUrls.googleUrl}" target="_blank" rel="noopener noreferrer" 
+                                   class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                  Google Calendar
+                                </a>
+                                <a href="${calendarUrls.outlookUrl}" target="_blank" rel="noopener noreferrer"
+                                   class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                  Outlook Calendar
+                                </a>
+                                <a href="${calendarUrls.iCalUrl}" download="interview.ics"
+                                   class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                  Download ICS File
+                                </a>
                               `;
                               
-                              // Remove existing menu if any
-                              const existingMenu = document.querySelector('.calendar-menu');
-                              if (existingMenu) existingMenu.remove();
+                              document.body.appendChild(dropdown);
                               
-                              // Add new menu
-                              menu.classList.add('calendar-menu');
-                              e.currentTarget.parentElement?.appendChild(menu);
-                              
-                              // Close menu when clicking outside
-                              const closeMenu = (e: MouseEvent) => {
-                                if (!menu.contains(e.target as Node)) {
-                                  menu.remove();
-                                  document.removeEventListener('click', closeMenu);
-                                }
+                              const closeDropdown = () => {
+                                document.body.removeChild(dropdown);
+                                document.removeEventListener('click', closeDropdown);
                               };
                               
                               setTimeout(() => {
-                                document.addEventListener('click', closeMenu);
+                                document.addEventListener('click', closeDropdown);
                               }, 0);
                             }}
                           >
-                            <Calendar className="h-4 w-4 mr-1.5" />
-                            Add to Calendar
+                            <div className="flex items-center justify-center gap-1.5">
+                              <Calendar className="h-4 w-4" />
+                              <span>Add to Calendar</span>
+                            </div>
                           </Button>
                         
                         <Button
                           variant="outline"
                           size="sm"
-                            className="flex-1 h-8 min-w-[100px]"
-                            onClick={async () => {
+                          className="flex-1 h-8 min-w-[100px]"
+                          disabled={isPracticing[interview.id]}
+                          onClick={async () => {
                             if (!application) return;
                               
-                              // First, generate AI preparation content
-                              try {
-                                const prompt = {
-                                  type: 'interview_preparation',
-                                  format: 'structured',
-                                  context: {
-                                    jobTitle: application.job_title,
-                                    companyName: application.company_name,
-                                    jobDescription: application.job_description.split('\n\njob_id:')[0],
-                                    interviewType: interview.interview_type
-                                  },
-                                  instructions: `Analyze the job description and prepare interview content.
-                                  Return a JSON object with:
-                                  {
-                                    "questions": [5-8 likely interview questions],
-                                    "topics": [4-6 key technical topics to focus on],
-                                    "tips": [3-4 preparation tips]
-                                  }`
-                                };
+                            // First, generate AI preparation content
+                            try {
+                              setIsPracticing(prev => ({ ...prev, [interview.id]: true }));
+                              const prompt = {
+                                type: 'interview_preparation',
+                                format: 'structured',
+                                context: {
+                                  jobTitle: application.job_title,
+                                  companyName: application.company_name,
+                                  jobDescription: application.job_description.split('\n\njob_id:')[0],
+                                  interviewType: interview.interview_type
+                                },
+                                instructions: `Analyze the job description and prepare interview content.
+                                Return a JSON object with:
+                                {
+                                  "questions": [5-8 likely interview questions],
+                                  "topics": [4-6 key technical topics to focus on],
+                                  "tips": [3-4 preparation tips]
+                                }`
+                              };
 
-                                const response = await fetch('/api/ai', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ prompt, type: 'prepare' }),
-                                });
+                              const response = await fetch('/api/ai', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt, type: 'prepare' }),
+                              });
 
-                                if (!response.ok) {
-                                  throw new Error('Failed to generate interview preparation');
-                                }
-
-                                const data = await response.json();
-                                const preparation = data.result;
-
-                                // Update the interview with AI preparation
-                                const updatedInterview = {
-                                  ...interview,
-                                  ai_preparation: preparation
-                                };
-
-                                setSelectedInterview(updatedInterview);
-                            setSelectedJobDetails({
-                              company_name: application.company_name,
-                              job_title: application.job_title,
-                                  job_description: application.job_description.split('\n\njob_id:')[0]
-                            });
-                            setShowMockInterviewDialog(true);
-                              } catch (error) {
-                                console.error('Error preparing interview:', error);
-                                toast.error('Failed to prepare interview content');
+                              if (!response.ok) {
+                                throw new Error('Failed to generate interview preparation');
                               }
+
+                              const data = await response.json();
+                              const preparation = data.result;
+
+                              // Update the interview with AI preparation
+                              const updatedInterview = {
+                                ...interview,
+                                ai_preparation: preparation
+                              };
+
+                              setSelectedInterview(updatedInterview);
+                              setSelectedJobDetails({
+                                company_name: application.company_name,
+                                job_title: application.job_title,
+                                job_description: application.job_description.split('\n\njob_id:')[0]
+                              });
+                              setShowMockInterviewDialog(true);
+                            } catch (error) {
+                              console.error('Error preparing interview:', error);
+                              toast.error('Failed to prepare interview content');
+                            } finally {
+                              setIsPracticing(prev => ({ ...prev, [interview.id]: false }));
+                            }
                           }}
                         >
-                            <MessageSquare className="h-4 w-4 mr-1.5" />
-                          Practice
+                          {isPracticing[interview.id] ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              <span>Preparing...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <MessageSquare className="h-4 w-4 mr-1.5" />
+                              Practice
+                            </>
+                          )}
                         </Button>
                           
                           <div className="flex gap-2 w-full">
@@ -1374,7 +1498,14 @@ export default function JobsPage() {
       {selectedInterview && selectedJobDetails && (
         <MockInterviewDialog
           open={showMockInterviewDialog}
-          onOpenChange={setShowMockInterviewDialog}
+          onOpenChange={(open) => {
+            setShowMockInterviewDialog(open);
+            if (!open) {
+              // Clear interview data when dialog closes
+              setSelectedInterview(null);
+              setSelectedJobDetails(null);
+            }
+          }}
           interview={selectedInterview}
           jobDetails={selectedJobDetails}
         />

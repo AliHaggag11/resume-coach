@@ -90,8 +90,17 @@ export default function InterviewDialog({
         notes: interview.notes || '',
         preparation_notes: interview.preparation_notes || '',
       });
-      // Set the AI preparation guide if it exists
-      setAiPreparation(interview.ai_preparation || null);
+      // Set the AI preparation guide if it exists, ensuring all arrays are defined
+      if (interview.ai_preparation) {
+        setAiPreparation({
+          questions: interview.ai_preparation.questions || [],
+          topics: interview.ai_preparation.topics || [],
+          tips: interview.ai_preparation.tips || [],
+          answers: interview.ai_preparation.answers || []
+        });
+      } else {
+        setAiPreparation(null);
+      }
     } else {
       setFormData({
         interview_type: 'phone_screening',
@@ -553,7 +562,7 @@ export default function InterviewDialog({
                   <div>
                     <h4 className="font-medium mb-2">Practice Questions</h4>
                     <ul className="list-disc pl-5 space-y-1">
-                      {aiPreparation.questions.map((question, i) => (
+                      {(aiPreparation?.questions || []).map((question, i) => (
                         <li key={i} className="text-sm text-muted-foreground">{question}</li>
                       ))}
                     </ul>
@@ -562,7 +571,7 @@ export default function InterviewDialog({
                   <div>
                     <h4 className="font-medium mb-2">Key Topics to Research</h4>
                     <div className="flex flex-wrap gap-2">
-                      {aiPreparation.topics.map((topic, i) => (
+                      {(aiPreparation?.topics || []).map((topic, i) => (
                         <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
                           {topic}
                         </span>
@@ -573,7 +582,7 @@ export default function InterviewDialog({
                   <div>
                     <h4 className="font-medium mb-2">Preparation Tips</h4>
                     <ul className="list-disc pl-5 space-y-1">
-                      {aiPreparation.tips.map((tip, i) => (
+                      {(aiPreparation?.tips || []).map((tip, i) => (
                         <li key={i} className="text-sm text-muted-foreground">{tip}</li>
                       ))}
                     </ul>
@@ -582,7 +591,7 @@ export default function InterviewDialog({
                   <div>
                     <h4 className="font-medium mb-2">Sample STAR Answers</h4>
                     <ul className="list-disc pl-5 space-y-1">
-                      {aiPreparation.answers.map((answer, i) => (
+                      {(aiPreparation?.answers || []).map((answer, i) => (
                         <li key={i} className="text-sm text-muted-foreground">{answer}</li>
                       ))}
                     </ul>
