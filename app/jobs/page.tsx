@@ -15,6 +15,7 @@ import MockInterviewDialog from './components/MockInterviewDialog';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface JobApplication {
   id: string;
@@ -187,6 +188,8 @@ export default function JobsPage() {
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
   const [loadingJobIds, setLoadingJobIds] = useState<Set<string>>(new Set());
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'interview' | 'application', id: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -498,6 +501,17 @@ export default function JobsPage() {
     });
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+
+    if (itemToDelete.type === 'interview') {
+      await deleteInterview(itemToDelete.id);
+    } else {
+      await deleteApplication(itemToDelete.id);
+    }
+    setItemToDelete(null);
+  };
+
   if (isLoading) {
     return (
       <div className="container py-6 space-y-6">
@@ -557,13 +571,36 @@ export default function JobsPage() {
 
                           {/* Interview Details */}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate">{application?.company_name}</h4>
-                            <Badge variant="outline" className="mt-1 mb-1.5">
-                              {interview.interview_type.replace('_', ' ')}
-                            </Badge>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {application?.job_title}
-                            </p>
+                            <div className="flex items-start gap-3">
+                              <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
+                                {application?.job_description?.includes('employer_logo:') ? (
+                                  <img 
+                                    src={application.job_description.split('employer_logo:')[1]?.split('\n')[0]}
+                                    alt={`${application.company_name} logo`}
+                                    className="h-10 w-10 object-contain"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.parentElement?.classList.add('fallback');
+                                      target.style.display = 'none';
+                                      const fallbackIcon = document.createElement('div');
+                                      fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
+                                      target.parentElement?.appendChild(fallbackIcon.firstChild!);
+                                    }}
+                                  />
+                                ) : (
+                                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="font-medium truncate">{application?.company_name}</h4>
+                                <Badge variant="outline" className="mt-1 mb-1.5">
+                                  {interview.interview_type.replace('_', ' ')}
+                                </Badge>
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {application?.job_title}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
@@ -663,9 +700,8 @@ export default function JobsPage() {
                               size="sm"
                               className="h-8 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
                               onClick={() => {
-                                if (confirm('Are you sure you want to delete this interview?')) {
-                                  deleteInterview(interview.id);
-                                }
+                                setItemToDelete({ type: 'interview', id: interview.id });
+                                setDeleteConfirmOpen(true);
                               }}
                             >
                               <Trash2 className="h-5 w-5" />
@@ -883,9 +919,8 @@ export default function JobsPage() {
                               size="sm"
                               className="hidden sm:inline-flex text-destructive hover:text-destructive"
                               onClick={() => {
-                                if (confirm('Are you sure you want to delete this application?')) {
-                                  deleteApplication(application.id);
-                                }
+                                setItemToDelete({ type: 'application', id: application.id });
+                                setDeleteConfirmOpen(true);
                               }}
                             >
                               Delete
@@ -895,9 +930,8 @@ export default function JobsPage() {
                               size="icon"
                               className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
                               onClick={() => {
-                                if (confirm('Are you sure you want to delete this application?')) {
-                                  deleteApplication(application.id);
-                                }
+                                setItemToDelete({ type: 'application', id: application.id });
+                                setDeleteConfirmOpen(true);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1299,6 +1333,27 @@ export default function JobsPage() {
           jobDetails={selectedJobDetails}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the {itemToDelete?.type}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 
