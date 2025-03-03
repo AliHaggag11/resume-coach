@@ -186,6 +186,7 @@ export default function JobsPage() {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
   const [loadingJobIds, setLoadingJobIds] = useState<Set<string>>(new Set());
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -483,6 +484,18 @@ export default function JobsPage() {
       // Still open the application link even if saving fails
       window.open(job.job_apply_link, '_blank');
     }
+  };
+
+  const toggleDescription = (id: string) => {
+    setExpandedDescriptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   if (isLoading) {
@@ -920,7 +933,6 @@ export default function JobsPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {savedJobs.map((savedJob) => {
-                  // Convert saved job back to job listing format
                   const job: JobListing = {
                     job_id: savedJob.job_id,
                     employer_name: savedJob.company_name,
@@ -934,6 +946,7 @@ export default function JobsPage() {
                       ? savedJob.job_description.split('employer_logo:')[1]?.split('\n')[0]
                       : undefined
                   };
+                  const isExpanded = expandedDescriptions.has(savedJob.id);
 
                   return (
                     <Card key={savedJob.id} className="w-full">
@@ -980,9 +993,18 @@ export default function JobsPage() {
                           <Badge variant="secondary" className="text-xs sm:text-sm">
                             {savedJob.remote_type}
                           </Badge>
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {savedJob.job_description.split('\n\njob_id:')[0]}
-                          </p>
+                          <div>
+                            <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-3'}`}>
+                              {savedJob.job_description.split('\n\njob_id:')[0]}
+                            </p>
+                            <Button
+                              variant="link"
+                              className="px-0 h-8 text-xs font-medium"
+                              onClick={() => toggleDescription(savedJob.id)}
+                            >
+                              {isExpanded ? 'Show Less' : 'Show More'}
+                            </Button>
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="default"
@@ -1088,121 +1110,136 @@ export default function JobsPage() {
                   </p>
                 </div>
               ) : (
-                jobListings.map((job) => (
-                  <Card key={job.job_id} className="w-full">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                          <CardTitle className="text-lg sm:text-xl truncate">{job.job_title}</CardTitle>
-                          <div className="flex items-center mt-2 text-muted-foreground">
-                            <Building2 className="h-4 w-4 mr-2 shrink-0" />
-                            <span className="truncate">{job.employer_name}</span>
+                jobListings.map((job) => {
+                  const isExpanded = expandedDescriptions.has(job.job_id);
+
+                  return (
+                    <Card key={job.job_id} className="w-full">
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="text-lg sm:text-xl truncate">{job.job_title}</CardTitle>
+                            <div className="flex items-center mt-2 text-muted-foreground">
+                              <Building2 className="h-4 w-4 mr-2 shrink-0" />
+                              <span className="truncate">{job.employer_name}</span>
+                            </div>
+                            <div className="flex items-center mt-1 text-muted-foreground">
+                              <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                              <span className="truncate">{job.job_location}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center mt-1 text-muted-foreground">
-                            <MapPin className="h-4 w-4 mr-2 shrink-0" />
-                            <span className="truncate">{job.job_location}</span>
-                          </div>
-                        </div>
-                        {job.employer_logo && (
                           <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
-                            <img 
-                              src={job.employer_logo}
-                              alt={`${job.employer_name} logo`}
-                              className="h-10 w-10 object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.parentElement?.classList.add('fallback');
-                                target.style.display = 'none';
-                                const fallbackIcon = document.createElement('div');
-                                fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
-                                target.parentElement?.appendChild(fallbackIcon.firstChild!);
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="secondary" className="text-xs sm:text-sm">
-                            {job.job_employment_type}
-                          </Badge>
-                          {job.job_salary && (
-                            <Badge variant="outline" className="text-xs sm:text-sm">
-                              {job.job_salary}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground line-clamp-3">
-                          {job.job_description}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="default"
-                            className="flex-1"
-                            disabled={loadingJobIds.has(job.job_id)}
-                            onClick={() => {
-                              applyToJob(job);
-                              removeSavedJob(job.job_id);
-                            }}
-                          >
-                            {loadingJobIds.has(job.job_id) ? (
-                              <div className="flex items-center justify-center gap-2">
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                Processing...
-                              </div>
+                            {job.employer_logo ? (
+                              <img 
+                                src={job.employer_logo}
+                                alt={`${job.employer_name} logo`}
+                                className="h-10 w-10 object-contain"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.parentElement?.classList.add('fallback');
+                                  target.style.display = 'none';
+                                  const fallbackIcon = document.createElement('div');
+                                  fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
+                                  target.parentElement?.appendChild(fallbackIcon.firstChild!);
+                                }}
+                              />
                             ) : (
-                              <>
-                                <BriefcaseIcon className="h-4 w-4 mr-2" />
-                                Apply Now
-                              </>
+                              <Building2 className="h-6 w-6 text-muted-foreground" />
                             )}
-                          </Button>
-                          {savedJobIds.has(job.job_id) ? (
-                            <Button
-                              variant="outline"
-                              className="flex-1"
-                              disabled={loadingJobIds.has(job.job_id)}
-                              onClick={() => removeSavedJob(job.job_id)}
-                            >
-                              {loadingJobIds.has(job.job_id) ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                  Removing...
-                                </div>
-                              ) : (
-                                <>
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Remove
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              className="flex-1"
-                              disabled={loadingJobIds.has(job.job_id)}
-                              onClick={() => saveJobToApplications(job)}
-                            >
-                              {loadingJobIds.has(job.job_id) ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                  Saving...
-                                </div>
-                              ) : (
-                                <>
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Save
-                                </>
-                              )}
-                            </Button>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge variant="secondary" className="text-xs sm:text-sm">
+                              {job.job_employment_type}
+                            </Badge>
+                            {job.job_salary && (
+                              <Badge variant="outline" className="text-xs sm:text-sm">
+                                {job.job_salary}
+                              </Badge>
+                            )}
+                          </div>
+                          <div>
+                            <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-3'}`}>
+                              {job.job_description}
+                            </p>
+                            <Button
+                              variant="link"
+                              className="px-0 h-8 text-xs font-medium"
+                              onClick={() => toggleDescription(job.job_id)}
+                            >
+                              {isExpanded ? 'Show Less' : 'Show More'}
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="default"
+                              className="flex-1"
+                              disabled={loadingJobIds.has(job.job_id)}
+                              onClick={() => {
+                                applyToJob(job);
+                                removeSavedJob(job.job_id);
+                              }}
+                            >
+                              {loadingJobIds.has(job.job_id) ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                  Processing...
+                                </div>
+                              ) : (
+                                <>
+                                  <BriefcaseIcon className="h-4 w-4 mr-2" />
+                                  Apply Now
+                                </>
+                              )}
+                            </Button>
+                            {savedJobIds.has(job.job_id) ? (
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                disabled={loadingJobIds.has(job.job_id)}
+                                onClick={() => removeSavedJob(job.job_id)}
+                              >
+                                {loadingJobIds.has(job.job_id) ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                    Removing...
+                                  </div>
+                                ) : (
+                                  <>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Remove
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                disabled={loadingJobIds.has(job.job_id)}
+                                onClick={() => saveJobToApplications(job)}
+                              >
+                                {loadingJobIds.has(job.job_id) ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                    Saving...
+                                  </div>
+                                ) : (
+                                  <>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Save
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
 
