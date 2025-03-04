@@ -29,6 +29,13 @@ import {
   MessageSquare,
   Plus,
   Search,
+  TrendingUp,
+  Award,
+  ChevronRight,
+  ListChecks,
+  BarChart3,
+  Grid3X3,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -355,9 +362,9 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   if (isLoading) {
-  return (
-      <div className="container py-6 space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    return (
+      <div className="container py-8 space-y-8">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
             <Skeleton key={i} className="h-32" />
           ))}
@@ -372,107 +379,164 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
-            <BriefcaseIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-2xl font-bold">{stats.applicationStats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.applicationStats.active} active applications
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-            <CardTitle className="text-sm font-medium">Interviews</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-2xl font-bold">{stats.applicationStats.interviews}</div>
-            <p className="text-xs text-muted-foreground">
-              {upcomingInterviews.length} upcoming
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-            <CardTitle className="text-sm font-medium">Resumes</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-2xl font-bold">{resumes.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {resumes.filter(r => r.status === 'completed').length} completed
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-            <CardTitle className="text-sm font-medium">Cover Letters</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="text-2xl font-bold">{coverLetters.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {coverLetters.filter(cl => cl.status === 'completed').length} completed
-            </p>
-          </CardContent>
-        </Card>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 md:space-y-10"
+    >
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl p-6 mb-6">
+        <div className="max-w-3xl">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome to Your Career Dashboard</h1>
+          <p className="text-muted-foreground mb-4">
+            Track your job applications, manage your resumes, and stay on top of interviews all in one place.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/jobs">
+              <Button className="gap-2">
+                <Search className="h-4 w-4" />
+                Find Jobs
+              </Button>
+            </Link>
+            <Link href="/builder/new">
+              <Button variant="outline" className="gap-2">
+                <PlusCircle className="h-4 w-4" />
+                New Resume
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-6">
+      {/* Stats Overview with improved styling */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4 flex items-center">
+          <BarChart3 className="mr-2 h-5 w-5 text-primary" />
+          Overview
+        </h2>
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+          <Card className="overflow-hidden border-t-4 border-t-blue-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-5 pt-5">
+              <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <BriefcaseIcon className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              <div className="text-2xl font-bold">{stats.applicationStats.total}</div>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <TrendingUp className="h-3 w-3 mr-1 text-blue-500" />
+                <span>{stats.applicationStats.active} active applications</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="overflow-hidden border-t-4 border-t-blue-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-5 pt-5">
+              <CardTitle className="text-sm font-medium">Interviews</CardTitle>
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              <div className="text-2xl font-bold">{stats.applicationStats.interviews}</div>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <Clock className="h-3 w-3 mr-1 text-blue-500" />
+                <span>{upcomingInterviews.length} upcoming</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="overflow-hidden border-t-4 border-t-blue-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-5 pt-5">
+              <CardTitle className="text-sm font-medium">Resumes</CardTitle>
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              <div className="text-2xl font-bold">{resumes.length}</div>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <Award className="h-3 w-3 mr-1 text-blue-500" />
+                <span>{resumes.filter(r => r.status === 'completed').length} completed</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="overflow-hidden border-t-4 border-t-blue-500 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-5 pt-5">
+              <CardTitle className="text-sm font-medium">Cover Letters</CardTitle>
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-5">
+              <div className="text-2xl font-bold">{coverLetters.length}</div>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <ListChecks className="h-3 w-3 mr-1 text-blue-500" />
+                <span>{coverLetters.filter(cl => cl.status === 'completed').length} completed</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
         {/* Upcoming Interviews */}
-        <Card className="lg:col-span-4">
-          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
+        <Card className="lg:col-span-4 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base md:text-lg font-bold">Upcoming Interviews</CardTitle>
+              <div className="flex items-center">
+                <Calendar className="h-5 w-5 text-primary mr-2" />
+                <CardTitle className="text-lg font-bold">Upcoming Interviews</CardTitle>
+              </div>
               <Link href="/jobs">
-                <Button variant="ghost" size="sm" className="gap-1 md:gap-2 h-8 px-2 md:px-3">
-                  <span className="hidden sm:inline">View All</span>
-                  <ArrowRight className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="gap-2 h-8 px-3">
+                  <span>View All</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+          <CardContent className="px-6 py-5">
             {upcomingInterviews.length === 0 ? (
-              <div className="text-center py-6 md:py-8 text-muted-foreground">
-                <Calendar className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 md:mb-4 text-muted-foreground/50" />
-                <p>No upcoming interviews scheduled</p>
+              <div className="text-center py-10 bg-muted/10 rounded-lg">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground font-medium mb-2">No upcoming interviews scheduled</p>
                 <Link href="/jobs">
-                  <Button variant="link" className="mt-2">
-                    Schedule an interview
+                  <Button variant="outline" size="sm" className="mt-2">
+                    <Plus className="h-4 w-4 mr-1" /> Schedule an interview
                   </Button>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3 md:space-y-4">
+              <div className="space-y-4">
                 {upcomingInterviews.map(interview => {
                   const application = applications.find(app => app.id === interview.job_application_id);
                   const interviewDate = new Date(interview.scheduled_at);
                   return (
-                    <div key={interview.id} className="flex items-start gap-3 md:gap-4 p-3 rounded-lg border bg-card">
-                      <div className="flex flex-col items-center justify-center w-12 md:w-16 h-12 md:h-16 rounded-lg bg-primary/5 text-primary">
-                        <span className="text-xs md:text-sm font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
-                        <span className="text-xl md:text-2xl font-bold">{interviewDate.getDate()}</span>
+                    <div key={interview.id} className="flex items-start gap-4 p-4 rounded-lg border bg-card/50 hover:bg-card/80 transition-colors">
+                      <div className="flex flex-col items-center justify-center w-16 h-16 rounded-lg bg-primary/10 text-primary">
+                        <span className="text-sm font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
+                        <span className="text-2xl font-bold">{interviewDate.getDate()}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{application?.company_name}</p>
+                        <p className="font-semibold truncate">{application?.company_name}</p>
                         <p className="text-sm text-muted-foreground truncate">{application?.job_title}</p>
-                        <div className="flex flex-wrap items-center gap-1 md:gap-2 mt-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                          <span>{formatDateTime(interview.scheduled_at)}</span>
+                        <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
+                          <div className="flex items-center">
+                            <Clock className="h-3.5 w-3.5 mr-1" />
+                            <span>{formatDateTime(interview.scheduled_at)}</span>
+                          </div>
                           <span className="mx-1">•</span>
-                          <MapPin className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                          <span>{interview.location || 'Remote'}</span>
+                          <div className="flex items-center">
+                            <MapPin className="h-3.5 w-3.5 mr-1" />
+                            <span>{interview.location || 'Remote'}</span>
+                          </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className="shrink-0 text-xs">
+                      <Badge variant="outline" className="shrink-0 text-xs px-2 py-1 bg-primary/5">
                         {interview.interview_type.replace('_', ' ')}
                       </Badge>
                     </div>
@@ -484,67 +548,106 @@ export default function DashboardPage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="lg:col-span-3">
-          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
-            <CardTitle className="text-base md:text-lg font-bold">Quick Actions</CardTitle>
+        <Card className="lg:col-span-3 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="px-6 pt-6 pb-4 border-b">
+            <div className="flex items-center">
+              <Grid3X3 className="h-5 w-5 text-primary mr-2" />
+              <CardTitle className="text-lg font-bold">Quick Actions</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="px-4 md:px-6 pb-4 md:pb-6 space-y-3 md:space-y-4">
-            <Link href="/jobs">
-              <Button className="w-full justify-start gap-2" variant="outline">
-                <Search className="h-4 w-4" />
-                Search Jobs
-              </Button>
-            </Link>
-            <Link href="/builder">
-              <Button className="w-full justify-start gap-2" variant="outline">
-                <FileText className="h-4 w-4" />
-                Create Resume
-              </Button>
-            </Link>
-            <Link href="/cover-letter">
-              <Button className="w-full justify-start gap-2" variant="outline">
-                <FileText className="h-4 w-4" />
-                Write Cover Letter
-              </Button>
-            </Link>
-            <Link href="/jobs">
-              <Button className="w-full justify-start gap-2" variant="outline">
-                <Plus className="h-4 w-4" />
-                Add Job Application
-              </Button>
-            </Link>
+          <CardContent className="px-6 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Link href="/jobs" className="md:col-span-2">
+                <Button className="w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
+                  <Search className="h-4 w-4" />
+                  Search Jobs
+                </Button>
+              </Link>
+              <Link href="/builder">
+                <Button className="w-full justify-start gap-2" variant="outline">
+                  <FileText className="h-4 w-4 text-emerald-600" />
+                  Create Resume
+                </Button>
+              </Link>
+              <Link href="/cover-letter">
+                <Button className="w-full justify-start gap-2" variant="outline">
+                  <FileText className="h-4 w-4 text-amber-600" />
+                  Write Cover Letter
+                </Button>
+              </Link>
+              <Link href="/jobs" className="md:col-span-2">
+                <Button className="w-full justify-start gap-2" variant="outline">
+                  <Plus className="h-4 w-4 text-blue-600" />
+                  Add Job Application
+                </Button>
+              </Link>
+            </div>
+
+            {/* Activity Summary */}
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="text-sm font-semibold mb-4 flex items-center">
+                <TrendingUp className="h-4 w-4 mr-1.5 text-primary" />
+                Application Progress
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="text-muted-foreground">Active Applications</span>
+                    <span className="font-medium">{Math.round((stats.applicationStats.active / stats.applicationStats.total) * 100 || 0)}%</span>
+                  </div>
+                  <Progress value={(stats.applicationStats.active / stats.applicationStats.total) * 100 || 0} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="text-muted-foreground">Interview Success</span>
+                    <span className="font-medium">{Math.round((stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0)}%</span>
+                  </div>
+                  <Progress value={(stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="text-muted-foreground">Offer Rate</span>
+                    <span className="font-medium">{Math.round((stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0)}%</span>
+                  </div>
+                  <Progress value={(stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0} className="h-2" />
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Recent Applications */}
-        <Card className="lg:col-span-4">
-          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
+        <Card className="lg:col-span-7 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base md:text-lg font-bold">Recent Applications</CardTitle>
+              <div className="flex items-center">
+                <BriefcaseIcon className="h-5 w-5 text-primary mr-2" />
+                <CardTitle className="text-lg font-bold">Recent Applications</CardTitle>
+              </div>
               <Link href="/jobs">
-                <Button variant="ghost" size="sm" className="gap-1 md:gap-2 h-8 px-2 md:px-3">
-                  <span className="hidden sm:inline">View All</span>
-                  <ArrowRight className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="gap-2 h-8 px-3">
+                  <span>View All</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+          <CardContent className="px-6 py-5">
             {recentApplications.length === 0 ? (
-              <div className="text-center py-6 md:py-8 text-muted-foreground">
-                <BriefcaseIcon className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 md:mb-4 text-muted-foreground/50" />
-                <p>No job applications yet</p>
+              <div className="text-center py-10 bg-muted/10 rounded-lg">
+                <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground font-medium mb-2">No job applications yet</p>
                 <Link href="/jobs">
-                  <Button variant="link" className="mt-2">
-                    Add your first application
+                  <Button variant="outline" size="sm" className="mt-2">
+                    <Plus className="h-4 w-4 mr-1" /> Add your first application
                   </Button>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3 md:space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {recentApplications.map(application => (
-                  <div key={application.id} className="flex items-start gap-3 md:gap-4 p-3 rounded-lg border bg-card">
-                    <div className="h-10 w-10 rounded-md border bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
+                  <div key={application.id} className="flex items-start gap-4 p-4 rounded-lg border bg-card/50 hover:bg-card/80 transition-colors">
+                    <div className="h-12 w-12 rounded-md border bg-white flex items-center justify-center shrink-0 overflow-hidden">
                       {application.employer_logo ? (
                         <img 
                           src={application.employer_logo} 
@@ -565,75 +668,51 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{application.company_name}</p>
+                      <p className="font-semibold truncate">{application.company_name}</p>
                       <p className="text-sm text-muted-foreground truncate">{application.job_title}</p>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
                         <span>Applied {formatDistanceToNow(new Date(application.created_at))} ago</span>
                       </div>
+                      <Badge
+                        variant="secondary"
+                        className={`${statusColors[application.status as keyof typeof statusColors]} mt-3 text-xs px-2.5 py-1`}
+                      >
+                        {application.status.replace('_', ' ')}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className={`${statusColors[application.status as keyof typeof statusColors]} text-xs whitespace-nowrap`}>
-                      {application.status.replace('_', ' ')}
-                    </Badge>
                   </div>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
-
-        {/* Activity Summary */}
-        <Card className="lg:col-span-3">
-          <CardHeader className="px-4 md:px-6 pt-4 md:pt-6 pb-2 md:pb-4">
-            <CardTitle className="text-base md:text-lg font-bold">Activity Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Application Progress</span>
-                  <span className="font-medium">{Math.round((stats.applicationStats.active / stats.applicationStats.total) * 100 || 0)}%</span>
-                </div>
-                <Progress value={(stats.applicationStats.active / stats.applicationStats.total) * 100 || 0} className="h-2" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Interview Success Rate</span>
-                  <span className="font-medium">{Math.round((stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0)}%</span>
-                </div>
-                <Progress value={(stats.applicationStats.interviews / stats.applicationStats.total) * 100 || 0} className="h-2" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Offer Rate</span>
-                  <span className="font-medium">{Math.round((stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0)}%</span>
-                </div>
-                <Progress value={(stats.applicationStats.offers / stats.applicationStats.total) * 100 || 0} className="h-2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Resume and Cover Letter Management */}
-      <div className="space-y-4 md:space-y-6">
+      <div className="space-y-6">
+        <div className="flex items-center">
+          <Users className="h-5 w-5 text-primary mr-2" />
+          <h2 className="text-xl font-semibold">Your Documents</h2>
+        </div>
+        
         <Tabs defaultValue="resumes" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 gap-1">
-            <TabsTrigger value="resumes">Resumes</TabsTrigger>
-            <TabsTrigger value="cover-letters">Cover Letters</TabsTrigger>
+          <TabsList className="w-full max-w-md grid grid-cols-2 gap-1 mb-6">
+            <TabsTrigger value="resumes" className="text-sm">Resumes</TabsTrigger>
+            <TabsTrigger value="cover-letters" className="text-sm">Cover Letters</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="resumes" className="mt-4 md:mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <TabsContent value="resumes">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {/* Add New Resume Card */}
               <Link href="/builder/new">
-                <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
-                  <CardContent className="p-4 md:p-6 text-center h-full flex flex-col items-center justify-center">
-                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 md:mb-4">
-                      <PlusCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                <Card className="bg-gradient-to-br from-gray-50 to-gray-100 hover:from-primary/5 hover:to-primary/10 transition-colors cursor-pointer h-full border-dashed border-2 border-muted flex flex-col items-center justify-center">
+                  <CardContent className="p-6 text-center h-full flex flex-col items-center justify-center">
+                    <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <PlusCircle className="h-7 w-7 text-primary" />
                     </div>
-                    <h3 className="font-medium">Create New Resume</h3>
-                    <p className="text-sm text-muted-foreground mt-1 md:mt-2">
+                    <h3 className="font-medium text-lg mb-1">Create New Resume</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
                       Start building your professional resume
                     </p>
                   </CardContent>
@@ -642,28 +721,28 @@ export default function DashboardPage() {
 
               {/* Existing Resumes */}
               {resumes.map(resume => (
-                <Card key={resume.id} className="group">
-                  <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
-                    <div className="flex items-start gap-3 md:gap-4">
-                      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                        <FileText className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                <Card key={resume.id} className="group overflow-hidden shadow-sm hover:shadow-md transition-all">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-primary/10 rounded-lg shrink-0">
+                        <FileText className="h-7 w-7 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium truncate">{resume.title}</h3>
-                        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3" />
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <Clock className="h-3.5 w-3.5" />
                           <span className="truncate">
-                            Last modified {formatDistanceToNow(new Date(resume.last_modified))} ago
+                            Modified {formatDistanceToNow(new Date(resume.last_modified))} ago
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-2 border-t">
                       <Link href={`/builder/${resume.id}`} className="flex-1">
                         <Button variant="outline" className="w-full group">
-                          Edit
-                          <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
+                          <Pencil className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
+                          Edit Resume
                         </Button>
                       </Link>
                       <Button
@@ -686,17 +765,17 @@ export default function DashboardPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="cover-letters" className="mt-4 md:mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <TabsContent value="cover-letters">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {/* Add New Cover Letter Card */}
               <Link href="/cover-letter/new">
-                <Card className="hover:bg-accent/5 transition-colors cursor-pointer h-full">
-                  <CardContent className="p-4 md:p-6 text-center h-full flex flex-col items-center justify-center">
-                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 md:mb-4">
-                      <PlusCircle className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                <Card className="bg-gradient-to-br from-gray-50 to-gray-100 hover:from-primary/5 hover:to-primary/10 transition-colors cursor-pointer h-full border-dashed border-2 border-muted flex flex-col items-center justify-center">
+                  <CardContent className="p-6 text-center h-full flex flex-col items-center justify-center">
+                    <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <PlusCircle className="h-7 w-7 text-primary" />
                     </div>
-                    <h3 className="font-medium">Create New Cover Letter</h3>
-                    <p className="text-sm text-muted-foreground mt-1 md:mt-2">
+                    <h3 className="font-medium text-lg mb-1">Create New Cover Letter</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
                       Write a compelling cover letter
                     </p>
                   </CardContent>
@@ -704,47 +783,38 @@ export default function DashboardPage() {
               </Link>
 
               {/* Existing Cover Letters */}
-              {coverLetters.map(letter => (
-                <Card key={letter.id} className="group">
-                  <CardContent className="p-4 md:p-6 space-y-3 md:space-y-4">
-                    <div className="flex items-start gap-3 md:gap-4">
-                      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                        <FileText className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              {coverLetters.map(coverLetter => (
+                <Card key={coverLetter.id} className="group overflow-hidden shadow-sm hover:shadow-md transition-all">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-amber-500/10 rounded-lg shrink-0">
+                        <FileText className="h-7 w-7 text-amber-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">
-                          {letter.job_title || 'Untitled Cover Letter'}
-                        </h3>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {letter.company_name || 'No company specified'}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3" />
-                          <span>
-                            Last modified {formatDistanceToNow(new Date(letter.updated_at))} ago
-                          </span>
+                        <h3 className="font-medium truncate">{coverLetter.company_name}</h3>
+                        <p className="text-sm text-muted-foreground truncate">{coverLetter.job_title}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>Last updated {formatDistanceToNow(new Date(coverLetter.updated_at))} ago</span>
                         </div>
                       </div>
-                      <Badge variant={letter.status === 'completed' ? 'default' : 'secondary'}>
-                        {letter.status === 'completed' ? 'Completed' : 'Draft'}
-                      </Badge>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Link href={`/cover-letter/${letter.id}`} className="flex-1">
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Link href={`/cover-letter/${coverLetter.id}`} className="flex-1">
                         <Button variant="outline" className="w-full group">
-                          Edit
-                          <Pencil className="h-4 w-4 ml-2 transition-transform group-hover:scale-110" />
+                          <Pencil className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
+                          Edit Letter
                         </Button>
                       </Link>
                       <Button
                         variant="outline"
                         size="icon"
                         className="shrink-0"
-                        onClick={() => handleDeleteCoverLetter(letter.id)}
-                        disabled={isDeletingId === letter.id}
+                        onClick={() => handleDeleteCoverLetter(coverLetter.id)}
+                        disabled={isDeletingId === coverLetter.id}
                       >
-                        {isDeletingId === letter.id ? (
+                        {isDeletingId === coverLetter.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -758,6 +828,6 @@ export default function DashboardPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </motion.div>
   );
 } 
