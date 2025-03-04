@@ -618,24 +618,24 @@ export default function DashboardPage() {
 
         {/* Recent Applications */}
         <Card className="lg:col-span-7 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="px-6 pt-6 pb-4 border-b">
+          <CardHeader className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <BriefcaseIcon className="h-5 w-5 text-primary mr-2" />
-                <CardTitle className="text-lg font-bold">Recent Applications</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-bold">Recent Applications</CardTitle>
               </div>
               <Link href="/jobs">
-                <Button variant="ghost" size="sm" className="gap-2 h-8 px-3">
-                  <span>View All</span>
-                  <ChevronRight className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 h-8 px-2 sm:px-3">
+                  <span className="text-xs sm:text-sm">View All</span>
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent className="px-6 py-5">
+          <CardContent className="px-4 sm:px-6 py-4 sm:py-5">
             {recentApplications.length === 0 ? (
-              <div className="text-center py-10 bg-muted/10 rounded-lg">
-                <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <div className="text-center py-8 sm:py-10 bg-muted/10 rounded-lg">
+                <BriefcaseIcon className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-muted-foreground/50" />
                 <p className="text-muted-foreground font-medium mb-2">No job applications yet</p>
                 <Link href="/jobs">
                   <Button variant="outline" size="sm" className="mt-2">
@@ -644,42 +644,52 @@ export default function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                 {recentApplications.map(application => (
-                  <div key={application.id} className="flex items-start gap-4 p-4 rounded-lg border bg-card/50 hover:bg-card/80 transition-colors">
-                    <div className="h-12 w-12 rounded-md border bg-white flex items-center justify-center shrink-0 overflow-hidden">
-                      {application.employer_logo ? (
-                        <img 
-                          src={application.employer_logo} 
-                          alt={`${application.company_name} logo`}
-                          className="h-full w-full object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '';
-                            target.onerror = null;
-                            target.parentElement?.classList.add('bg-muted/30');
-                            const icon = document.createElement('div');
-                            icon.innerHTML = '<svg class="h-5 w-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="M3 9V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"/></svg>';
-                            target.parentElement?.appendChild(icon.firstChild as Node);
-                          }}
-                        />
-                      ) : (
-                        <Building2 className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{application.company_name}</p>
-                      <p className="text-sm text-muted-foreground truncate">{application.job_title}</p>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>Applied {formatDistanceToNow(new Date(application.created_at))} ago</span>
+                  <div key={application.id} className="flex flex-col sm:flex-row items-start gap-3 p-3 sm:p-4 rounded-lg border border-muted/60 bg-card hover:bg-accent/5 transition-colors">
+                    <div className="flex items-center sm:items-start w-full sm:w-auto">
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-md border border-muted bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
+                        {application.employer_logo ? (
+                          <img 
+                            src={application.employer_logo} 
+                            alt={`${application.company_name} logo`}
+                            className="h-full w-full object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '';
+                              target.onerror = null;
+                              target.parentElement?.classList.add('bg-muted/30');
+                              const icon = document.createElement('div');
+                              icon.innerHTML = '<svg class="h-5 w-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="M3 9V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"/></svg>';
+                              target.parentElement?.appendChild(icon.firstChild as Node);
+                            }}
+                          />
+                        ) : (
+                          <Building2 className="h-5 w-5 text-muted-foreground" />
+                        )}
                       </div>
-                      <Badge
-                        variant="secondary"
-                        className={`${statusColors[application.status as keyof typeof statusColors]} mt-3 text-xs px-2.5 py-1`}
-                      >
-                        {application.status.replace('_', ' ')}
-                      </Badge>
+                      <div className="ml-3 sm:ml-0 flex-1 min-w-0 sm:hidden">
+                        <p className="font-semibold truncate text-sm">{application.company_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{application.job_title}</p>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="hidden sm:block">
+                        <p className="font-semibold truncate">{application.company_name}</p>
+                        <p className="text-sm text-muted-foreground truncate">{application.job_title}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-2 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">Applied {formatDistanceToNow(new Date(application.created_at))} ago</span>
+                      </div>
+                      <div className="mt-2 sm:mt-3">
+                        <Badge
+                          variant="secondary"
+                          className={`${statusColors[application.status as keyof typeof statusColors]} text-xs px-2 py-0.5 sm:px-2.5 sm:py-1 truncate max-w-[150px]`}
+                        >
+                          {application.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -706,7 +716,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {/* Add New Resume Card */}
               <Link href="/builder/new">
-                <Card className="bg-gradient-to-br from-gray-50 to-gray-100 hover:from-primary/5 hover:to-primary/10 transition-colors cursor-pointer h-full border-dashed border-2 border-muted flex flex-col items-center justify-center">
+                <Card className="bg-gradient-to-br from-background/80 to-muted/50 hover:from-primary/5 hover:to-primary/10 transition-colors cursor-pointer h-full border-dashed border-2 border-muted flex flex-col items-center justify-center">
                   <CardContent className="p-6 text-center h-full flex flex-col items-center justify-center">
                     <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                       <PlusCircle className="h-7 w-7 text-primary" />
@@ -721,7 +731,7 @@ export default function DashboardPage() {
 
               {/* Existing Resumes */}
               {resumes.map(resume => (
-                <Card key={resume.id} className="group overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <Card key={resume.id} className="group overflow-hidden shadow-sm hover:shadow-md transition-all border-muted/60">
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-primary/10 rounded-lg shrink-0">
@@ -738,7 +748,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t">
+                    <div className="flex items-center gap-2 pt-2 border-t border-muted/60">
                       <Link href={`/builder/${resume.id}`} className="flex-1">
                         <Button variant="outline" className="w-full group">
                           <Pencil className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
@@ -769,7 +779,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {/* Add New Cover Letter Card */}
               <Link href="/cover-letter/new">
-                <Card className="bg-gradient-to-br from-gray-50 to-gray-100 hover:from-primary/5 hover:to-primary/10 transition-colors cursor-pointer h-full border-dashed border-2 border-muted flex flex-col items-center justify-center">
+                <Card className="bg-gradient-to-br from-background/80 to-muted/50 hover:from-primary/5 hover:to-primary/10 transition-colors cursor-pointer h-full border-dashed border-2 border-muted flex flex-col items-center justify-center">
                   <CardContent className="p-6 text-center h-full flex flex-col items-center justify-center">
                     <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                       <PlusCircle className="h-7 w-7 text-primary" />
@@ -784,11 +794,11 @@ export default function DashboardPage() {
 
               {/* Existing Cover Letters */}
               {coverLetters.map(coverLetter => (
-                <Card key={coverLetter.id} className="group overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <Card key={coverLetter.id} className="group overflow-hidden shadow-sm hover:shadow-md transition-all border-muted/60">
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-start gap-4">
-                      <div className="p-3 bg-amber-500/10 rounded-lg shrink-0">
-                        <FileText className="h-7 w-7 text-amber-600" />
+                      <div className="p-3 bg-amber-500/10 dark:bg-amber-500/20 rounded-lg shrink-0">
+                        <FileText className="h-7 w-7 text-amber-600 dark:text-amber-400" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium truncate">{coverLetter.company_name}</h3>
@@ -800,7 +810,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t">
+                    <div className="flex items-center gap-2 pt-2 border-t border-muted/60">
                       <Link href={`/cover-letter/${coverLetter.id}`} className="flex-1">
                         <Button variant="outline" className="w-full group">
                           <Pencil className="h-4 w-4 mr-2 transition-transform group-hover:scale-110" />
