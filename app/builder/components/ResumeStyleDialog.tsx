@@ -50,7 +50,7 @@ interface ResumeStyleDialogProps {
 
 // Define the ResumeStyle type to exactly match the context
 interface ResumeStyle {
-  theme: 'modern' | 'classic' | 'minimal' | 'professional';
+  theme: 'modern' | 'classic' | 'minimal' | 'professional' | 'creative' | 'technical' | 'executive';
   font: 'inter' | 'roboto' | 'merriweather' | 'playfair';
   fontSize: 'small' | 'medium' | 'large';
   spacing: 'compact' | 'comfortable' | 'spacious';
@@ -82,6 +82,9 @@ export default function ResumeStyleDialog({
     { value: "classic" as const, label: "Classic", description: "Traditional format with a timeless professional appeal" },
     { value: "minimal" as const, label: "Minimal", description: "Simple and streamlined layout with minimal styling" },
     { value: "professional" as const, label: "Professional", description: "Polished appearance ideal for corporate environments" },
+    { value: "creative" as const, label: "Creative", description: "Vibrant and distinctive design for creative professionals" },
+    { value: "technical" as const, label: "Technical", description: "Structured layout highlighting technical skills and experience" },
+    { value: "executive" as const, label: "Executive", description: "Sophisticated design for leadership and executive roles" },
   ];
 
   const fonts = [
@@ -109,7 +112,10 @@ export default function ResumeStyleDialog({
   ];
 
   const applyChanges = () => {
-    // Only pass properties that are compatible with the expected type
+    // Debug - log the changes being applied
+    console.log("Applying style changes:", tempStyle);
+    
+    // Apply all changes immediately
     updateStyle({
       theme: tempStyle.theme,
       font: tempStyle.font,
@@ -118,9 +124,12 @@ export default function ResumeStyleDialog({
       accentColor: tempStyle.accentColor
     });
     
+    // Show success message
     toast.success("Style settings updated", {
       description: "Your resume styling has been updated"
     });
+    
+    // Close the dialog
     onOpenChange(false);
   };
 

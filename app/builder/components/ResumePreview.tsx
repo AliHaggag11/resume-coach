@@ -80,6 +80,7 @@ interface ResumeStyle {
   fontSize: string;
   spacing: string;
   accentColor: string;
+  theme: string;
 }
 
 interface ResumePreviewProps {
@@ -103,6 +104,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   // Use provided data/style or fall back to context
   const resumeData = data || contextData;
   const style = styleOverride || contextStyle;
+
+  // Debug log when style changes
+  useEffect(() => {
+    console.log('ResumePreview style updated:', style);
+    console.log('ResumePreview template:', template);
+  }, [style, template]);
 
   const A4_DIMENSIONS = {
     width: 794, // ~210mm in px at 96dpi
@@ -145,38 +152,401 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     };
   }, [resumeData, style, forExport]);
 
-  const containerStyle = {
-    width: `${A4_DIMENSIONS.width}px`,
-    minHeight: forExport ? 'auto' : `${A4_DIMENSIONS.height}px`,
-    padding: `${A4_DIMENSIONS.padding}px`,
-    transform: forExport ? 'none' : `scale(${isMobile ? 0.35 : scale})`,
-    transformOrigin: 'top left',
-    overflow: 'visible',
-    ...(forExport && {
-      backgroundColor: 'white',
-      position: 'relative' as const,
+  const containerStyle: React.CSSProperties = {
+    width: `${A4_DIMENSIONS.width * scale}px`,
+    minHeight: `${A4_DIMENSIONS.height * scale}px`,
+    padding: `${A4_DIMENSIONS.padding * scale}px`,
       margin: '0 auto',
-    })
+    transform: `scale(${scale})`,
+    transformOrigin: 'top center',
+    boxShadow: forExport ? 'none' : '0 4px 24px rgba(0, 0, 0, 0.1)',
+    color: '#000', // Explicit black text color regardless of theme mode
   };
 
-  const wrapperStyle = {
-    width: `${A4_DIMENSIONS.width * (isMobile ? 0.35 : scale)}px`,
-    height: forExport ? 'auto' : `${A4_DIMENSIONS.height * (isMobile ? 0.35 : scale)}px`,
-    overflow: forExport ? 'visible' : 'auto',
+  const wrapperStyle: React.CSSProperties = {
+    paddingTop: '1.5rem',
+    paddingBottom: '1.5rem',
+    display: 'flex',
+    justifyContent: 'center',
+    overflow: 'auto',
+  };
+
+  // Function to render different header layouts based on theme
+  const renderHeader = () => {
+    // Modern theme (default) header
+    if (style.theme === 'modern' || !style.theme) {
+      return (
+        <section className={cn(
+           "text-center pdf-section",
+           forExport ? "space-y-1.5 mb-3" : "space-y-3 mb-8"
+         )} style={{ 
+           pageBreakInside: 'avoid', 
+           breakInside: 'avoid',
+           display: 'block',
+           position: 'relative',
+         }}>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">
+            {resumeData.personalInfo.fullName}
+          </h1>
+          <h2 className="text-lg font-medium tracking-wide">
+            {resumeData.personalInfo.title}
+          </h2>
+          <div className="flex flex-wrap justify-center gap-2 text-sm">
+            {resumeData.personalInfo.email && (
+              <span className="whitespace-nowrap">{resumeData.personalInfo.email}</span>
+            )}
+            {resumeData.personalInfo.phone && (
+              <span className="whitespace-nowrap">{resumeData.personalInfo.phone}</span>
+            )}
+            {resumeData.personalInfo.location && (
+              <span className="whitespace-nowrap">{resumeData.personalInfo.location}</span>
+            )}
+          </div>
+          <div className="flex flex-wrap justify-center gap-3 text-sm">
+            {resumeData.personalInfo.linkedin && (
+              <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="resume-link hover:underline">
+                LinkedIn
+              </a>
+            )}
+            {resumeData.personalInfo.github && (
+              <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className="resume-link hover:underline">
+                GitHub
+              </a>
+            )}
+            {resumeData.personalInfo.website && (
+              <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className="resume-link hover:underline">
+                Portfolio
+              </a>
+            )}
+          </div>
+        </section>
+      );
+    }
+    
+    // Classic theme header
+    if (style.theme === 'classic') {
+      return (
+        <section className={cn(
+           "pdf-section",
+           forExport ? "space-y-1.5 mb-3" : "space-y-2 mb-6"
+         )} style={{ 
+           pageBreakInside: 'avoid', 
+           breakInside: 'avoid',
+           display: 'block',
+           position: 'relative',
+         }}>
+          <h1 className="text-2xl font-bold tracking-wide text-center border-b-2 pb-2 mb-2" style={{ borderColor: style.accentColor }}>
+            {resumeData.personalInfo.fullName}
+          </h1>
+          <div className="text-lg font-medium text-center mb-2">
+            {resumeData.personalInfo.title}
+          </div>
+          <div className="flex flex-wrap justify-between gap-3 text-sm">
+            <div className="flex gap-4">
+              {resumeData.personalInfo.email && (
+                <span>{resumeData.personalInfo.email}</span>
+              )}
+              {resumeData.personalInfo.phone && (
+                <span>{resumeData.personalInfo.phone}</span>
+              )}
+            </div>
+            <div>
+              {resumeData.personalInfo.location && (
+                <span>{resumeData.personalInfo.location}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-center gap-4 text-sm border-t pt-2" style={{ borderColor: style.accentColor }}>
+            {resumeData.personalInfo.linkedin && (
+              <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="resume-link">
+                LinkedIn
+              </a>
+            )}
+            {resumeData.personalInfo.github && (
+              <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className="resume-link">
+                GitHub
+              </a>
+            )}
+            {resumeData.personalInfo.website && (
+              <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className="resume-link">
+                Portfolio
+              </a>
+            )}
+          </div>
+        </section>
+      );
+    }
+    
+    // Minimal theme header
+    if (style.theme === 'minimal') {
+      return (
+        <section className={cn(
+           "pdf-section grid grid-cols-2",
+           forExport ? "mb-4" : "mb-8"
+         )} style={{ 
+           pageBreakInside: 'avoid', 
+           breakInside: 'avoid',
+           display: 'grid',
+           position: 'relative',
+         }}>
+          <div className="header-left">
+            <h1 className="text-2xl font-normal tracking-wide">
+              {resumeData.personalInfo.fullName}
+            </h1>
+            <div className="mt-1 text-sm text-gray-600">
+              {resumeData.personalInfo.title}
+            </div>
+          </div>
+          <div className="header-right">
+            <div className="flex flex-col gap-1 text-right text-sm">
+              {resumeData.personalInfo.email && (
+                <span>{resumeData.personalInfo.email}</span>
+              )}
+              {resumeData.personalInfo.phone && (
+                <span>{resumeData.personalInfo.phone}</span>
+              )}
+              {resumeData.personalInfo.location && (
+                <span>{resumeData.personalInfo.location}</span>
+              )}
+              <div className="flex justify-end gap-3 mt-1">
+                {resumeData.personalInfo.linkedin && (
+                  <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="resume-link">
+                    LinkedIn
+                  </a>
+                )}
+                {resumeData.personalInfo.github && (
+                  <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className="resume-link">
+                    GitHub
+                  </a>
+                )}
+                {resumeData.personalInfo.website && (
+                  <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className="resume-link">
+                    Portfolio
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+    
+    // Professional theme header
+    if (style.theme === 'professional') {
+      return (
+        <section className={cn(
+           "pdf-section",
+           forExport ? "mb-3" : "mb-6"
+         )} style={{ 
+           pageBreakInside: 'avoid', 
+           breakInside: 'avoid',
+           display: 'block',
+           position: 'relative',
+           background: `linear-gradient(to right, ${style.accentColor}20, transparent)`,
+           padding: '15px',
+           borderLeft: `4px solid ${style.accentColor}`
+         }}>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">
+            {resumeData.personalInfo.fullName}
+          </h1>
+          <div className="header-title text-lg mt-1">
+            {resumeData.personalInfo.title}
+          </div>
+          <div className="header-contacts flex flex-wrap gap-3 mt-2 text-sm">
+            {resumeData.personalInfo.email && (
+              <span>{resumeData.personalInfo.email}</span>
+            )}
+            {resumeData.personalInfo.phone && (
+              <span>{resumeData.personalInfo.phone}</span>
+            )}
+            {resumeData.personalInfo.location && (
+              <span>{resumeData.personalInfo.location}</span>
+            )}
+          </div>
+          <div className="flex gap-4 mt-2 text-sm">
+            {resumeData.personalInfo.linkedin && (
+              <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="resume-link">
+                LinkedIn
+              </a>
+            )}
+            {resumeData.personalInfo.github && (
+              <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className="resume-link">
+                GitHub
+              </a>
+            )}
+            {resumeData.personalInfo.website && (
+              <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className="resume-link">
+                Portfolio
+              </a>
+            )}
+          </div>
+        </section>
+      );
+    }
+    
+    // Creative theme header
+    if (style.theme === 'creative') {
+      return (
+        <section className="pdf-section resume-header" style={{ 
+          pageBreakInside: 'avoid', 
+          breakInside: 'avoid',
+        }}>
+          <h1>
+            {resumeData.personalInfo.fullName}
+          </h1>
+          <h2 className="mt-2 mb-4">
+            {resumeData.personalInfo.title}
+          </h2>
+          <div className="flex flex-wrap justify-center gap-4 text-sm mt-4">
+            {resumeData.personalInfo.email && (
+              <span className="text-white opacity-90">{resumeData.personalInfo.email}</span>
+            )}
+            {resumeData.personalInfo.phone && (
+              <span className="text-white opacity-90">{resumeData.personalInfo.phone}</span>
+            )}
+            {resumeData.personalInfo.location && (
+              <span className="text-white opacity-90">{resumeData.personalInfo.location}</span>
+            )}
+          </div>
+          <div className="flex justify-center gap-4 mt-3">
+            {resumeData.personalInfo.linkedin && (
+              <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="resume-link bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm hover:bg-opacity-30 transition-all">
+                LinkedIn
+              </a>
+            )}
+            {resumeData.personalInfo.github && (
+              <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className="resume-link bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm hover:bg-opacity-30 transition-all">
+                GitHub
+              </a>
+            )}
+            {resumeData.personalInfo.website && (
+              <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className="resume-link bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm hover:bg-opacity-30 transition-all">
+                Portfolio
+              </a>
+            )}
+          </div>
+        </section>
+      );
+    }
+    
+    // Technical theme header
+    if (style.theme === 'technical') {
+      return (
+        <section className="pdf-section resume-header" style={{ 
+          pageBreakInside: 'avoid', 
+          breakInside: 'avoid',
+        }}>
+          <div className="header-left">
+            <h1>
+              {resumeData.personalInfo.fullName}
+            </h1>
+            <div className="mt-1">
+              {resumeData.personalInfo.title}
+            </div>
+          </div>
+          <div className="header-right">
+            {resumeData.personalInfo.email && (
+              <span>{resumeData.personalInfo.email}</span>
+            )}
+            {resumeData.personalInfo.phone && (
+              <span>{resumeData.personalInfo.phone}</span>
+            )}
+            {resumeData.personalInfo.location && (
+              <span>{resumeData.personalInfo.location}</span>
+            )}
+            <div className="flex justify-end gap-3">
+              {resumeData.personalInfo.linkedin && (
+                <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="resume-link">
+                  LinkedIn
+                </a>
+              )}
+              {resumeData.personalInfo.github && (
+                <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className="resume-link">
+                  GitHub
+                </a>
+              )}
+              {resumeData.personalInfo.website && (
+                <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className="resume-link">
+                  Portfolio
+                </a>
+              )}
+            </div>
+          </div>
+        </section>
+      );
+    }
+    
+    // Executive theme header
+    if (style.theme === 'executive') {
+      return (
+        <section className="pdf-section resume-header" style={{ 
+          pageBreakInside: 'avoid', 
+          breakInside: 'avoid',
+        }}>
+          <h1>
+            {resumeData.personalInfo.fullName}
+          </h1>
+          <div className="text-lg my-2">
+            {resumeData.personalInfo.title}
+          </div>
+          <div className="flex justify-center gap-6 text-sm">
+            {resumeData.personalInfo.email && (
+              <span>{resumeData.personalInfo.email}</span>
+            )}
+            {resumeData.personalInfo.phone && (
+              <span>{resumeData.personalInfo.phone}</span>
+            )}
+            {resumeData.personalInfo.location && (
+              <span>{resumeData.personalInfo.location}</span>
+            )}
+          </div>
+          <div className="flex justify-center gap-4 mt-3 text-sm">
+            {resumeData.personalInfo.linkedin && (
+              <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="resume-link">
+                LinkedIn
+              </a>
+            )}
+            {resumeData.personalInfo.github && (
+              <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" className="resume-link">
+                GitHub
+              </a>
+            )}
+            {resumeData.personalInfo.website && (
+              <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" className="resume-link">
+                Portfolio
+              </a>
+            )}
+          </div>
+        </section>
+      );
+    }
+    
+    // Default fallback (should never reach here)
+    return null;
   };
 
   const renderContent = () => {
     return (
       <div className={cn(
         forExport ? "space-y-3 print:block" : "space-y-6",
-        style.font,
         {
+          'font-inter': style.font === 'inter',
+          'font-roboto': style.font === 'roboto',
+          'font-merriweather': style.font === 'merriweather',
+          'font-playfair': style.font === 'playfair',
           'text-sm': style.fontSize === 'small',
           'text-base': style.fontSize === 'medium',
           'text-lg': style.fontSize === 'large',
           'space-y-2': style.spacing === 'compact' || forExport,
           'space-y-4': style.spacing === 'comfortable' && !forExport,
           'space-y-6': style.spacing === 'spacious' && !forExport,
+          'resume-theme-modern': style.theme === 'modern',
+          'resume-theme-classic': style.theme === 'classic',
+          'resume-theme-minimal': style.theme === 'minimal',
+          'resume-theme-professional': style.theme === 'professional',
+          'resume-theme-creative': style.theme === 'creative',
+          'resume-theme-technical': style.theme === 'technical',
+          'resume-theme-executive': style.theme === 'executive',
         }
       )} style={{ 
         letterSpacing: '0.01em', 
@@ -184,6 +554,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         display: 'flex',
         flexDirection: 'column',
         flexGrow: 1,
+        color: style.theme === 'minimal' ? '#333' : 'inherit',
         ...(forExport && {
           printColorAdjust: 'exact',
           WebkitPrintColorAdjust: 'exact',
@@ -191,61 +562,23 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           pageBreakInside: 'auto',
         })
       }}>
-        {/* Header */}
-        <section className={cn(
-          "text-center pdf-section",
-          forExport ? "space-y-1.5 mb-3" : "space-y-3 mb-8"
-        )} style={{ 
-          pageBreakInside: 'avoid', 
-          breakInside: 'avoid',
-          display: 'block',
-          position: 'relative',
-        }}>
-          <h1 className="text-2xl font-bold tracking-wide" style={{ color: style.accentColor }}>
-            {resumeData.personalInfo.fullName}
-          </h1>
-          <p className="text-lg tracking-wide">
-            {resumeData.personalInfo.title}
-          </p>
-          <div className="flex items-center justify-center gap-6 text-sm tracking-wide">
-            <span>{resumeData.personalInfo.email}</span>
-            <span>{resumeData.personalInfo.phone}</span>
-            <span>{resumeData.personalInfo.location}</span>
-          </div>
-          <div className="flex items-center justify-center gap-6 text-sm tracking-wide">
-            {resumeData.personalInfo.linkedin && (
-              <a href={resumeData.personalInfo.linkedin} target="_blank" rel="noopener noreferrer" 
-                className="hover:underline" style={{ color: style.accentColor }}>
-                LinkedIn
-              </a>
-            )}
-            {resumeData.personalInfo.github && (
-              <a href={resumeData.personalInfo.github} target="_blank" rel="noopener noreferrer" 
-                className="hover:underline" style={{ color: style.accentColor }}>
-                GitHub
-              </a>
-            )}
-            {resumeData.personalInfo.website && (
-              <a href={resumeData.personalInfo.website} target="_blank" rel="noopener noreferrer" 
-                className="hover:underline" style={{ color: style.accentColor }}>
-                Portfolio
-              </a>
-            )}
-          </div>
-        </section>
+        {renderHeader()}
 
         {/* Summary */}
         {resumeData.personalInfo.summary && (
-          <section className={cn("pdf-section", forExport ? "mb-3" : "mb-6")} style={{ 
-            pageBreakInside: 'avoid', 
+          <section className={cn(
+            "pdf-section", 
+            forExport ? "mb-3" : "mb-6"
+          )} style={{ 
             breakInside: 'avoid',
+            pageBreakInside: 'avoid',
             display: 'block',
             position: 'relative',
           }}>
             <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
-              Professional Summary
+              Summary
             </h2>
-            <p className="text-sm tracking-wide leading-relaxed">{resumeData.personalInfo.summary}</p>
+            <p className="whitespace-pre-line leading-relaxed">{resumeData.personalInfo.summary}</p>
           </section>
         )}
 
@@ -260,7 +593,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
             display: 'block',
             position: 'relative',
           }}>
-            <h2 className="text-lg font-semibold border-b pb-1.5 mb-2 tracking-wide" style={{ borderColor: style.accentColor }}>
+            <h2 className="text-lg font-semibold pb-1.5 mb-2 tracking-wide">
               Experience
             </h2>
             <div className={forExport ? "space-y-2" : "space-y-5"}>
@@ -479,7 +812,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
   if (forExport) {
     return (
-      <div className="bg-white [&_*]:text-black print:block" style={{
+      <div className="bg-white text-black print:block" style={{
         width: '100%',
         minHeight: '100%',
         overflow: 'visible',
@@ -488,6 +821,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         pageBreakInside: 'auto',
         display: 'flex',
         flexDirection: 'column',
+        color: '#000',
       }}>
         <div style={{
           ...containerStyle,
@@ -501,7 +835,8 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
           flexDirection: 'column',
           flexGrow: 1,
           transform: 'none', // Ensure no scaling during export
-        }} className="[&_*]:text-black print:block" ref={contentRef}>
+          color: '#000',
+        }} className="text-black print:block" ref={contentRef}>
           {renderContent()}
         </div>
       </div>
@@ -509,36 +844,22 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   }
 
   return (
-    <div className="resume-preview relative bg-white shadow-lg">
-      <div className="flex justify-center">
-        <div 
-          style={wrapperStyle} 
-          className={cn(
-            "relative bg-white shadow-lg transition-transform duration-200 [&_*]:text-black",
-            isMobile && "touch-pan-y md:touch-auto"
-          )}
-        >
+    <div className="resume-preview-wrapper" style={wrapperStyle}>
           <div
             ref={contentRef}
-            style={{
-              ...containerStyle,
-              marginTop: 0,
-            }}
             className={cn(
-              "bg-white transition-transform duration-200",
-              !forExport && "hover:shadow-xl"
-            )}
+          "resume-preview",
+          "bg-white shadow-sm text-black", // Ensure text is black regardless of dark mode
+          `resume-theme-${style.theme}`,
+          {
+            "print:shadow-none print:scale-100": forExport,
+            "transition-all duration-300": !forExport,
+          }
+        )}
+        style={containerStyle}
           >
             {renderContent()}
           </div>
-        </div>
-      </div>
-
-      {isCalculating && (
-        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      )}
     </div>
   );
 };

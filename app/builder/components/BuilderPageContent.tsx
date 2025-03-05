@@ -852,22 +852,22 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
 
         {/* ATS Analysis Section */}
         {atsScore && showAtsDialog && (
-          <div className="border-b bg-black text-white">
+          <div className="border-b border-border bg-background">
             <div className="container py-4">
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="col-span-1">
-                    <h4 className="text-sm font-medium text-gray-400 mb-1">Overall ATS Score</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Overall ATS Score</h4>
                     <div className="flex items-baseline gap-1">
-                      <p className="text-4xl font-bold">{atsScore.score}</p>
-                      <span className="text-sm text-gray-400">/100</span>
+                      <p className="text-4xl font-bold text-foreground">{atsScore.score}</p>
+                      <span className="text-sm text-muted-foreground">/100</span>
                     </div>
                   </div>
                   <div className="col-span-1">
-                    <h4 className="text-sm font-medium text-gray-400 mb-1">Format Score</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Format Score</h4>
                     <div className="flex items-baseline gap-1">
-                      <p className="text-4xl font-bold">{atsScore.format_score}</p>
-                      <span className="text-sm text-gray-400">/100</span>
+                      <p className="text-4xl font-bold text-foreground">{atsScore.format_score}</p>
+                      <span className="text-sm text-muted-foreground">/100</span>
                     </div>
                   </div>
                   <div className="col-span-2 flex items-end justify-end gap-2">
@@ -876,7 +876,7 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                       size="sm"
                       onClick={handleAnalyze}
                       disabled={isAnalyzing}
-                      className="gap-2 h-8 text-white border-gray-700 hover:bg-gray-800"
+                      className="gap-2 h-8"
                     >
                       {isAnalyzing ? (
                         <>
@@ -894,7 +894,7 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsAtsMinimized(!isAtsMinimized)}
-                      className="h-8 w-8 p-0 text-white hover:bg-gray-800"
+                      className="h-8 w-8 p-0"
                     >
                       {isAtsMinimized ? (
                         <ChevronDown className="h-4 w-4" />
@@ -907,90 +907,90 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
               
                 {!isAtsMinimized && (
                   <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 mt-2">
-                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
+                    <div className="border rounded-lg p-4 bg-card text-card-foreground">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          <h4 className="text-sm font-medium">Top Keyword Matches</h4>
+                          <h4 className="text-sm font-medium text-foreground">Top Keyword Matches</h4>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {atsScore.matchedKeywords?.length > 0 ? (
                             atsScore.matchedKeywords.map((keyword: string, i: number) => (
-                              <span key={i} className="px-2 py-1 rounded-md bg-green-500/10 text-green-500 text-xs border border-green-500/20">
+                              <span key={i} className="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-500 text-xs border border-green-500/20">
                                 {keyword}
                               </span>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No keyword matches found</p>
+                            <p className="text-sm text-muted-foreground">No keyword matches found</p>
                           )}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
+                    <div className="border rounded-lg p-4 bg-card text-card-foreground">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 text-yellow-500" />
-                          <h4 className="text-sm font-medium">Missing Keywords</h4>
+                          <h4 className="text-sm font-medium text-foreground">Missing Keywords</h4>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {((atsScore.missingKeywords?.length ?? 0) > 0 || (atsScore.missing?.length ?? 0) > 0) ? (
                             <>
                               {atsScore.missingKeywords?.map((keyword: string, i: number) => (
-                                <span key={`kw-${i}`} className="px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-500 text-xs border border-yellow-500/20">
+                                <span key={`kw-${i}`} className="px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 text-xs border border-yellow-500/20">
                                   {keyword}
                                 </span>
                               ))}
                               {atsScore.missing?.map((item: string, i: number) => (
-                                <span key={`miss-${i}`} className="px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-500 text-xs border border-yellow-500/20">
+                                <span key={`miss-${i}`} className="px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 text-xs border border-yellow-500/20">
                                   {item}
                                 </span>
                               ))}
                             </>
                           ) : (
-                            <p className="text-sm text-gray-400">No missing keywords detected</p>
+                            <p className="text-sm text-muted-foreground">No missing keywords detected</p>
                           )}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
+                    <div className="border rounded-lg p-4 bg-card text-card-foreground">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-blue-500" />
-                          <h4 className="text-sm font-medium">Suggested Improvements</h4>
+                          <h4 className="text-sm font-medium text-foreground">Suggested Improvements</h4>
                         </div>
                         <ul className="space-y-1.5">
                           {(atsScore.improvements?.length ?? 0) > 0 ? (
                             atsScore.improvements?.map((improvement: string, i: number) => (
-                              <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                              <li key={i} className="text-xs text-foreground/80 flex items-start gap-2">
                                 <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-blue-500" />
                                 <span>{improvement}</span>
                               </li>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No improvements suggested</p>
+                            <p className="text-sm text-muted-foreground">No improvements suggested</p>
                           )}
                         </ul>
                       </div>
                     </div>
                     
-                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
+                    <div className="border rounded-lg p-4 bg-card text-card-foreground">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <Layout className="h-4 w-4 text-purple-500" />
-                          <h4 className="text-sm font-medium">Format Feedback</h4>
+                          <h4 className="text-sm font-medium text-foreground">Format Feedback</h4>
                         </div>
                         <ul className="space-y-1.5">
                           {(atsScore.format_feedback?.length ?? 0) > 0 ? (
                             atsScore.format_feedback?.map((feedback: string, i: number) => (
-                              <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                              <li key={i} className="text-xs text-foreground/80 flex items-start gap-2">
                                 <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-purple-500" />
                                 <span>{feedback}</span>
                               </li>
                             ))
                           ) : (
-                            <p className="text-sm text-gray-400">No format feedback available</p>
+                            <p className="text-sm text-muted-foreground">No format feedback available</p>
                           )}
                         </ul>
                       </div>
