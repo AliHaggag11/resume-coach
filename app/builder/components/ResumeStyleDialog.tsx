@@ -224,9 +224,27 @@ export default function ResumeStyleDialog({
                       </div>
                       <div 
                         className="mt-4 h-20 w-full bg-muted rounded-md overflow-hidden flex items-center justify-center"
-                        style={{ backgroundImage: `url(/themes/${theme.value}-preview.png)`, backgroundSize: 'cover' }}
                       >
-                        {/* Theme preview image would go here in a real implementation */}
+                        <div className={`w-full h-full resume-theme-preview resume-theme-preview-${theme.value}`}>
+                          <div className="preview-header">
+                            <div className="preview-name"></div>
+                            <div className="preview-title"></div>
+                          </div>
+                          <div className="preview-section">
+                            <div className="preview-section-title"></div>
+                            <div className="preview-content">
+                              <div className="preview-line"></div>
+                              <div className="preview-line"></div>
+                            </div>
+                          </div>
+                          <div className="preview-section">
+                            <div className="preview-section-title"></div>
+                            <div className="preview-content">
+                              <div className="preview-line"></div>
+                              <div className="preview-line"></div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}

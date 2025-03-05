@@ -21,120 +21,94 @@ import { useState } from "react";
 
 const templates = [
   {
-    name: "Professional",
-    description: "Clean and modern design perfect for corporate roles",
+    name: "Modern",
+    description: "Clean and contemporary design with a focus on readability",
     image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&q=80",
     popular: true,
-    premium: true,
+    premium: false,
     features: [
-      "ATS-friendly layout",
-      "Professional fonts",
-      "Clean design",
-      "Multiple color schemes",
+      "Blue accent colors",
+      "Streamlined layout",
+      "Perfect for most industries",
+      "Clean section headers",
+    ],
+  },
+  {
+    name: "Classic",
+    description: "Traditional format with a timeless professional appeal",
+    image: "https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=800&q=80",
+    popular: false,
+    premium: false,
+    features: [
+      "Left-aligned markers",
+      "Traditional styling",
+      "Subtle formatting",
+      "Great for formal industries",
+    ],
+  },
+  {
+    name: "Minimal",
+    description: "Simple and streamlined layout with minimal styling",
+    image: "https://images.unsplash.com/photo-1586281380117-8c2eadb2d094?w=800&q=80",
+    popular: true,
+    premium: false,
+    features: [
+      "Clean lines",
+      "Maximum whitespace",
+      "Minimalist aesthetic",
+      "Horizontal section dividers",
+    ],
+  },
+  {
+    name: "Professional",
+    description: "Polished appearance ideal for corporate environments",
+    image: "https://images.unsplash.com/photo-1600267204091-5c1ab8b10c02?w=800&q=80",
+    popular: false,
+    premium: false,
+    features: [
+      "Top border accent",
+      "Clear section headings",
+      "Balanced layout",
+      "Professional formatting",
     ],
   },
   {
     name: "Creative",
-    description: "Stand out with a unique and artistic layout",
-    image: "https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=800&q=80",
-    popular: false,
-    premium: true,
-    features: [
-      "Eye-catching design",
-      "Portfolio section",
-      "Custom sections",
-      "Visual elements",
-    ],
-  },
-  {
-    name: "Executive",
-    description: "Sophisticated design for senior positions",
-    image: "https://images.unsplash.com/photo-1600267204091-5c1ab8b10c02?w=800&q=80",
-    popular: false,
-    premium: true,
-    features: [
-      "Executive summary",
-      "Achievement focused",
-      "Board experience section",
-      "Leadership highlights",
-    ],
-  },
-  {
-    name: "Basic",
-    description: "Simple and clean layout for entry-level positions",
-    image: "https://images.unsplash.com/photo-1586281380117-8c2eadb2d094?w=800&q=80",
-    popular: false,
-    premium: false,
-    features: [
-      "Clean layout",
-      "Basic sections",
-      "Easy to read",
-      "PDF export",
-    ],
-  },
-  {
-    name: "Student",
-    description: "Perfect for students and recent graduates",
+    description: "Vibrant and distinctive design for creative professionals",
     image: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=800&q=80",
     popular: false,
     premium: false,
     features: [
-      "Education focus",
-      "Projects section",
-      "Skills showcase",
-      "Simple design",
+      "Side column accent",
+      "Purple color scheme",
+      "Modern typography",
+      "Perfect for design roles",
     ],
   },
   {
-    name: "Modern Tech",
-    description: "Contemporary design for tech professionals",
+    name: "Technical",
+    description: "Structured layout highlighting technical skills and experience",
     image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80",
-    popular: false,
-    premium: true,
-    features: [
-      "Modern layout",
-      "Tech stack section",
-      "Project highlights",
-      "GitHub integration",
-    ],
-  },
-  {
-    name: "Startup",
-    description: "Dynamic layout for startup and innovation roles",
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
-    popular: false,
-    premium: true,
-    features: [
-      "Impact metrics",
-      "Innovation focus",
-      "Modern design",
-      "Customizable sections",
-    ],
-  },
-  {
-    name: "Traditional",
-    description: "Classic design for traditional industries",
-    image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&q=80",
     popular: false,
     premium: false,
     features: [
-      "Classic layout",
-      "Standard sections",
-      "Professional look",
-      "Universal format",
+      "Bullet indicators",
+      "Tech-focused layout",
+      "Clean structure",
+      "Skills emphasis",
     ],
   },
   {
-    name: "Minimalist Pro",
-    description: "Elegant and minimal design that stands out",
-    image: "https://images.unsplash.com/photo-1586281380117-8c2eadb2d094?w=800&q=80",
-    popular: true,
-    premium: true,
+    name: "Executive",
+    description: "Sophisticated design for leadership and executive roles",
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+    popular: false,
+    premium: false,
     features: [
-      "Premium typography",
-      "Elegant spacing",
-      "Custom styling",
-      "Modern elements",
+      "Gold accent details",
+      "Understated elegance",
+      "Leadership focus",
+      "Distinctive headers",
     ],
   },
 ];
@@ -163,22 +137,23 @@ const features = [
 ];
 
 const categories = [
-  { name: "All", value: "all" },
-  { name: "Free", value: "free" },
-  { name: "Premium", value: "premium" },
+  { name: "All Templates", value: "all" },
+  { name: "Simple", value: "minimal" },
+  { name: "Professional", value: "professional" },
+  { name: "Creative", value: "creative" },
 ];
 
 const industries = [
-  { name: "Technology", value: "tech" },
-  { name: "Business", value: "business" },
+  { name: "Business", value: "professional" },
   { name: "Creative", value: "creative" },
-  { name: "Student", value: "student" },
+  { name: "Technical", value: "technical" },
+  { name: "All Industries", value: "modern" },
 ];
 
 const experienceLevels = [
-  { name: "Entry Level", value: "entry" },
-  { name: "Mid Level", value: "mid" },
-  { name: "Senior", value: "senior" },
+  { name: "Entry Level", value: "minimal" },
+  { name: "Mid Level", value: "classic" },
+  { name: "Senior", value: "professional" },
   { name: "Executive", value: "executive" },
 ];
 
@@ -414,29 +389,46 @@ export default function TemplatesPage() {
                   >
                     <div className="relative z-10 rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-[1.02]">
                       <div className="relative h-64 overflow-hidden">
-                        <Image
-                          src={template.image}
-                          alt={template.name}
-                          fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
+                        <div className={`w-full h-full flex items-center justify-center bg-white p-4 resume-theme-preview-${template.name.toLowerCase()}`}>
+                          <div className="w-full h-full border border-gray-200 rounded-lg flex flex-col p-6">
+                            <div className="preview-header mb-4">
+                              <div className="preview-name bg-gray-800 h-6 w-3/4 mb-2"></div>
+                              <div className="preview-title bg-gray-400 h-4 w-1/2"></div>
+                            </div>
+                            
+                            <div className="preview-section mb-4">
+                              <div className="preview-section-title bg-gray-700 h-5 w-1/3 mb-3"></div>
+                              <div className="preview-content space-y-2">
+                                <div className="flex">
+                                  <div className="bg-gray-300 h-4 w-1/3 mr-2"></div>
+                                  <div className="bg-gray-200 h-4 w-1/3"></div>
+                                </div>
+                                <div className="bg-gray-100 h-3 w-full"></div>
+                                <div className="bg-gray-100 h-3 w-full"></div>
+                                <div className="bg-gray-100 h-3 w-4/5"></div>
+                              </div>
+                            </div>
+                            
+                            <div className="preview-section">
+                              <div className="preview-section-title bg-gray-700 h-5 w-1/3 mb-3"></div>
+                              <div className="preview-content space-y-2">
+                                <div className="flex">
+                                  <div className="bg-gray-300 h-4 w-1/3 mr-2"></div>
+                                  <div className="bg-gray-200 h-4 w-1/3"></div>
+                                </div>
+                                <div className="bg-gray-100 h-3 w-full"></div>
+                                <div className="bg-gray-100 h-3 w-full"></div>
+                                <div className="bg-gray-100 h-3 w-4/5"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-xl font-semibold">{template.name}</h3>
                           <div className="flex items-center gap-2">
-                            {template.premium ? (
-                              <div className="rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-primary flex items-center gap-1.5">
-                                <Sparkles className="h-3.5 w-3.5" />
-                                Premium
-                              </div>
-                            ) : (
-                              <div className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                                <Download className="h-3.5 w-3.5" />
-                                Free
-                              </div>
-                            )}
                             {template.popular && (
                               <div className="rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-blue-500 flex items-center gap-1.5">
                                 <Star className="h-3.5 w-3.5" />
@@ -457,23 +449,14 @@ export default function TemplatesPage() {
                         </ul>
                         
                         <div className="mt-6">
-                          {template.premium ? (
-                            <Link href="/pricing">
-                              <Button 
-                                className="w-full rounded-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/10 hover:shadow-xl hover:shadow-primary/20"
-                              >
-                                Upgrade to Use
-                                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                              </Button>
-                            </Link>
-                          ) : (
+                          <Link href={`/builder?theme=${template.name.toLowerCase()}`}>
                             <Button 
-                              className="w-full rounded-full h-11 bg-primary/10 hover:bg-primary/20 text-foreground"
+                              className="w-full rounded-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground"
                             >
                               Use this template
                               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                             </Button>
-                          )}
+                          </Link>
                         </div>
                       </div>
                     </div>
