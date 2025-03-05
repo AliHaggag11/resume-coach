@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,8 +16,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, FileSearch, BrainCircuit, ListChecks, Sparkles, CheckCircle2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { 
+  Loader2, 
+  FileSearch, 
+  BrainCircuit, 
+  ListChecks, 
+  Sparkles, 
+  CheckCircle2,
+  Building2,
+  Briefcase,
+  MapPin,
+  DollarSign,
+  Link,
+  FileText,
+  StickyNote
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface JobApplicationDialogProps {
   open: boolean;
@@ -38,6 +54,17 @@ const APPLICATION_STATUSES = [
   'rejected',
 ] as const;
 
+const statusColors: Record<string, string> = {
+  applied: 'bg-blue-500/10 text-blue-500 border-blue-200',
+  screening: 'bg-purple-500/10 text-purple-500 border-purple-200',
+  interview_scheduled: 'bg-yellow-500/10 text-yellow-500 border-yellow-200',
+  interviewed: 'bg-orange-500/10 text-orange-500 border-orange-200',
+  offer_received: 'bg-green-500/10 text-green-500 border-green-200',
+  offer_accepted: 'bg-emerald-500/10 text-emerald-500 border-emerald-200',
+  offer_declined: 'bg-gray-500/10 text-gray-500 border-gray-200',
+  rejected: 'bg-red-500/10 text-red-500 border-red-200',
+};
+
 export default function JobApplicationDialog({
   open,
   onOpenChange,
@@ -54,6 +81,7 @@ export default function JobApplicationDialog({
     interviewQuestions: string[];
     companyInsights: string[];
   } | null>(null);
+  const [activeTab, setActiveTab] = useState('details');
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -236,6 +264,8 @@ export default function JobApplicationDialog({
         
         setAiSuggestions(validatedAnalysis);
         toast.success('Job description analyzed successfully');
+        // Automatically switch to AI tab when analysis is complete
+        setActiveTab('ai');
       } catch (parseError) {
         console.error('Failed to parse analysis:', parseError);
         console.error('Raw result:', data.result);
@@ -300,259 +330,428 @@ export default function JobApplicationDialog({
     }
   };
 
+  // Format the status text nicely
+  const formatStatus = (status: string) => {
+    return status
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:p-6 p-4">
-        <DialogHeader>
-          <DialogTitle>
-            {application?.id ? 'Edit Job Application' : 'Add New Job Application'}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="company_name">Company Name *</Label>
-              <Input
-                id="company_name"
-                value={formData.company_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, company_name: e.target.value })
-                }
-                placeholder="Enter company name"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="job_title">Job Title *</Label>
-              <Input
-                id="job_title"
-                value={formData.job_title}
-                onChange={(e) =>
-                  setFormData({ ...formData, job_title: e.target.value })
-                }
-                placeholder="Enter job title"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) =>
-                  setFormData({ ...formData, location: e.target.value })
-                }
-                placeholder="Enter location"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="salary_range">Salary Range</Label>
-              <Input
-                id="salary_range"
-                value={formData.salary_range}
-                onChange={(e) =>
-                  setFormData({ ...formData, salary_range: e.target.value })
-                }
-                placeholder="e.g. $80,000 - $100,000"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="remote_type">Work Type</Label>
-              <Select
-                value={formData.remote_type}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, remote_type: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {REMOTE_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Application Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, status: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APPLICATION_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status.replace('_', ' ').charAt(0).toUpperCase() +
-                        status.replace('_', ' ').slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="job_link">Job Posting URL</Label>
-            <Input
-              id="job_link"
-              value={formData.job_link}
-              onChange={(e) =>
-                setFormData({ ...formData, job_link: e.target.value })
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold tracking-tight">
+              {application?.id ? 'Edit Job Application' : 'Add New Job Application'}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {application?.id 
+                ? 'Update the details of your job application'
+                : 'Track a new job application to monitor your job search progress'
               }
-              placeholder="Enter job posting URL"
-              className="w-full"
-            />
-          </div>
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+        
+        <div className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-2 mb-6">
+              <TabsTrigger value="details" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Application Details
+              </TabsTrigger>
+              <TabsTrigger value="ai" className="flex items-center gap-2" disabled={!formData.job_description}>
+                <BrainCircuit className="h-4 w-4" />
+                AI Analysis
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="space-y-6 pt-2">
+              <form id="application-form" onSubmit={handleSubmit} className="space-y-6">
+                {/* Main Info Card */}
+                <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                      Job Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="company_name" className="text-sm font-medium">
+                          Company Name <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="company_name"
+                            value={formData.company_name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, company_name: e.target.value })
+                            }
+                            placeholder="Enter company name"
+                            className="pl-9"
+                            required
+                          />
+                        </div>
+                      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="job_description">Job Description</Label>
-            <Textarea
-              id="job_description"
-              value={formData.job_description}
-              onChange={(e) =>
-                setFormData({ ...formData, job_description: e.target.value })
-              }
-              placeholder="Enter job description"
-              className="min-h-[8rem] w-full"
-            />
-          </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="job_title" className="text-sm font-medium">
+                          Job Title <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="relative">
+                          <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="job_title"
+                            value={formData.job_title}
+                            onChange={(e) =>
+                              setFormData({ ...formData, job_title: e.target.value })
+                            }
+                            placeholder="Enter job title"
+                            className="pl-9"
+                            required
+                          />
+                        </div>
+                      </div>
 
-          {formData.job_description && (
-            <Card className="border-dashed">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BrainCircuit className="h-5 w-5" />
-                  AI Analysis
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={analyzeJobDescription}
-                    disabled={isAnalyzing}
-                    className="group w-full sm:w-auto"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <FileSearch className="h-4 w-4 mr-2" />
-                        Analyze Job
-                      </>
-                    )}
-                  </Button>
-                </div>
-                
-                {isAnalyzing ? (
-                  <div className="space-y-3 animate-pulse">
-                    <div className="h-6 bg-muted rounded w-1/4"></div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="location"
+                            value={formData.location}
+                            onChange={(e) =>
+                              setFormData({ ...formData, location: e.target.value })
+                            }
+                            placeholder="Enter location"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="salary_range" className="text-sm font-medium">Salary Range</Label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="salary_range"
+                            value={formData.salary_range}
+                            onChange={(e) =>
+                              setFormData({ ...formData, salary_range: e.target.value })
+                            }
+                            placeholder="e.g. $80,000 - $100,000"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="remote_type" className="text-sm font-medium">Work Type</Label>
+                        <Select
+                          value={formData.remote_type}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, remote_type: value })
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {REMOTE_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="status" className="text-sm font-medium">Application Status</Label>
+                        <Select
+                          value={formData.status}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, status: value })
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {APPLICATION_STATUSES.map((status) => (
+                              <SelectItem key={status} value={status} className="flex items-center">
+                                <div className="flex items-center">
+                                  <Badge variant="outline" className={`mr-2 h-2 w-2 rounded-full p-0 ${statusColors[status]}`} />
+                                  {formatStatus(status)}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <div className="h-8 bg-muted rounded"></div>
-                      <div className="h-8 bg-muted rounded"></div>
-                    </div>
-                  </div>
-                ) : aiSuggestions && (
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Required Skills</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {aiSuggestions.requiredSkills.map((skill, i) => (
-                          <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-medium mb-2">Key Qualifications</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {aiSuggestions.keyQualifications.map((qual, i) => (
-                          <span key={i} className="px-2 py-1 bg-muted rounded-md text-sm">
-                            {qual}
-                          </span>
-                        ))}
+                      <Label htmlFor="job_link" className="text-sm font-medium">Job Posting URL</Label>
+                      <div className="relative">
+                        <Link className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="job_link"
+                          value={formData.job_link}
+                          onChange={(e) =>
+                            setFormData({ ...formData, job_link: e.target.value })
+                          }
+                          placeholder="Enter job posting URL"
+                          className="pl-9"
+                        />
                       </div>
                     </div>
 
-                    <div>
-                      <h4 className="font-medium mb-2">Preparation Tips</h4>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {aiSuggestions.preparationTips.map((tip, i) => (
-                          <li key={i} className="text-sm text-muted-foreground">{tip}</li>
-                        ))}
-                      </ul>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="job_description" className="text-sm font-medium">Job Description</Label>
+                        {formData.job_description && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={analyzeJobDescription}
+                            disabled={isAnalyzing}
+                            className="h-8 px-2 text-xs"
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <BrainCircuit className="mr-1 h-3 w-3" />
+                                Analyze with AI
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      <Textarea
+                        id="job_description"
+                        value={formData.job_description}
+                        onChange={(e) =>
+                          setFormData({ ...formData, job_description: e.target.value })
+                        }
+                        placeholder="Paste the full job description here"
+                        className="min-h-[8rem]"
+                      />
                     </div>
+                  </CardContent>
+                </Card>
 
-                    <div>
-                      <h4 className="font-medium mb-2">Likely Interview Questions</h4>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {aiSuggestions.interviewQuestions.map((question, i) => (
-                          <li key={i} className="text-sm text-muted-foreground">{question}</li>
-                        ))}
-                      </ul>
+                {/* Notes Card */}
+                <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <StickyNote className="h-5 w-5 text-primary" />
+                      Personal Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Add any personal notes about this application (interview preparations, follow-ups, etc.)"
+                      className="min-h-[6rem]"
+                    />
+                  </CardContent>
+                </Card>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="ai" className="space-y-4 pt-2">
+              <Card className="border shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <BrainCircuit className="h-5 w-5 text-primary" />
+                    AI Job Analysis
+                  </CardTitle>
+                  <CardDescription>
+                    Let AI analyze the job description to extract key information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!formData.job_description ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
+                      <p className="text-muted-foreground">Add a job description first to enable AI analysis</p>
                     </div>
+                  ) : !aiSuggestions && !isAnalyzing ? (
+                    <div className="text-center py-8">
+                      <Button
+                        onClick={analyzeJobDescription}
+                        className="mx-auto bg-primary hover:bg-primary/90"
+                        disabled={isAnalyzing}
+                      >
+                        {isAnalyzing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <FileSearch className="h-4 w-4 mr-2" />
+                            Analyze Job Description
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Our AI will extract key requirements, skills, and insights from this job
+                      </p>
+                    </div>
+                  ) : isAnalyzing ? (
+                    <div className="space-y-6 py-4">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-pulse flex flex-col items-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                          <p className="text-muted-foreground">Analyzing job description...</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="space-y-2 animate-pulse">
+                          <div className="h-5 bg-muted rounded w-1/4"></div>
+                          <div className="flex flex-wrap gap-2">
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <div key={i} className="h-8 bg-muted rounded w-24"></div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2 animate-pulse">
+                          <div className="h-5 bg-muted rounded w-1/3"></div>
+                          <div className="space-y-2">
+                            {[1, 2, 3].map(i => (
+                              <div key={i} className="h-4 bg-muted rounded"></div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : aiSuggestions && (
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          Required Skills
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {aiSuggestions.requiredSkills.map((skill, i) => (
+                            <Badge 
+                              key={i} 
+                              variant="secondary"
+                              className="px-3 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border-none text-sm"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          Key Qualifications
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {aiSuggestions.keyQualifications.map((qual, i) => (
+                            <div 
+                              key={i} 
+                              className="px-3 py-2 rounded-md bg-muted/50 border border-muted text-sm"
+                            >
+                              {qual}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
 
-                    <div>
-                      <h4 className="font-medium mb-2">Company Insights</h4>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {aiSuggestions.companyInsights.map((insight, i) => (
-                          <li key={i} className="text-sm text-muted-foreground">{insight}</li>
-                        ))}
-                      </ul>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-medium mb-3 flex items-center gap-2">
+                            <ListChecks className="h-4 w-4 text-primary" />
+                            Preparation Tips
+                          </h4>
+                          <ul className="list-disc pl-5 space-y-2">
+                            {aiSuggestions.preparationTips.map((tip, i) => (
+                              <li key={i} className="text-sm text-muted-foreground">{tip}</li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h4 className="font-medium mb-3 flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-primary" />
+                            Company Insights
+                          </h4>
+                          <ul className="list-disc pl-5 space-y-2">
+                            {aiSuggestions.companyInsights.map((insight, i) => (
+                              <li key={i} className="text-sm text-muted-foreground">{insight}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <FileSearch className="h-4 w-4 text-primary" />
+                          Likely Interview Questions
+                        </h4>
+                        <div className="space-y-2">
+                          {aiSuggestions.interviewQuestions.map((question, i) => (
+                            <div 
+                              key={i} 
+                              className="px-4 py-3 rounded-md bg-muted/30 border border-muted text-sm"
+                            >
+                              {question}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </CardContent>
+                {aiSuggestions && (
+                  <CardFooter className="bg-muted/20 border-t px-6 py-4">
+                    <div className="text-xs text-muted-foreground">
+                      The analysis above is automatically generated and will be saved with your application
+                    </div>
+                  </CardFooter>
                 )}
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Add any notes about this application"
-              className="min-h-[6rem] w-full"
-            />
-          </div>
-
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {application?.id ? 'Update' : 'Add'} Application
-            </Button>
-          </div>
-        </form>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        <div className="border-t p-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit"
+            form="application-form"
+            disabled={isSaving}
+            className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+          >
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {application?.id ? 'Update' : 'Save'} Application
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

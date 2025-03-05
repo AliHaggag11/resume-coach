@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,8 +15,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, BrainCircuit, Sparkles, MessageSquare } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Loader2, 
+  BrainCircuit, 
+  Sparkles, 
+  MessageSquare, 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Users, 
+  FileText,
+  ListChecks,
+  CheckCircle2,
+  Star,
+  VideoIcon
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Interview {
   id: string;
@@ -52,6 +68,14 @@ const INTERVIEW_TYPES = [
   'final',
 ] as const;
 
+const typeIcons: Record<string, React.ReactNode> = {
+  phone_screening: <MessageSquare className="h-4 w-4" />,
+  technical: <ListChecks className="h-4 w-4" />,
+  behavioral: <Users className="h-4 w-4" />,
+  onsite: <MapPin className="h-4 w-4" />,
+  final: <CheckCircle2 className="h-4 w-4" />,
+};
+
 export default function InterviewDialog({
   open,
   onOpenChange,
@@ -67,6 +91,7 @@ export default function InterviewDialog({
     topics: string[];
     answers: string[];
   } | null>(null);
+  const [activeTab, setActiveTab] = useState('details');
 
   const [formData, setFormData] = useState({
     interview_type: interview?.interview_type || 'phone_screening',
@@ -356,6 +381,8 @@ export default function InterviewDialog({
         }));
 
         toast.success('Interview preparation guide generated');
+        // Switch to preparation tab
+        setActiveTab('preparation');
     } catch (error) {
       console.error('Error generating preparation guide:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to generate preparation guide');
@@ -427,219 +454,398 @@ export default function InterviewDialog({
       setIsSaving(false);
     }
   };
+  
+  // Format interview type for display
+  const formatInterviewType = (type: string) => {
+    return type
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Get times for the interview - start and end
+  const getInterviewTimes = () => {
+    if (!formData.scheduled_at) return { startTime: '', endTime: '' };
+    
+    const startDate = new Date(formData.scheduled_at);
+    const endDate = new Date(startDate.getTime() + formData.duration_minutes * 60000);
+    
+    return {
+      startTime: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      endTime: endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
+  // Get formatted date
+  const getFormattedDate = () => {
+    if (!formData.scheduled_at) return '';
+    
+    const date = new Date(formData.scheduled_at);
+    return date.toLocaleDateString(undefined, { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const { startTime, endTime } = getInterviewTimes();
+  const formattedDate = getFormattedDate();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:p-6 p-4">
-        <DialogHeader>
-          <DialogTitle>{interview ? 'Edit Interview' : 'Schedule Interview'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="interview_type">Interview Type *</Label>
-              <Select
-                value={formData.interview_type}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, interview_type: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {INTERVIEW_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace('_', ' ').charAt(0).toUpperCase() +
-                        type.replace('_', ' ').slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold tracking-tight">
+              {interview ? 'Edit Interview' : 'Schedule Interview'}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {interview 
+                ? 'Update your interview details and preparation notes' 
+                : 'Add a new interview for this job application'}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+        
+        <div className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-2 mb-6">
+              <TabsTrigger value="details" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Interview Details
+              </TabsTrigger>
+              <TabsTrigger value="preparation" className="flex items-center gap-2">
+                <BrainCircuit className="h-4 w-4" />
+                Preparation Guide
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="space-y-6 pt-2">
+              <form id="interview-form" onSubmit={handleSubmit} className="space-y-6">
+                {/* Interview Information Card */}
+                <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      Interview Information
+                    </CardTitle>
+                    <CardDescription>
+                      Schedule and details for the upcoming interview
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="interview_type" className="text-sm font-medium">
+                          Interview Type <span className="text-destructive">*</span>
+                        </Label>
+                        <Select
+                          value={formData.interview_type}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, interview_type: value })
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INTERVIEW_TYPES.map((type) => (
+                              <SelectItem key={type} value={type} className="flex items-center">
+                                <div className="flex items-center gap-2">
+                                  {typeIcons[type]}
+                                  {formatInterviewType(type)}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="scheduled_at">Date & Time *</Label>
-              <Input
-                id="scheduled_at"
-                type="datetime-local"
-                value={formData.scheduled_at}
-                onChange={(e) =>
-                  setFormData({ ...formData, scheduled_at: e.target.value })
-                }
-                className="w-full"
-              />
-            </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="scheduled_at" className="text-sm font-medium">
+                          Date & Time <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="scheduled_at"
+                            type="datetime-local"
+                            value={formData.scheduled_at}
+                            onChange={(e) =>
+                              setFormData({ ...formData, scheduled_at: e.target.value })
+                            }
+                            className="pl-9"
+                            required
+                          />
+                        </div>
+                      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="duration_minutes">Duration (minutes)</Label>
-              <Input
-                id="duration_minutes"
-                type="number"
-                min="15"
-                step="15"
-                value={formData.duration_minutes}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    duration_minutes: parseInt(e.target.value),
-                  })
-                }
-                className="w-full"
-              />
-            </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="duration_minutes" className="text-sm font-medium">
+                          Duration (minutes)
+                        </Label>
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="duration_minutes"
+                            type="number"
+                            min="15"
+                            step="15"
+                            value={formData.duration_minutes}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                duration_minutes: parseInt(e.target.value),
+                              })
+                            }
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Location / Meeting Link</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) =>
-                  setFormData({ ...formData, location: e.target.value })
-                }
-                placeholder="Enter location or meeting link"
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="interviewer_names">
-              Interviewer Names (comma-separated)
-            </Label>
-            <Input
-              id="interviewer_names"
-              value={formData.interviewer_names}
-              onChange={(e) =>
-                setFormData({ ...formData, interviewer_names: e.target.value })
-              }
-              placeholder="e.g. John Smith, Jane Doe"
-              className="w-full"
-            />
-          </div>
-
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BrainCircuit className="h-5 w-5" />
-                Interview Preparation
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={generatePreparationGuide}
-                  disabled={isGenerating || !applicationId}
-                  className="group w-full sm:w-auto"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Preparation Guide
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {isGenerating ? (
-                <div className="space-y-3 animate-pulse">
-                  <div className="h-6 bg-muted rounded w-1/4"></div>
-                  <div className="space-y-2">
-                    <div className="h-8 bg-muted rounded"></div>
-                    <div className="h-8 bg-muted rounded"></div>
-                  </div>
-                </div>
-              ) : aiPreparation && (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium mb-2">Practice Questions</h4>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {(aiPreparation?.questions || []).map((question, i) => (
-                        <li key={i} className="text-sm text-muted-foreground">{question}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-2">Key Topics to Research</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {(aiPreparation?.topics || []).map((topic, i) => (
-                        <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
-                          {topic}
-                        </span>
-                      ))}
+                      <div className="space-y-2">
+                        <Label htmlFor="location" className="text-sm font-medium">
+                          Location / Meeting Link
+                        </Label>
+                        <div className="relative">
+                          <VideoIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="location"
+                            value={formData.location}
+                            onChange={(e) =>
+                              setFormData({ ...formData, location: e.target.value })
+                            }
+                            placeholder="Enter location or meeting link"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <h4 className="font-medium mb-2">Preparation Tips</h4>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {(aiPreparation?.tips || []).map((tip, i) => (
-                        <li key={i} className="text-sm text-muted-foreground">{tip}</li>
-                      ))}
-                    </ul>
-                  </div>
+                    <div className="space-y-2 pt-1">
+                      <Label htmlFor="interviewer_names" className="text-sm font-medium">
+                        Interviewer Names (comma-separated)
+                      </Label>
+                      <div className="relative">
+                        <Users className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="interviewer_names"
+                          value={formData.interviewer_names}
+                          onChange={(e) =>
+                            setFormData({ ...formData, interviewer_names: e.target.value })
+                          }
+                          placeholder="e.g. John Smith, Jane Doe"
+                          className="pl-9"
+                        />
+                      </div>
+                    </div>
+                    
+                    {formData.scheduled_at && (
+                      <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                        <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-primary" />
+                          Scheduled Time
+                        </h4>
+                        <div className="space-y-1 text-sm">
+                          <p className="font-medium">{formattedDate}</p>
+                          <p className="text-muted-foreground">
+                            {startTime} - {endTime} ({formData.duration_minutes} minutes)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-                  <div>
-                    <h4 className="font-medium mb-2">Sample STAR Answers</h4>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {(aiPreparation?.answers || []).map((answer, i) => (
-                        <li key={i} className="text-sm text-muted-foreground">{answer}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {/* Notes Card */}
+                <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Interview Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Add details about the interview format, what to bring, or specific topics that will be covered"
+                      className="min-h-[6rem]"
+                    />
+                  </CardContent>
+                </Card>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="preparation" className="space-y-6 pt-2">
+              <Card className="border shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BrainCircuit className="h-5 w-5 text-primary" />
+                    Interview Preparation Guide
+                  </CardTitle>
+                  <CardDescription>
+                    Get AI-powered preparation materials for your interview
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!applicationId && !interview?.job_application_id ? (
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
+                      <p className="text-muted-foreground">AI preparation is available once you save the interview</p>
+                    </div>
+                  ) : !aiPreparation && !isGenerating ? (
+                    <div className="text-center py-8">
+                      <Button
+                        onClick={generatePreparationGuide}
+                        className="mx-auto bg-primary hover:bg-primary/90"
+                        disabled={isGenerating}
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating Guide...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Preparation Guide
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Our AI will suggest practice questions and preparation tips based on the job description
+                      </p>
+                    </div>
+                  ) : isGenerating ? (
+                    <div className="space-y-6 py-4">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-pulse flex flex-col items-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                          <p className="text-muted-foreground">Analyzing job requirements and creating your guide...</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="space-y-2 animate-pulse">
+                          <div className="h-5 bg-muted rounded w-1/4"></div>
+                          <div className="space-y-2">
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <div key={i} className="h-4 bg-muted rounded"></div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2 animate-pulse">
+                          <div className="h-5 bg-muted rounded w-1/3"></div>
+                          <div className="flex flex-wrap gap-2">
+                            {[1, 2, 3, 4].map(i => (
+                              <div key={i} className="h-8 bg-muted rounded w-24"></div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : aiPreparation && (
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4 text-primary" />
+                          Likely Interview Questions
+                        </h4>
+                        <div className="space-y-2.5">
+                          {(aiPreparation?.questions || []).map((question, i) => (
+                            <div key={i} className="p-3 bg-muted/30 rounded-md border border-muted/50 text-sm">
+                              {question}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Interview Details</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Add any details about the interview"
-              className="min-h-[6rem] w-full"
-            />
-          </div>
+                      <div>
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <ListChecks className="h-4 w-4 text-primary" />
+                          Key Topics to Research
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(aiPreparation?.topics || []).map((topic, i) => (
+                            <Badge 
+                              key={i} 
+                              variant="secondary"
+                              className="px-3 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border-none text-sm"
+                            >
+                              {topic}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="preparation_notes">Preparation Notes</Label>
-            <Textarea
-              id="preparation_notes"
-              value={formData.preparation_notes}
-              onChange={(e) =>
-                setFormData({ ...formData, preparation_notes: e.target.value })
-              }
-              placeholder="Add notes for interview preparation"
-              className="min-h-[6rem] w-full"
-            />
-          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-medium mb-3 flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            Preparation Tips
+                          </h4>
+                          <ul className="list-disc pl-5 space-y-2">
+                            {(aiPreparation?.tips || []).map((tip, i) => (
+                              <li key={i} className="text-sm text-muted-foreground">{tip}</li>
+                            ))}
+                          </ul>
+                        </div>
 
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {interview ? 'Update Interview' : 'Schedule Interview'}
-            </Button>
-          </div>
-        </form>
+                        <div>
+                          <h4 className="font-medium mb-3 flex items-center gap-2">
+                            <Star className="h-4 w-4 text-primary" />
+                            Sample STAR Answers
+                          </h4>
+                          <div className="space-y-2">
+                            {(aiPreparation?.answers || []).map((answer, i) => (
+                              <div key={i} className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 py-1">
+                                {answer}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="border-t bg-muted/10 flex flex-col items-start px-6 py-4">
+                  <Label htmlFor="preparation_notes" className="text-sm font-medium mb-2">Your Preparation Notes</Label>
+                  <Textarea
+                    id="preparation_notes"
+                    value={formData.preparation_notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, preparation_notes: e.target.value })
+                    }
+                    placeholder="Add your own notes for interview preparation"
+                    className="min-h-[6rem] w-full"
+                  />
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        <div className="border-t p-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit"
+            form="interview-form"
+            disabled={isSaving}
+            className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+          >
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {interview ? 'Update Interview' : 'Schedule Interview'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

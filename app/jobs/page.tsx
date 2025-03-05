@@ -641,106 +641,143 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Find Your Next Role</h1>
-        <p className="text-muted-foreground mt-2">Search and apply for jobs, track your applications, and manage interviews all in one place.</p>
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* Page Header with gradient background and improved typography */}
+      <div className="mb-8 relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/20 via-primary/10 to-background p-6 sm:p-8 shadow-sm border">
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70 mb-2">Find Your Next Role</h1>
+          <p className="text-muted-foreground max-w-xl">Search and apply for jobs, track your applications, and manage interviews all in one place.</p>
+        </div>
+        <div className="absolute right-0 bottom-0 opacity-10">
+          <BriefcaseIcon className="h-32 w-32 text-primary" />
+        </div>
       </div>
 
-      {/* Collapsible Job Search Section */}
+      {/* Improved Collapsible Job Search Section */}
       {!isSearchExpanded ? (
         <Button
           variant="outline"
-          className="w-full flex items-center justify-between mb-8"
+          className="w-full flex items-center justify-between mb-8 p-6 rounded-lg hover:bg-primary/5 hover:border-primary/20 transition-all duration-200 shadow-sm group"
           onClick={() => setIsSearchExpanded(true)}
         >
           <div className="flex items-center">
-            <Search className="h-4 w-4 mr-2" />
-            Click to search for jobs
+            <div className="bg-primary/10 p-2 rounded-full mr-3 group-hover:bg-primary/20 transition-colors">
+              <Search className="h-5 w-5 text-primary" />
+            </div>
+            <span className="font-medium">Click to search for jobs</span>
           </div>
-          <ChevronDown className="h-4 w-4 ml-2" />
+          <ChevronDown className="h-5 w-5 group-hover:translate-y-0.5 transition-transform" />
         </Button>
       ) : (
-        <div className={`transition-all duration-300 ease-in-out`}>
-          <Card className="mb-8">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Search Jobs</h2>
+        <div className="transition-all duration-300 ease-in-out mb-8">
+          <Card className="shadow-sm overflow-hidden border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    <Search className="h-5 w-5 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-semibold">Search Jobs</h2>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsSearchExpanded(false)}
-                  className="h-8 w-8 hover:bg-muted"
+                  className="h-9 w-9 rounded-full hover:bg-primary/10"
                 >
-                  <ChevronUp className="h-4 w-4" />
+                  <ChevronUp className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
+                    <BriefcaseIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Job title, keywords, or company"
                       value={jobSearchQuery}
                       onChange={(e) => setJobSearchQuery(e.target.value)}
-                      className="w-full bg-background"
+                      className="w-full bg-background pl-10 py-6 h-auto"
                     />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Location or 'Remote'"
                       value={jobLocation}
                       onChange={(e) => setJobLocation(e.target.value)}
-                      className="w-full bg-background"
+                      className="w-full bg-background pl-10 py-6 h-auto"
                     />
                   </div>
                   <Button 
                     onClick={handleJobSearch} 
                     disabled={isLoadingJobs}
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 py-6 px-8"
                   >
                     <Search className="h-4 w-4 mr-2" />
                     Search Jobs
                   </Button>
                 </div>
 
-                {/* Job Listings Grid */}
+                {/* Job Listings Grid with enhanced design */}
                 {isLoadingJobs ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                     {Array(4).fill(0).map((_, i) => (
-                      <Card key={i} className="w-full">
+                      <Card key={i} className="w-full border border-muted/40 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader>
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-4 w-1/2 mt-2" />
+                          <div className="flex items-start gap-4">
+                            <Skeleton className="h-12 w-12 rounded-md" />
+                            <div className="space-y-2 flex-1">
+                              <Skeleton className="h-5 w-3/4" />
+                              <Skeleton className="h-4 w-1/2" />
+                            </div>
+                          </div>
                         </CardHeader>
                         <CardContent>
-                          <Skeleton className="h-20 w-full" />
+                          <div className="space-y-4">
+                            <Skeleton className="h-4 w-1/3" />
+                            <Skeleton className="h-20 w-full" />
+                            <div className="flex gap-2">
+                              <Skeleton className="h-9 w-1/2" />
+                              <Skeleton className="h-9 w-1/2" />
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 ) : jobListings.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                       {jobListings.map((job) => {
                         const isExpanded = expandedDescriptions.has(job.job_id);
+                        const isSaved = savedJobIds.has(job.job_id);
 
                         return (
-                          <Card key={job.job_id} className="w-full">
-                            <CardHeader>
+                          <Card 
+                            key={job.job_id} 
+                            className="w-full border border-muted/40 hover:shadow-md transition-all duration-200 hover:border-primary/20 group relative overflow-hidden"
+                          >
+                            {isSaved && (
+                              <div className="absolute top-0 right-0">
+                                <div className="bg-primary/10 text-primary text-xs font-medium py-1 px-3 rounded-bl-md">
+                                  Saved
+                                </div>
+                              </div>
+                            )}
+                            <CardHeader className="pb-3">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0 flex-1">
-                                  <CardTitle className="text-lg sm:text-xl truncate">{job.job_title}</CardTitle>
+                                  <CardTitle className="text-lg sm:text-xl truncate group-hover:text-primary transition-colors">{job.job_title}</CardTitle>
                                   <div className="flex items-center mt-2 text-muted-foreground">
                                     <Building2 className="h-4 w-4 mr-2 shrink-0" />
-                                    <span className="truncate">{job.employer_name}</span>
+                                    <span className="truncate font-medium">{job.employer_name}</span>
                                   </div>
                                   <div className="flex items-center mt-1 text-muted-foreground">
                                     <MapPin className="h-4 w-4 mr-2 shrink-0" />
                                     <span className="truncate">{job.job_location}</span>
                                   </div>
                                 </div>
-                                <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
+                                <div className="h-14 w-14 rounded-md border bg-muted/30 flex items-center justify-center shrink-0 group-hover:border-primary/20 transition-colors">
                                   {job.employer_logo ? (
                                     <img 
                                       src={job.employer_logo}
@@ -761,97 +798,87 @@ export default function JobsPage() {
                                 </div>
                               </div>
                             </CardHeader>
-                            <CardContent>
-                              <div className="space-y-4">
-                                <div className="flex flex-wrap gap-2">
-                                  <Badge variant="secondary" className="text-xs sm:text-sm">
-                                    {job.job_employment_type}
+                            <CardContent className="space-y-4">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="secondary" className="text-xs sm:text-sm px-2.5 py-0.5">
+                                  {job.job_employment_type}
+                                </Badge>
+                                {job.job_salary && (
+                                  <Badge variant="outline" className="text-xs sm:text-sm px-2.5 py-0.5 border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
+                                    {job.job_salary}
                                   </Badge>
-                                  {job.job_salary && (
-                                    <Badge variant="outline" className="text-xs sm:text-sm">
-                                      {job.job_salary}
-                                    </Badge>
+                                )}
+                                <Badge variant="outline" className="text-xs sm:text-sm px-2.5 py-0.5">
+                                  {formatDate(job.job_posted_at_datetime_utc)}
+                                </Badge>
+                              </div>
+                              <div className={`relative ${isExpanded ? '' : 'max-h-24 overflow-hidden'}`}>
+                                {!isExpanded && (
+                                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent"></div>
+                                )}
+                                <p className="text-sm text-muted-foreground">
+                                  {job.job_description}
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  className="px-0 h-8 text-xs font-medium mt-1 text-primary"
+                                  onClick={() => toggleDescription(job.job_id)}
+                                >
+                                  {isExpanded ? 'Show Less' : 'Show More'}
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-3 pt-2">
+                                <Button
+                                  variant="default"
+                                  className="flex-1 bg-primary"
+                                  disabled={loadingJobIds.has(job.job_id)}
+                                  onClick={() => applyToJob(job)}
+                                >
+                                  {loadingJobIds.has(job.job_id) ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                                      Processing...
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <BriefcaseIcon className="h-4 w-4 mr-2" />
+                                      Apply Now
+                                    </>
                                   )}
-                                </div>
-                                <div>
-                                  <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-3'}`}>
-                                    {job.job_description}
-                                  </p>
+                                </Button>
+                                {savedJobIds.has(job.job_id) ? (
                                   <Button
-                                    variant="link"
-                                    className="px-0 h-8 text-xs font-medium"
-                                    onClick={() => toggleDescription(job.job_id)}
-                                  >
-                                    {isExpanded ? 'Show Less' : 'Show More'}
-                                  </Button>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="default"
-                                    className="flex-1"
+                                    variant="outline"
+                                    className="w-12 p-0 aspect-square"
                                     disabled={loadingJobIds.has(job.job_id)}
-                                    onClick={() => applyToJob(job)}
+                                    onClick={() => removeSavedJob(job.job_id)}
                                   >
                                     {loadingJobIds.has(job.job_id) ? (
-                                      <div className="flex items-center justify-center gap-2">
-                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                        Processing...
-                                      </div>
+                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                                     ) : (
-                                      <>
-                                        <BriefcaseIcon className="h-4 w-4 mr-2" />
-                                        Apply Now
-                                      </>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
                                     )}
                                   </Button>
-                                  {savedJobIds.has(job.job_id) ? (
-                                    <Button
-                                      variant="outline"
-                                      className="flex-1"
-                                      disabled={loadingJobIds.has(job.job_id)}
-                                      onClick={() => removeSavedJob(job.job_id)}
-                                    >
-                                      {loadingJobIds.has(job.job_id) ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                          Removing...
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          Remove
-                                        </>
-                                      )}
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      variant="outline"
-                                      className="flex-1"
-                                      disabled={loadingJobIds.has(job.job_id)}
-                                      onClick={() => saveJobToApplications(job)}
-                                    >
-                                      {loadingJobIds.has(job.job_id) ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                          Saving...
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <Plus className="h-4 w-4 mr-2" />
-                                          Save
-                                        </>
-                                      )}
-                                    </Button>
-                                  )}
-                                </div>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    className="w-12 p-0 aspect-square group/save"
+                                    disabled={loadingJobIds.has(job.job_id)}
+                                    onClick={() => saveJobToApplications(job)}
+                                  >
+                                    {loadingJobIds.has(job.job_id) ? (
+                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                    ) : (
+                                      <Plus className="h-4 w-4 group-hover/save:scale-125 transition-transform" />
+                                    )}
+                                  </Button>
+                                )}
                               </div>
                             </CardContent>
                           </Card>
                         );
                       })}
                     </div>
-
-                    {/* Load More Button */}
                     {hasMoreJobs && (
                       <div className="flex justify-center mt-8">
                         <Button
@@ -859,7 +886,7 @@ export default function JobsPage() {
                           size="lg"
                           onClick={() => fetchJobs(currentPage + 1, true)}
                           disabled={isLoadingMore}
-                          className="w-full sm:w-auto min-w-[200px]"
+                          className="w-full sm:w-auto min-w-[200px] border-primary/20 hover:bg-primary/5"
                         >
                           {isLoadingMore ? (
                             <div className="flex items-center justify-center gap-2">
@@ -867,19 +894,27 @@ export default function JobsPage() {
                               Loading more jobs...
                             </div>
                           ) : (
-                            'Load More Jobs'
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-2" />
+                              Load More Jobs
+                            </>
                           )}
                         </Button>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-12">
-                    <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                    <p className="text-muted-foreground">
+                  <div className="text-center py-16 bg-muted/30 rounded-lg border border-dashed">
+                    <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-xl font-medium text-muted-foreground mb-2">
                       {jobSearchQuery || jobLocation 
                         ? 'No jobs found matching your search' 
                         : 'Search for jobs to get started'}
+                    </p>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      {jobSearchQuery || jobLocation 
+                        ? 'Try adjusting your search terms or location' 
+                        : 'Enter keywords, job title, or company name above to discover opportunities'}
                     </p>
                   </div>
                 )}
@@ -889,7 +924,7 @@ export default function JobsPage() {
         </div>
       )}
 
-      {/* Applications and Interviews Management */}
+      {/* Applications and Interviews Management with improved tabs */}
       <Tabs defaultValue="applications" className="w-full space-y-6">
         <div className="flex flex-col space-y-4 sm:space-y-0">
           <div className="w-full overflow-x-auto pb-2">
@@ -928,30 +963,40 @@ export default function JobsPage() {
                 </Button>
               </div>
             ) : (
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                 {interviews
                   .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
                   .map((interview) => {
-                  const application = applications.find(app => app.id === interview.job_application_id);
-                  const interviewDate = new Date(interview.scheduled_at);
+                    const application = applications.find(app => app.id === interview.job_application_id);
+                    const interviewDate = new Date(interview.scheduled_at);
                     const isPast = interviewDate < new Date();
                     
-                  return (
+                    return (
                       <div key={interview.id} className={cn(
-                        "flex flex-col gap-4 p-4 rounded-lg border bg-card transition-colors",
-                        isPast ? "opacity-60" : "hover:bg-accent/5"
+                        "group relative flex flex-col gap-4 p-5 rounded-lg border bg-card hover:shadow-md transition-all duration-200",
+                        isPast ? "border-muted bg-muted/10" : "border-primary/20 hover:border-primary/30"
                       )}>
+                        {/* Status indicator */}
+                        <div className={cn(
+                          "absolute top-0 right-0 h-1.5 w-24 rounded-bl-lg",
+                          isPast ? "bg-muted" : "bg-gradient-to-r from-primary/50 to-primary/70"
+                        )} />
+
                         <div className="flex items-start gap-4">
-                          {/* Date Display */}
-                          <div className="flex flex-col items-center justify-center w-14 h-14 rounded-lg bg-primary/5 text-primary">
-                            <span className="text-xs font-medium">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
-                            <span className="text-xl font-bold leading-none mt-0.5">{interviewDate.getDate()}</span>
-                      </div>
+                          {/* Enhanced Date Display */}
+                          <div className={cn(
+                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg text-primary font-medium overflow-hidden",
+                            isPast ? "bg-muted/20 text-muted-foreground" : "bg-primary/10"
+                          )}>
+                            <span className="text-xs uppercase tracking-wider">{interviewDate.toLocaleString('en-US', { month: 'short' })}</span>
+                            <span className="text-2xl font-bold leading-none mt-1">{interviewDate.getDate()}</span>
+                            <span className="text-xs mt-1 px-2 py-0.5 rounded-sm bg-primary/10">{interviewDate.toLocaleString('en-US', { weekday: 'short' })}</span>
+                          </div>
                       
                           {/* Interview Details */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start gap-3">
-                              <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
+                              <div className="h-14 w-14 rounded-md border bg-muted/30 flex items-center justify-center shrink-0 group-hover:border-primary/20 transition-colors">
                                 {application?.job_description?.includes('employer_logo:') ? (
                                   <img 
                                     src={application.job_description.split('employer_logo:')[1]?.split('\n')[0]}
@@ -971,36 +1016,55 @@ export default function JobsPage() {
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <h4 className="font-medium truncate">{application?.company_name}</h4>
-                                <Badge variant="outline" className="mt-1 mb-1.5">
-                            {interview.interview_type.replace('_', ' ')}
-                          </Badge>
+                                <h3 className="font-semibold text-lg leading-tight truncate group-hover:text-primary transition-colors">
+                                  {application?.company_name || 'Company'}
+                                </h3>
+                                <Badge variant="outline" className={cn(
+                                  "mt-1 mb-1.5 capitalize",
+                                  isPast ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary border-primary/20"
+                                )}>
+                                  {interview.interview_type.replace(/_/g, ' ')}
+                                </Badge>
                                 <p className="text-sm text-muted-foreground truncate">
-                          {application?.job_title}
-                        </p>
+                                  {application?.job_title || 'Position'}
+                                </p>
                               </div>
                             </div>
                           </div>
                         </div>
 
                         {/* Time and Location */}
-                        <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4 shrink-0" />
-                            <span>{formatDateTime(interview.scheduled_at)}</span>
+                        <div className="flex flex-col gap-2 p-3 rounded-md bg-muted/20 border border-muted/30">
+                          <div className="flex items-center gap-2">
+                            <div className="bg-background w-7 h-7 rounded-full flex items-center justify-center">
+                              <Clock className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <span className="text-sm font-medium">
+                              {interviewDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              {interview.duration_minutes && (
+                                <span className="text-muted-foreground ml-1">
+                                  ({interview.duration_minutes} min)
+                                </span>
+                              )}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <MapPin className="h-4 w-4 shrink-0" />
-                            <span className="truncate">{interview.location || application?.location || 'Location not specified'}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="bg-background w-7 h-7 rounded-full flex items-center justify-center">
+                              <MapPin className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <span className="text-sm truncate">{interview.location || application?.location || 'Location not specified'}</span>
+                          </div>
                         </div>
-                      </div>
 
                         {/* Actions */}
-                        <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="flex flex-wrap gap-2 mt-auto pt-2 border-t">
                           <Button
-                            variant="outline"
+                            variant={isPast ? "outline" : "default"}
                             size="sm"
-                            className="flex-1 h-8 min-w-[100px]"
+                            className={cn(
+                              "flex-1 h-9",
+                              !isPast && "bg-primary hover:bg-primary/90"
+                            )}
                             onClick={(e) => {
                               const button = e.currentTarget;
                               const rect = button.getBoundingClientRect();
@@ -1038,71 +1102,80 @@ export default function JobsPage() {
                               }, 0);
                             }}
                           >
-                            <div className="flex items-center justify-center gap-1.5">
-                              <Calendar className="h-4 w-4" />
-                              <span>Add to Calendar</span>
-                        </div>
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Add to Calendar
                           </Button>
                         
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-8 min-w-[100px]"
-                          disabled={isPracticing[interview.id]}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn("flex-1 h-9", !isPast && "hover:bg-primary/5 hover:border-primary/20")}
+                            disabled={isPracticing[interview.id] || isPast}
                             onClick={() => handlePractice(interview)}
-                        >
-                          {isPracticing[interview.id] ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                              <span>Preparing...</span>
-                            </div>
-                          ) : (
-                            <>
-                              <MessageSquare className="h-4 w-4 mr-1.5" />
-                          Practice
-                            </>
-                          )}
-                        </Button>
+                          >
+                            {isPracticing[interview.id] ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                <span>Preparing...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Practice
+                              </>
+                            )}
+                          </Button>
                           
-                          <div className="flex gap-2 w-full">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                              className="flex-1 h-8"
-                          onClick={() => {
-                            setSelectedInterview(interview);
-                            setSelectedApplication(application || null);
-                            setShowInterviewDialog(true);
-                          }}
-                        >
-                              <PenLine className="h-4 w-4 mr-1.5" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                              className="h-8 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
+                          <div className="flex gap-2 w-full mt-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="flex-1 h-9 hover:bg-primary/5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedInterview(interview);
+                                setSelectedApplication(application || null);
+                                setShowInterviewDialog(true);
+                              }}
+                            >
+                              <PenLine className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setItemToDelete({ type: 'interview', id: interview.id });
                                 setDeleteConfirmOpen(true);
-                          }}
-                        >
-                              <Trash2 className="h-5 w-5" />
-                        </Button>
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
+                        </div>
+
+                        {/* Past interview indicator */}
+                        {isPast && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px] rounded-lg pointer-events-none">
+                            <Badge variant="outline" className="bg-muted text-muted-foreground px-3 py-1 text-sm border-muted/30">
+                              Past Interview
+                            </Badge>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-          )}
-        </div>
+                    );
+                  })}
+                </div>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="applications" className="space-y-6 mt-2">
           <div className="space-y-6">
-            {/* Applications Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/50 p-4 rounded-lg">
+            {/* Applications Header with improved design */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-primary/5 to-background p-4 rounded-lg border border-primary/10 shadow-sm">
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="relative flex-1 sm:flex-none">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1110,206 +1183,209 @@ export default function JobsPage() {
                     placeholder="Search applications..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-full sm:w-[300px] bg-background"
+                    className="pl-9 w-full sm:w-[300px] bg-background border-primary/20 focus-visible:ring-primary/20"
                   />
                 </div>
-                <Button onClick={() => setShowNewApplicationDialog(true)} className="bg-primary hover:bg-primary/90">
+                <Button 
+                  onClick={() => setShowNewApplicationDialog(true)} 
+                  className="bg-primary hover:bg-primary/90 transition-colors shadow-sm"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Job
                 </Button>
               </div>
             </div>
 
-            {/* Filters Row */}
-            <div className="flex flex-col sm:flex-row gap-3 bg-muted/50 p-4 rounded-lg">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {Object.keys(statusColors).map(status => (
-                    <SelectItem key={status} value={status}>
-                      {status.replace('_', ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Improved Filters Row */}
+            <div className="flex flex-wrap gap-3 p-4 rounded-lg bg-muted/30 border shadow-sm">
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium mb-1.5 text-muted-foreground block">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full bg-background border-muted">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {Object.keys(statusColors).map(status => (
+                      <SelectItem key={status} value={status} className="capitalize">
+                        {status.replace('_', ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Select value={remoteFilter} onValueChange={setRemoteFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Job Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="remote">Remote</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
-                  <SelectItem value="onsite">Onsite</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium mb-1.5 text-muted-foreground block">Job Type</label>
+                <Select value={remoteFilter} onValueChange={setRemoteFilter}>
+                  <SelectTrigger className="w-full bg-background border-muted">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="remote">Remote</SelectItem>
+                    <SelectItem value="hybrid">Hybrid</SelectItem>
+                    <SelectItem value="onsite">Onsite</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Select value={sortBy} onValueChange={(value: 'newest' | 'oldest' | 'company' | 'title') => setSortBy(value)}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                  <SelectItem value="company">Company Name</SelectItem>
-                  <SelectItem value="title">Job Title</SelectItem>
-                </SelectContent>
-              </Select>
-
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium mb-1.5 text-muted-foreground block">Sort By</label>
+                <Select value={sortBy} onValueChange={(value: 'newest' | 'oldest' | 'company' | 'title') => setSortBy(value)}>
+                  <SelectTrigger className="w-full bg-background border-muted">
+                    <SelectValue placeholder="Select sorting" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="company">Company Name</SelectItem>
+                    <SelectItem value="title">Job Title</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               {(statusFilter !== 'all' || remoteFilter !== 'all' || searchQuery) && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setStatusFilter('all');
-                    setRemoteFilter('all');
-                    setSearchQuery('');
-                  }}
-                  className="text-sm"
-                >
-                  Clear Filters
-                </Button>
+                <div className="flex items-end w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setRemoteFilter('all');
+                      setSearchQuery('');
+                    }}
+                    className="w-full sm:w-auto h-10 mt-auto"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                      <path d="M19 12H5M5 12l7 7M5 12l7-7" />
+                    </svg>
+                    Clear Filters
+                  </Button>
+                </div>
               )}
-      </div>
+            </div>
 
-      {/* Applications Grid */}
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-        {filteredApplications.length === 0 ? (
-                <div className="col-span-full text-center py-12">
+            {/* Applications Grid Display with Improved Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-6">
+              {filteredApplications.length === 0 ? (
+                <div className="col-span-full text-center py-10 bg-muted/30 rounded-lg border border-dashed">
                   <BriefcaseIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground">
-                    {searchQuery || statusFilter !== 'all' || remoteFilter !== 'all' 
-                      ? 'No applications match your filters' 
-                      : 'No job applications yet'}
+                  <p className="text-lg font-medium text-muted-foreground mb-1">No applications found</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {statusFilter !== 'all' || remoteFilter !== 'all' || searchQuery ? 
+                      'Try adjusting your filters' : 
+                      'Start by adding your first job application'}
                   </p>
                   <Button 
-                    variant="link" 
-                    onClick={() => setShowNewApplicationDialog(true)}
-                    className="mt-2"
+                    onClick={() => setShowNewApplicationDialog(true)} 
+                    className="bg-primary hover:bg-primary/90"
                   >
-                    Add your first application
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Job Application
                   </Button>
-          </div>
-        ) : (
-                filteredApplications.map(application => {
-                  const employerLogo = application.job_description.includes('employer_logo:') 
-                    ? application.job_description.split('employer_logo:')[1]?.split('\n')[0]
-                    : null;
-
+                </div>
+              ) : (
+                filteredApplications.map((application) => {
+                  const statusClass = statusColors[application.status as keyof typeof statusColors] || 'bg-gray-500/10 text-gray-500';
+                  const hasInterviews = interviews.some(interview => interview.job_application_id === application.id);
+                  
                   return (
-                    <Card 
-                      key={application.id} 
-                      className="group cursor-pointer transition-all hover:shadow-md"
+                    <div
+                      key={application.id}
+                      className="group rounded-lg border border-muted/40 hover:border-primary/20 bg-card shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden cursor-pointer"
                       onClick={() => setSelectedApplicationForDetails(application)}
                     >
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex items-start gap-3">
-                              <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
-                                {employerLogo ? (
-                                  <img 
-                                    src={employerLogo}
-                                    alt={`${application.company_name} logo`}
-                                    className="h-10 w-10 object-contain"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.parentElement?.classList.add('fallback');
-                                      target.style.display = 'none';
-                                      const fallbackIcon = document.createElement('div');
-                                      fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
-                                      target.parentElement?.appendChild(fallbackIcon.firstChild!);
-                                    }}
-                                  />
-                                ) : (
-                                  <Building2 className="h-6 w-6 text-muted-foreground" />
-                                )}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <CardTitle className="truncate">
-                                  {application.company_name}
-                    </CardTitle>
-                                <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                      <BriefcaseIcon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{application.job_title}</span>
-                    </div>
-                    {application.location && (
-                                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{application.location}</span>
+                      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary/50 to-primary/20"></div>
+                      <div className="flex items-start gap-4">
+                        <div className="h-16 w-16 rounded-md border flex items-center justify-center shrink-0 bg-muted/30 group-hover:border-primary/20 transition-colors">
+                          {application.job_description?.includes('employer_logo:') ? (
+                            <img 
+                              src={application.job_description.split('employer_logo:')[1]?.split('\n')[0]}
+                              alt={`${application.company_name} logo`}
+                              className="h-12 w-12 object-contain"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.parentElement?.classList.add('fallback');
+                                target.style.display = 'none';
+                                const fallbackIcon = document.createElement('div');
+                                fallbackIcon.innerHTML = '<svg class="h-8 w-8 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
+                                target.parentElement?.appendChild(fallbackIcon.firstChild!);
+                              }}
+                            />
+                          ) : (
+                            <Building2 className="h-8 w-8 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-lg leading-tight truncate group-hover:text-primary transition-colors">
+                            {application.job_title}
+                          </h3>
+                          <p className="text-muted-foreground mt-1 mb-2 truncate">
+                            {application.company_name}
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            <Badge className={`${statusClass} capitalize`}>
+                              {application.status.replace('_', ' ')}
+                            </Badge>
+                            <Badge variant="outline">
+                              {application.remote_type || 'Unspecified'}
+                            </Badge>
+                            {hasInterviews && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-900">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                Interview
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                              </div>
-                            </div>
-                  </div>
-                  <Badge variant="secondary" className={`shrink-0 ${statusColors[application.status as keyof typeof statusColors]}`}>
-                    {application.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    Applied {formatDate(application.created_at)}
-                  </div>
-                  <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedInterview(null);
-                        setSelectedApplication(application);
-                        setShowInterviewDialog(true);
-                      }}
-                    >
-                      Add Interview
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedInterview(null);
-                        setSelectedApplication(application);
-                        setShowInterviewDialog(true);
-                      }}
-                    >
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hidden sm:inline-flex text-destructive hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setItemToDelete({ type: 'application', id: application.id });
-                                setDeleteConfirmOpen(true);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:hidden text-destructive hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setItemToDelete({ type: 'application', id: application.id });
-                                setDeleteConfirmOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                      </CardContent>
-                    </Card>
+                      <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span className="truncate flex-1">{application.location || 'Location not specified'}</span>
+                        <span className="text-xs whitespace-nowrap">
+                          {formatDate(application.created_at)}
+                        </span>
+                      </div>
+                      <div className="flex mt-4 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 h-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedApplication(application);
+                            setShowInterviewDialog(true);
+                          }}
+                        >
+                          <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                          Add Interview
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-8 h-8 ml-2 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedApplication(application);
+                            setShowNewApplicationDialog(true);
+                          }}
+                        >
+                          <PenLine className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-8 h-8 ml-1 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setItemToDelete({ type: 'application', id: application.id });
+                            setDeleteConfirmOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                   );
                 })
               )}
@@ -1320,22 +1396,27 @@ export default function JobsPage() {
         <TabsContent value="saved" className="space-y-6 mt-2">
           <div className="space-y-6">
             {savedJobs.length === 0 ? (
-              <div className="text-center py-12 bg-muted/50 rounded-lg">
-                <Plus className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-muted-foreground">No saved jobs yet</p>
+              <div className="text-center py-16 bg-muted/30 rounded-lg border border-dashed">
+                <div className="bg-primary/5 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Plus className="h-8 w-8 text-primary" />
+                </div>
+                <p className="text-xl font-medium text-muted-foreground mb-2">No saved jobs yet</p>
+                <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">Save jobs you're interested in to apply later or keep track of opportunities</p>
                 <Button 
-                  variant="link" 
+                  variant="default" 
                   onClick={() => {
+                    setIsSearchExpanded(true);
                     const searchTab = document.querySelector('[value="search"]') as HTMLButtonElement;
                     searchTab?.click();
                   }}
-                  className="mt-2"
+                  className="bg-primary hover:bg-primary/90"
                 >
-                  Search for jobs to save
+                  <Search className="h-4 w-4 mr-2" />
+                  Search for Jobs
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {savedJobs.map((savedJob) => {
                   const job: JobListing = {
                     job_id: savedJob.job_id,
@@ -1351,108 +1432,116 @@ export default function JobsPage() {
                       : undefined
                   };
                   const isExpanded = expandedDescriptions.has(savedJob.id);
+                  const savedDate = new Date(savedJob.created_at);
+                  const daysSinceCreated = Math.floor((new Date().getTime() - savedDate.getTime()) / (1000 * 3600 * 24));
 
                   return (
-                    <Card key={savedJob.id} className="w-full">
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start gap-3">
-                              <div className="h-12 w-12 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
-                                {job.employer_logo ? (
-                                  <img 
-                                    src={job.employer_logo}
-                                    alt={`${job.employer_name} logo`}
-                                    className="h-10 w-10 object-contain"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.parentElement?.classList.add('fallback');
-                                      target.style.display = 'none';
-                                      const fallbackIcon = document.createElement('div');
-                                      fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
-                                      target.parentElement?.appendChild(fallbackIcon.firstChild!);
-                                    }}
-                                  />
-                                ) : (
-                                  <Building2 className="h-6 w-6 text-muted-foreground" />
-                                )}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <CardTitle className="text-lg sm:text-xl truncate">{savedJob.job_title}</CardTitle>
-                                <div className="flex items-center mt-2 text-muted-foreground">
-                                  <Building2 className="h-4 w-4 mr-2 shrink-0" />
-                                  <span className="truncate">{savedJob.company_name}</span>
-                                </div>
-                                <div className="flex items-center mt-1 text-muted-foreground">
-                                  <MapPin className="h-4 w-4 mr-2 shrink-0" />
-                                  <span className="truncate">{savedJob.location}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                    <div 
+                      key={savedJob.id} 
+                      className="group relative flex flex-col rounded-lg border border-muted/40 hover:border-primary/20 bg-card shadow-sm hover:shadow-md transition-all duration-200 p-5 overflow-hidden"
+                    >
+                      {/* Age indicator */}
+                      {daysSinceCreated <= 3 && (
+                        <div className="absolute top-0 right-0 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-bl-md dark:bg-green-900 dark:text-green-300">
+                          New
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <Badge variant="secondary" className="text-xs sm:text-sm">
-                            {savedJob.remote_type}
-                          </Badge>
-                          <div>
-                            <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-3'}`}>
-                              {savedJob.job_description.split('\n\njob_id:')[0]}
-                            </p>
-                            <Button
-                              variant="link"
-                              className="px-0 h-8 text-xs font-medium"
-                              onClick={() => toggleDescription(savedJob.id)}
-                            >
-                              {isExpanded ? 'Show Less' : 'Show More'}
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="default"
-                              className="flex-1"
-                              disabled={loadingJobIds.has(savedJob.job_id)}
-                              onClick={() => {
-                                applyToJob(job);
-                                removeSavedJob(savedJob.job_id);
+                      )}
+                      
+                      <div className="flex items-start gap-4">
+                        <div className="h-14 w-14 rounded-md border flex items-center justify-center shrink-0 bg-muted/30 group-hover:border-primary/20 transition-colors">
+                          {job.employer_logo ? (
+                            <img 
+                              src={job.employer_logo}
+                              alt={`${job.employer_name} logo`}
+                              className="h-10 w-10 object-contain"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.parentElement?.classList.add('fallback');
+                                target.style.display = 'none';
+                                const fallbackIcon = document.createElement('div');
+                                fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
+                                target.parentElement?.appendChild(fallbackIcon.firstChild!);
                               }}
-                            >
-                              {loadingJobIds.has(savedJob.job_id) ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                  Processing...
-                                </div>
-                              ) : (
-                                <>
-                                  <BriefcaseIcon className="h-4 w-4 mr-2" />
-                                  Apply Now
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="flex-1"
-                              disabled={loadingJobIds.has(savedJob.job_id)}
-                              onClick={() => removeSavedJob(savedJob.job_id)}
-                            >
-                              {loadingJobIds.has(savedJob.job_id) ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                  Removing...
-                                </div>
-                              ) : (
-                                <>
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Remove
-                                </>
-                              )}
-                            </Button>
+                            />
+                          ) : (
+                            <Building2 className="h-6 w-6 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-lg leading-tight truncate group-hover:text-primary transition-colors">
+                            {savedJob.job_title}
+                          </h3>
+                          <p className="text-muted-foreground mt-1 truncate">
+                            {savedJob.company_name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{savedJob.location}</span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <Badge variant="secondary" className="text-xs capitalize px-2.5 py-0.5 bg-primary/5 text-primary border-none">
+                          {savedJob.remote_type || 'Unspecified'}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs px-2.5 py-0.5">
+                          Saved {daysSinceCreated === 0 ? 'today' : daysSinceCreated === 1 ? 'yesterday' : `${daysSinceCreated} days ago`}
+                        </Badge>
+                      </div>
+
+                      <div className={`mt-4 relative ${isExpanded ? '' : 'max-h-24 overflow-hidden'}`}>
+                        {!isExpanded && (
+                          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent"></div>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          {savedJob.job_description.split('\n\njob_id:')[0]}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          className="px-0 h-8 text-xs font-medium mt-1 text-primary"
+                          onClick={() => toggleDescription(savedJob.id)}
+                        >
+                          {isExpanded ? 'Show Less' : 'Show More'}
+                        </Button>
+                      </div>
+
+                      <div className="flex mt-auto pt-4 border-t mt-4 gap-3">
+                        <Button
+                          variant="default"
+                          className="flex-1 bg-primary hover:bg-primary/90"
+                          disabled={loadingJobIds.has(savedJob.job_id)}
+                          onClick={() => {
+                            applyToJob(job);
+                            removeSavedJob(savedJob.job_id);
+                          }}
+                        >
+                          {loadingJobIds.has(savedJob.job_id) ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                              Processing...
+                            </div>
+                          ) : (
+                            <>
+                              <BriefcaseIcon className="h-4 w-4 mr-2" />
+                              Apply Now
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-9 p-0 aspect-square text-destructive hover:bg-destructive/5 hover:text-destructive hover:border-destructive/30"
+                          onClick={() => removeSavedJob(savedJob.job_id)}
+                          disabled={loadingJobIds.has(savedJob.job_id)}
+                        >
+                          {loadingJobIds.has(savedJob.job_id) ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -1461,84 +1550,76 @@ export default function JobsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Application Details Dialog */}
-      <ApplicationDetailsDialog
-        open={!!selectedApplicationForDetails}
-        onOpenChange={(open) => !open && setSelectedApplicationForDetails(null)}
-        application={selectedApplicationForDetails}
-        onEdit={() => {
-          setSelectedApplication(selectedApplicationForDetails);
-          setShowNewApplicationDialog(true);
-          setSelectedApplicationForDetails(null);
-        }}
-        onAddInterview={() => {
-          setSelectedApplication(selectedApplicationForDetails);
-          setShowInterviewDialog(true);
-          setSelectedApplicationForDetails(null);
-        }}
-        onDelete={() => {
-          setItemToDelete({ type: 'application', id: selectedApplicationForDetails!.id });
-          setDeleteConfirmOpen(true);
-          setSelectedApplicationForDetails(null);
-        }}
-      />
+      {/* Dialog components */}
+      {showNewApplicationDialog && (
+        <JobApplicationDialog
+          open={showNewApplicationDialog}
+          onOpenChange={setShowNewApplicationDialog}
+          application={selectedApplication}
+          onClose={() => {
+            setSelectedApplication(null);
+            fetchApplications();
+          }}
+        />
+      )}
 
-      {/* Dialogs */}
-      <JobApplicationDialog
-        open={showNewApplicationDialog}
-        onOpenChange={setShowNewApplicationDialog}
-        application={selectedApplication}
-        onClose={() => {
-          setSelectedApplication(null);
-          fetchApplications();
-        }}
-      />
+      {showInterviewDialog && selectedApplication && (
+        <InterviewDialog
+          open={showInterviewDialog}
+          onOpenChange={setShowInterviewDialog}
+          applicationId={selectedApplication.id}
+          interview={selectedInterview}
+          onClose={() => {
+            setSelectedApplication(null);
+            setSelectedInterview(null);
+            fetchInterviews();
+          }}
+        />
+      )}
 
-      <InterviewDialog
-        open={showInterviewDialog}
-        onOpenChange={setShowInterviewDialog}
-        applicationId={selectedApplication?.id}
-        interview={selectedInterview}
-        onClose={() => {
-          setSelectedApplication(null);
-          setSelectedInterview(null);
-          fetchInterviews();
-        }}
-      />
-
-      {selectedInterview && selectedJobDetails && (
+      {showMockInterviewDialog && selectedInterview && selectedJobDetails && (
         <MockInterviewDialog
           open={showMockInterviewDialog}
-          onOpenChange={(open) => {
-            setShowMockInterviewDialog(open);
-            if (!open) {
-              // Clear interview data when dialog closes
-              setSelectedInterview(null);
-              setSelectedJobDetails(null);
-            }
-          }}
+          onOpenChange={setShowMockInterviewDialog}
           interview={selectedInterview}
           jobDetails={selectedJobDetails}
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
+      {selectedApplicationForDetails && (
+        <ApplicationDetailsDialog
+          open={!!selectedApplicationForDetails}
+          onOpenChange={() => setSelectedApplicationForDetails(null)}
+          application={selectedApplicationForDetails}
+          onEdit={() => {
+            setSelectedApplication(selectedApplicationForDetails);
+            setShowNewApplicationDialog(true);
+            setSelectedApplicationForDetails(null);
+          }}
+          onAddInterview={() => {
+            setSelectedApplication(selectedApplicationForDetails);
+            setShowInterviewDialog(true);
+            setSelectedApplicationForDetails(null);
+          }}
+          onDelete={() => {
+            setItemToDelete({ type: 'application', id: selectedApplicationForDetails.id });
+            setDeleteConfirmOpen(true);
+            setSelectedApplicationForDetails(null);
+          }}
+        />
+      )}
+
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the {itemToDelete?.type}.
+              This action cannot be undone. This will permanently delete the selected item.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
