@@ -123,6 +123,16 @@ export default function JobApplicationDialog({
     }
   }, [application]);
 
+  // Reset AI suggestions and set active tab to 'details' whenever dialog opens
+  useEffect(() => {
+    if (open) {
+      setActiveTab('details');
+      if (!application) {
+        setAiSuggestions(null);
+      }
+    }
+  }, [open, application]);
+
   const analyzeJobDescription = async () => {
     if (!formData.job_description) {
       toast.error('Please add a job description to analyze');

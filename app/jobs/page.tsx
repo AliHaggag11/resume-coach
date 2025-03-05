@@ -1187,7 +1187,11 @@ export default function JobsPage() {
                   />
                 </div>
                 <Button 
-                  onClick={() => setShowNewApplicationDialog(true)} 
+                  onClick={() => {
+                    // Reset selectedApplication to ensure a fresh dialog
+                    setSelectedApplication(null);
+                    setShowNewApplicationDialog(true);
+                  }} 
                   className="bg-primary hover:bg-primary/90 transition-colors shadow-sm"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -1277,7 +1281,11 @@ export default function JobsPage() {
                       'Start by adding your first job application'}
                   </p>
                   <Button 
-                    onClick={() => setShowNewApplicationDialog(true)} 
+                    onClick={() => {
+                      // Reset selectedApplication to ensure a fresh dialog
+                      setSelectedApplication(null);
+                      setShowNewApplicationDialog(true);
+                    }} 
                     className="bg-primary hover:bg-primary/90"
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -1354,6 +1362,7 @@ export default function JobsPage() {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedApplication(application);
+                            setSelectedInterview(null);
                             setShowInterviewDialog(true);
                           }}
                         >
@@ -1598,6 +1607,7 @@ export default function JobsPage() {
           }}
           onAddInterview={() => {
             setSelectedApplication(selectedApplicationForDetails);
+            setSelectedInterview(null);
             setShowInterviewDialog(true);
             setSelectedApplicationForDetails(null);
           }}

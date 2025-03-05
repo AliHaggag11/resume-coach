@@ -141,6 +141,16 @@ export default function InterviewDialog({
     }
   }, [interview]);
 
+  // Reset AI preparation and set active tab to 'details' whenever dialog opens
+  useEffect(() => {
+    if (open) {
+      setActiveTab('details');
+      if (!interview) {
+        setAiPreparation(null);
+      }
+    }
+  }, [open, interview]);
+
   const generatePreparationGuide = async () => {
     if (!applicationId && !interview?.job_application_id) return;
 
