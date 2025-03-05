@@ -18,6 +18,7 @@ import {
   FolderGit2,
   Trophy,
   User,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
@@ -26,12 +27,12 @@ const features = [
   {
     icon: Bot,
     title: "AI-Powered Resume Assistant",
-    description: "Let AI help you craft compelling professional summaries and achievements that highlight your true potential.",
+    description: "Let AI help you craft compelling professional summaries, work descriptions, and achievements that highlight your true potential.",
     benefits: [
-      "Smart summary generation",
-      "Achievement suggestions",
-      "Professional phrasing",
-      "Real-time assistance"
+      "Tailored professional summary",
+      "Impact-focused achievements",
+      "Job-specific descriptions",
+      "Skill and keyword suggestions"
     ],
     gradient: "from-blue-500/10 via-indigo-500/10 to-purple-500/10",
     image: "/features/ai-assistant.webp",
@@ -40,26 +41,40 @@ const features = [
   {
     icon: Target,
     title: "ATS Optimization",
-    description: "Get instant feedback on your resume's ATS compatibility, keyword optimization, and impact statements.",
+    description: "Get instant feedback on your resume's ATS compatibility, keyword matching, format analysis, and improvement suggestions.",
     benefits: [
-      "ATS compatibility score",
-      "Keyword analysis",
-      "Impact statement review",
-      "Improvement suggestions"
+      "Detailed ATS score analysis",
+      "Keyword match detection",
+      "Missing content identification",
+      "Format & structure feedback"
     ],
     gradient: "from-emerald-500/10 via-teal-500/10 to-cyan-500/10",
     image: "/features/ats-analysis.webp",
     alt: "ATS analysis dashboard"
   },
   {
+    icon: Briefcase,
+    title: "AI Job Search Tools",
+    description: "Find the perfect job and tailor your resume with our AI-powered job search and optimization tools.",
+    benefits: [
+      "Personalized job recommendations",
+      "Resume keyword optimization",
+      "Job description analysis",
+      "Custom cover letter generation"
+    ],
+    gradient: "from-violet-500/10 via-purple-500/10 to-fuchsia-500/10",
+    image: "/features/job-search.webp",
+    alt: "AI job search interface"
+  },
+  {
     icon: Palette,
     title: "Professional Styling",
-    description: "Customize your resume's appearance with our comprehensive style options.",
+    description: "Customize your resume's appearance with our comprehensive style options featuring 7 professionally designed themes.",
     benefits: [
-      "4 professional themes",
-      "Multiple font options",
-      "Spacing controls",
-      "Custom color schemes"
+      "Modern, Classic, Minimal themes",
+      "Professional, Creative layouts",
+      "Technical & Executive designs",
+      "Custom color schemes & fonts"
     ],
     gradient: "from-orange-500/10 via-amber-500/10 to-yellow-500/10",
     image: "/features/style-customization.webp",
@@ -67,13 +82,13 @@ const features = [
   },
   {
     icon: Download,
-    title: "Multiple Export Formats",
-    description: "Export your resume in various formats to meet any application requirement.",
+    title: "Multiple Export Options",
+    description: "Export your resume in various formats with precise control over quality, page size, and personal information.",
     benefits: [
-      "PDF export",
-      "Word document",
-      "Plain text format",
-      "Print-ready output"
+      "PDF with custom quality",
+      "A4, Letter & Legal formats",
+      "Portrait & Landscape options",
+      "Control over contact details"
     ],
     gradient: "from-pink-500/10 via-rose-500/10 to-red-500/10",
     image: "/features/export-options.webp",
@@ -117,6 +132,12 @@ const sections = [
     title: "Awards",
     description: "Display your certifications and professional recognition.",
     gradient: "from-cyan-500/10 to-blue-500/10"
+  },
+  {
+    icon: Search,
+    title: "Job Search",
+    description: "Find and apply to jobs with AI-powered matching and optimization.",
+    gradient: "from-violet-500/10 to-fuchsia-500/10"
   }
 ];
 
@@ -135,14 +156,14 @@ const stats = [
   },
   { 
     label: "Theme Options", 
-    value: "4+",
+    value: "7+",
     icon: Layout,
     gradient: "from-orange-500 to-amber-500"
   },
   { 
-    label: "Resume Sections", 
-    value: "6+",
-    icon: FileText,
+    label: "Available Jobs", 
+    value: "1000+",
+    icon: Briefcase,
     gradient: "from-pink-500 to-rose-500"
   }
 ];
@@ -179,10 +200,10 @@ export default function FeaturesPage() {
                 </div>
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
                   Create Professional
-                  <span className="block mt-1">ATS-Optimized Resumes</span>
+                  <span className="block mt-1">ATS-Optimized Resumes & Find Jobs</span>
                 </h1>
                 <p className="text-muted-foreground text-lg md:text-xl max-w-[600px] mx-auto mt-6">
-                  Our intelligent resume builder combines AI assistance, professional styling, and ATS optimization to help you create standout resumes that get noticed.
+                  Our intelligent platform combines AI assistance, professional styling, ATS optimization, and job matching to help you land your dream job.
                 </p>
               </motion.div>
 
@@ -291,10 +312,10 @@ export default function FeaturesPage() {
           <div className="container px-4 md:px-6">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                Comprehensive Resume Sections
+                Comprehensive Resume & Job Tools
               </h2>
               <p className="text-muted-foreground text-lg max-w-[600px] mx-auto">
-                Build a complete professional profile with our comprehensive section management
+                Build your professional profile and find perfect job matches with our comprehensive tools
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
