@@ -42,6 +42,7 @@ import {
   ChevronDown,
   ChevronUp,
   MoreHorizontal,
+  Check,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -72,7 +73,7 @@ import ProjectsForm from "./ProjectsForm";
 import AwardsForm from "./AwardsForm";
 import ResumePreview from "./ResumePreview";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import ResumeStyleDialog from "./ResumeStyleDialog";
 import {
   Sheet,
@@ -87,6 +88,8 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import ResumeExportDialog from "./ResumeExportDialog";
+import ResumePreviewPanel from "./ResumePreviewPanel";
 
 export interface DatabaseResume {
   id: string;
@@ -110,56 +113,48 @@ interface BuilderPageContentProps {
   initialData?: DatabaseResume;
 }
 
+interface ATSScore {
+  score: number;
+  matches: number;
+  total: number;
+  missingKeywords: string[];
+  matchedKeywords: string[];
+  format_score?: number;
+  missing?: string[];
+  improvements?: string[];
+  format_feedback?: string[];
+}
+
 export function BuilderPageContent({ initialData }: BuilderPageContentProps): ReactElement {
   const { loadResume, saveResume, resumeData } = useResume();
   const { style, updateStyle } = useResumeStyle();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<string>("personal-info");
   const [showPreview, setShowPreview] = useState(false);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [showStyleDialog, setShowStyleDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [atsScore, setAtsScore] = useState<any>(null);
+  const [atsScore, setAtsScore] = useState<ATSScore | null>(null);
   const [showAtsDialog, setShowAtsDialog] = useState(false);
   const [isAtsMinimized, setIsAtsMinimized] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (initialData?.id) {
-      loadResume(initialData.id);
+    if (initialData) {
+      if (initialData.id === 'new') {
+        setActiveSection("personalInfo");
+        return;
+      }
+      
+      loadResume(initialData.id).catch(err => {
+        console.error("Failed to load resume", err);
+        toast.error("Failed to load resume");
+      });
     }
   }, [initialData?.id]);
-
-  const handleDownload = async () => {
-    if (!previewRef.current) return;
-
-    try {
-      setIsGeneratingPDF(true);
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "px",
-        format: [canvas.width, canvas.height],
-      });
-
-      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-      pdf.save("resume.pdf");
-      toast.success("Resume downloaded successfully");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF. Please try again.");
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
 
   const generateResumeText = async () => {
     if (!resumeData) return '';
@@ -262,13 +257,14 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
 ${resumeContent}
 
 Please analyze this resume for ATS optimization and provide a detailed analysis in the following JSON format:
-        {
-          "score": number between 0-100,
-  "matches": [top keyword matches found in the resume],
-  "missing": [important keywords that are missing],
+{
+  "score": number between 0-100,
+  "matchedKeywords": [top keyword matches found in the resume],
+  "missingKeywords": [important keywords that are missing],
   "improvements": [specific suggestions for improvement],
-          "format_score": number between 0-100,
-          "format_feedback": [formatting suggestions]
+  "format_score": number between 0-100,
+  "format_feedback": [formatting suggestions],
+  "missing": [list of important missing technologies or skills]
 }`;
 
       const response = await fetch('/api/ai', {
@@ -302,13 +298,30 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
           .trim();
         
         parsedResult = JSON.parse(cleanJson);
+        
+        // Make sure the keys match our interface
+        if (parsedResult.matches && !parsedResult.matchedKeywords) {
+          parsedResult.matchedKeywords = parsedResult.matches;
+        }
+        
+        if (parsedResult.missing_keywords && !parsedResult.missingKeywords) {
+          parsedResult.missingKeywords = parsedResult.missing_keywords;
+        }
+        
+        // Ensure all required fields exist
+        parsedResult.matchedKeywords = parsedResult.matchedKeywords || [];
+        parsedResult.missingKeywords = parsedResult.missingKeywords || [];
+        parsedResult.improvements = parsedResult.improvements || [];
+        parsedResult.format_feedback = parsedResult.format_feedback || [];
+        parsedResult.missing = parsedResult.missing || [];
+        
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError);
         throw new Error('Failed to parse AI response. Please try again.');
       }
 
       // Validate the response structure
-      const requiredFields = ['score', 'matches', 'missing', 'improvements', 'format_score', 'format_feedback'];
+      const requiredFields = ['score', 'matchedKeywords', 'missingKeywords', 'improvements', 'format_score', 'format_feedback'];
       const missingFields = requiredFields.filter(field => !(field in parsedResult));
       
       if (missingFields.length > 0) {
@@ -323,6 +336,238 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleExport = async (format: string, options: {
+    filename: string;
+    quality: number;
+    includeContactInfo: boolean;
+    pageSize: 'a4' | 'letter' | 'legal';
+    orientation: 'portrait' | 'landscape';
+  }) => {
+    // Show loading state
+    toast.loading("Preparing your resume for export...");
+    
+    // Close the export dialog to show the resume fully
+    setExportDialogOpen(false);
+    
+    // Wait a moment for UI to update
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    try {
+      // Get the resume element
+      const resumeElement = document.querySelector('.resume-preview');
+      if (!resumeElement) {
+        throw new Error("Resume element not found");
+      }
+      
+      // Determine filename
+      const filename = options.filename || `resume-${new Date().toISOString().split('T')[0]}`;
+      const fullFilename = `${filename}.${format}`;
+      
+      // Handle different export formats
+      switch (format) {
+        case 'pdf':
+          // Show loading toast
+          toast.dismiss();
+          toast.loading("Generating PDF, please wait...");
+          
+          try {
+            // Find the resume preview element
+            const resumeElement = document.querySelector('.resume-preview');
+            if (!resumeElement) {
+              throw new Error("Resume element not found");
+            }
+            
+            // Get the main content element that contains the actual resume
+            const contentElement = resumeElement.querySelector('[style*="padding"]') || resumeElement;
+            
+            // Create a clone of the element to modify for better PDF export
+            const clonedElement = contentElement.cloneNode(true) as HTMLElement;
+            
+            // Temporarily append the clone to the document to capture it
+            clonedElement.style.position = 'absolute';
+            clonedElement.style.left = '-9999px';
+            clonedElement.style.fontFamily = 'Arial, sans-serif'; // Ensure consistent font rendering
+            clonedElement.style.lineHeight = '1.5'; // Improve line spacing
+            clonedElement.style.letterSpacing = '0.5px'; // Improve letter spacing
+            clonedElement.style.color = '#000000'; // Force text to be black
+            clonedElement.style.backgroundColor = '#ffffff'; // Force background to be white
+            
+            // Force all text elements to be black
+            const allTextElements = clonedElement.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, li, a, div');
+            allTextElements.forEach(element => {
+              if (element instanceof HTMLElement) {
+                // Default to black
+                element.style.color = '#000000';
+                
+                // Special handling for headings - keep their accent color only if it's dark enough
+                if (element.tagName.toLowerCase().startsWith('h') && element.style.color !== '#000000') {
+                  const currentColor = element.style.color;
+                  // If it's a hex color and not too light, we can keep it
+                  if (currentColor.match(/#[a-f0-9]{6}/i) && !currentColor.match(/#[a-f]{2}/i)) {
+                    // Keep the existing color as it's dark enough
+                    element.style.color = currentColor;
+                  }
+                }
+              }
+            });
+            
+            // Fix spacing between elements
+            const headings = clonedElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+            headings.forEach(heading => {
+              if (heading instanceof HTMLElement) {
+                heading.style.marginBottom = '8px';
+                heading.style.marginTop = '16px';
+              }
+            });
+            
+            // Add spacing to list items
+            const listItems = clonedElement.querySelectorAll('li');
+            listItems.forEach(item => {
+              if (item instanceof HTMLElement) {
+                item.style.marginBottom = '5px';
+              }
+            });
+            
+            // Add page-break-inside: avoid to all section containers
+            // Target main section divs that are direct children of the resume container
+            // or that contain heading elements (like "Skills", "Experience", etc.)
+            const sectionContainers = clonedElement.querySelectorAll('div > div');
+            sectionContainers.forEach(section => {
+              if (section instanceof HTMLElement) {
+                // Look for section headings inside this container
+                const sectionHeading = section.querySelector('h1, h2, h3, h4, h5, h6');
+                
+                if (sectionHeading) {
+                  // This seems to be a main section that contains a heading
+                  section.style.pageBreakInside = 'avoid';
+                  section.style.breakInside = 'avoid';
+                  
+                  // Additionally, add a break before except for the first section
+                  if (section.previousElementSibling) {
+                    section.style.pageBreakBefore = 'always';
+                    section.style.breakBefore = 'page';
+                  }
+                  
+                  // Add specific styling to prevent page breaks within the section
+                  section.style.display = 'block';
+                  section.style.position = 'relative';
+                }
+              }
+            });
+            
+            document.body.appendChild(clonedElement);
+            
+            // Use html2canvas with better settings
+            const canvas = await html2canvas(clonedElement, {
+              scale: 3, // Higher scale for better quality
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff',
+              logging: false
+            });
+            
+            // Clean up
+            document.body.removeChild(clonedElement);
+            
+            // Get dimensions for A4 PDF
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            // Create PDF with the right orientation
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            // Split into multiple pages if needed
+            let heightLeft = imgHeight;
+            let position = 0;
+            let page = 1;
+            
+            // First page
+            pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+            
+            // Add more pages if needed
+            while (heightLeft > 0) {
+              position = -pageHeight * page;
+              pdf.addPage();
+              pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+              page++;
+            }
+            
+            // Save the PDF
+            pdf.save(fullFilename);
+            
+            // Show success message
+            toast.dismiss();
+            toast.success("PDF export complete", {
+              description: `Your resume has been exported as a PDF file with ${page} page${page > 1 ? 's' : ''}`
+            });
+          } catch (error) {
+            console.error("PDF generation error:", error);
+            toast.dismiss();
+            toast.error("PDF export failed", {
+              description: error instanceof Error ? error.message : "An unexpected error occurred"
+            });
+          }
+          break;
+        
+        case 'png':
+          // For PNG, use a full-screen mode or screenshot approach
+          toast.dismiss();
+          toast.info("To save as PNG:", {
+            description: "1. Press the 'Print Screen' key or use Win+Shift+S\n2. Select the resume area\n3. Paste into an image editor and save"
+          });
+          break;
+        
+        case 'docx':
+          // For DOCX, export the JSON data
+          exportData(resumeData, fullFilename, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+          toast.dismiss();
+          toast.success("Resume exported as DOCX", {
+            description: "The file contains your resume data in a format that can be imported into word processors"
+          });
+          break;
+        
+        case 'json':
+          // Export the raw resume data as JSON
+          exportData(resumeData, fullFilename, 'application/json');
+          toast.dismiss();
+          toast.success(`Resume data exported as JSON`, {
+            description: "Your resume data has been saved and can be re-imported later"
+          });
+          break;
+        
+        default:
+          throw new Error(`Unsupported format: ${format}`);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.dismiss();
+      toast.error("Export failed", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
+    }
+  };
+
+  // A simple helper function to export data
+  const exportData = (data: any, filename: string, type: string) => {
+    // Create a formatted JSON string
+    const jsonData = JSON.stringify(data, null, 2);
+    
+    // Create a Blob containing the data
+    const blob = new Blob([jsonData], { type });
+    
+    // Create a download link
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    
+    // Clean up
+    URL.revokeObjectURL(link.href);
   };
 
   const builderSections: Section[] = [
@@ -457,18 +702,6 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleDownload}
-                  disabled={isGeneratingPDF}
-                >
-                  {isGeneratingPDF ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
                   onClick={() => setShowStyleDialog(true)}
                 >
                   <Settings className="h-4 w-4" />
@@ -551,19 +784,6 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleDownload}
-                disabled={isGeneratingPDF}
-              >
-                {isGeneratingPDF ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {isGeneratingPDF ? "Generating..." : "Download"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={() => setShowStyleDialog(true)}
               >
                 <Settings className="h-4 w-4 mr-2" />
@@ -618,28 +838,36 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={() => setExportDialogOpen(true)}
+              >
+                <Download className="h-4 w-4" /> Export
+              </Button>
             </div>
           </div>
             </div>
 
         {/* ATS Analysis Section */}
-        {atsScore && (
-          <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        {atsScore && showAtsDialog && (
+          <div className="border-b bg-black text-white">
             <div className="container py-4">
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="col-span-1">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Overall ATS Score</h4>
+                    <h4 className="text-sm font-medium text-gray-400 mb-1">Overall ATS Score</h4>
                     <div className="flex items-baseline gap-1">
                       <p className="text-4xl font-bold">{atsScore.score}</p>
-                      <span className="text-sm text-muted-foreground">/100</span>
+                      <span className="text-sm text-gray-400">/100</span>
                     </div>
                   </div>
                   <div className="col-span-1">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Format Score</h4>
+                    <h4 className="text-sm font-medium text-gray-400 mb-1">Format Score</h4>
                     <div className="flex items-baseline gap-1">
                       <p className="text-4xl font-bold">{atsScore.format_score}</p>
-                      <span className="text-sm text-muted-foreground">/100</span>
+                      <span className="text-sm text-gray-400">/100</span>
                     </div>
                   </div>
                   <div className="col-span-2 flex items-end justify-end gap-2">
@@ -648,7 +876,7 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                       size="sm"
                       onClick={handleAnalyze}
                       disabled={isAnalyzing}
-                      className="gap-2 h-8"
+                      className="gap-2 h-8 text-white border-gray-700 hover:bg-gray-800"
                     >
                       {isAnalyzing ? (
                         <>
@@ -666,7 +894,7 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsAtsMinimized(!isAtsMinimized)}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 text-white hover:bg-gray-800"
                     >
                       {isAtsMinimized ? (
                         <ChevronDown className="h-4 w-4" />
@@ -679,71 +907,94 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
               
                 {!isAtsMinimized && (
                   <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 mt-2">
-                    <Card className="p-3 sm:p-4 bg-card/50">
+                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
                           <h4 className="text-sm font-medium">Top Keyword Matches</h4>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {atsScore.matches?.map((keyword: string, i: number) => (
-                            <Badge key={i} variant="secondary" className="bg-green-500/10 text-green-500 hover:bg-green-500/20 text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
+                          {atsScore.matchedKeywords?.length > 0 ? (
+                            atsScore.matchedKeywords.map((keyword: string, i: number) => (
+                              <span key={i} className="px-2 py-1 rounded-md bg-green-500/10 text-green-500 text-xs border border-green-500/20">
+                                {keyword}
+                              </span>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No keyword matches found</p>
+                          )}
                         </div>
                       </div>
-                    </Card>
+                    </div>
                     
-                    <Card className="p-3 sm:p-4 bg-card/50">
+                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 text-yellow-500" />
                           <h4 className="text-sm font-medium">Missing Keywords</h4>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {atsScore.missing?.map((keyword: string, i: number) => (
-                            <Badge key={i} variant="outline" className="border-yellow-500/20 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
+                          {((atsScore.missingKeywords?.length ?? 0) > 0 || (atsScore.missing?.length ?? 0) > 0) ? (
+                            <>
+                              {atsScore.missingKeywords?.map((keyword: string, i: number) => (
+                                <span key={`kw-${i}`} className="px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-500 text-xs border border-yellow-500/20">
+                                  {keyword}
+                                </span>
+                              ))}
+                              {atsScore.missing?.map((item: string, i: number) => (
+                                <span key={`miss-${i}`} className="px-2 py-1 rounded-md bg-yellow-500/10 text-yellow-500 text-xs border border-yellow-500/20">
+                                  {item}
+                                </span>
+                              ))}
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-400">No missing keywords detected</p>
+                          )}
                         </div>
                       </div>
-                    </Card>
+                    </div>
                     
-                    <Card className="p-3 sm:p-4 bg-card/50">
+                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-blue-500" />
                           <h4 className="text-sm font-medium">Suggested Improvements</h4>
                         </div>
                         <ul className="space-y-1.5">
-                          {atsScore.improvements?.map((improvement: string, i: number) => (
-                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                              <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-blue-500" />
-                              {improvement}
-                            </li>
-                          ))}
+                          {(atsScore.improvements?.length ?? 0) > 0 ? (
+                            atsScore.improvements?.map((improvement: string, i: number) => (
+                              <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                                <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-blue-500" />
+                                <span>{improvement}</span>
+                              </li>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No improvements suggested</p>
+                          )}
                         </ul>
                       </div>
-                    </Card>
+                    </div>
                     
-                    <Card className="p-3 sm:p-4 bg-card/50">
+                    <div className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
                       <div className="space-y-2 sm:space-y-3">
                         <div className="flex items-center gap-2">
                           <Layout className="h-4 w-4 text-purple-500" />
                           <h4 className="text-sm font-medium">Format Feedback</h4>
                         </div>
                         <ul className="space-y-1.5">
-                          {atsScore.format_feedback?.map((feedback: string, i: number) => (
-                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                              <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-purple-500" />
-                              {feedback}
-                            </li>
-                          ))}
+                          {(atsScore.format_feedback?.length ?? 0) > 0 ? (
+                            atsScore.format_feedback?.map((feedback: string, i: number) => (
+                              <li key={i} className="text-xs text-gray-300 flex items-start gap-2">
+                                <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0 text-purple-500" />
+                                <span>{feedback}</span>
+                              </li>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-400">No format feedback available</p>
+                          )}
                         </ul>
                       </div>
-                    </Card>
+                    </div>
                   </div>
                 )}
               </div>
@@ -767,8 +1018,16 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
               )}
             >
               <div className="sticky top-[7rem]">
-                <div ref={previewRef}>
-                  <ResumePreview template="modern" scale={0.7} />
+                <div className="h-full">
+                  <ResumePreviewPanel 
+                    onExport={() => setExportDialogOpen(true)}
+                    onShare={() => {
+                      // You could implement sharing functionality here
+                      // For now, just show a toast message
+                      toast.info("Share functionality coming soon!");
+                    }}
+                    className="h-full"
+                  />
                 </div>
               </div>
             </div>
@@ -779,6 +1038,11 @@ Please analyze this resume for ATS optimization and provide a detailed analysis 
       <ResumeStyleDialog
         open={showStyleDialog}
         onOpenChange={setShowStyleDialog}
+      />
+      <ResumeExportDialog 
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        onExport={handleExport}
       />
     </div>
   );

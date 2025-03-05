@@ -509,7 +509,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   }
 
   return (
-    <div className="relative">
+    <div className="resume-preview relative bg-white shadow-lg">
       <div className="flex justify-center">
         <div 
           style={wrapperStyle} 

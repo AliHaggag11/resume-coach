@@ -33,8 +33,41 @@ function EditResumeContent() {
 
   useEffect(() => {
     const fetchResume = async () => {
-      if (!user || !id) {
+      if (!user) {
         router.push("/builder");
+        return;
+      }
+
+      // Handle 'new' as a special case for creating a new resume
+      if (id === 'new') {
+        setResumeData({
+          id: 'new',
+          user_id: user.id,
+          title: 'Untitled Resume',
+          content: {
+            personalInfo: {
+              fullName: '',
+              title: '',
+              email: '',
+              phone: '',
+              location: '',
+              summary: '',
+              linkedin: '',
+              github: '',
+              website: ''
+            },
+            experiences: [],
+            education: [],
+            skills: [],
+            projects: [],
+            awards: []
+          },
+          status: 'draft',
+          shared: false,
+          created_at: new Date().toISOString(),
+          last_modified: new Date().toISOString()
+        });
+        setIsLoading(false);
         return;
       }
 

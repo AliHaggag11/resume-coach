@@ -230,3 +230,48 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Add print styles at the end of the file */
+@media print {
+  /* Hide everything except the resume */
+  body * {
+    visibility: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Show only the resume and its contents */
+  .resume-preview, 
+  .resume-preview *,
+  .resume-preview > div, 
+  .resume-preview > div > div, 
+  .resume-preview > div > div > div {
+    visibility: visible !important;
+    display: block !important;
+    position: relative !important;
+    overflow: visible !important;
+  }
+  
+  /* Position the resume at the start of the page */
+  .resume-preview {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    transform: scale(1) !important;
+    box-shadow: none !important;
+    background-color: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+  
+  /* Hide UI elements in print */
+  button, .menu, .toolbar, .navigation {
+    display: none !important;
+  }
+}

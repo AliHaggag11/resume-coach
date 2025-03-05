@@ -399,7 +399,7 @@ export default function DashboardPage() {
                 Find Jobs
               </Button>
             </Link>
-            <Link href="/builder/new">
+            <Link href="/builder">
               <Button variant="outline" className="gap-2">
                 <PlusCircle className="h-4 w-4" />
                 New Resume
@@ -715,7 +715,7 @@ export default function DashboardPage() {
           <TabsContent value="resumes">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {/* Add New Resume Card */}
-              <Link href="/builder/new">
+              <Link href="/builder">
                 <Card className="bg-gradient-to-br from-background/80 to-muted/50 hover:from-primary/5 hover:to-primary/10 transition-colors cursor-pointer h-full border-dashed border-2 border-muted flex flex-col items-center justify-center">
                   <CardContent className="p-6 text-center h-full flex flex-col items-center justify-center">
                     <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">

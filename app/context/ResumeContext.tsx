@@ -210,6 +210,33 @@ export function ResumeProvider({ children }: { children: React.ReactNode }) {
 
   const loadResume = async (id: string) => {
     try {
+      // Handle 'new' as a special case for creating a new resume
+      if (id === 'new') {
+        // Reset to default empty resume data
+        setResumeData({
+          personalInfo: {
+            fullName: '',
+            title: '',
+            email: '',
+            phone: '',
+            location: '',
+            summary: '',
+            linkedin: '',
+            github: '',
+            website: ''
+          },
+          experiences: [],
+          education: [],
+          skills: [],
+          projects: [],
+          awards: []
+        });
+        // Clear the current resume ID since this is a new resume
+        setCurrentResumeId(null);
+        toast.success('Created new resume');
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Please sign in to load your resume');
