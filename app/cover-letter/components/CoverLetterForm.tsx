@@ -188,7 +188,7 @@ function SignInDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (op
 
 export default function CoverLetterForm({ initialValues, formId }: CoverLetterFormProps): ReactElement {
   const router = useRouter();
-  const { credits, useCredits: spendCredits, isLoading: isLoadingCredits } = useSubscription();
+  const { credits, spendCredits, isLoading: isLoadingCredits } = useSubscription();
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [formData, setFormData] = useState<FormData>(initialValues || {
     fullName: '',

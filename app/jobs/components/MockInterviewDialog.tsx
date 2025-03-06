@@ -96,7 +96,7 @@ export default function MockInterviewDialog({
   jobDetails,
 }: MockInterviewDialogProps) {
   const { user } = useAuth();
-  const { credits, useCredits, refreshCredits } = useSubscription();
+  const { credits, spendCredits, refreshCredits } = useSubscription();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -345,7 +345,7 @@ export default function MockInterviewDialog({
       
       // Deduct credits
       console.log(`Attempting to deduct ${CREDIT_COSTS.JOBS.PRACTICE_WITH_AI} credits...`);
-      const success = await useCredits(
+      const success = await spendCredits(
         CREDIT_COSTS.JOBS.PRACTICE_WITH_AI, 
         'AI Interview Practice', 
         `${jobDetails.company_name} ${interview.interview_type} Interview Practice`

@@ -89,7 +89,7 @@ type CreditsContextType = {
   isLoading: boolean;
   creditHistory: CreditTransaction[];
   purchaseCredits: (amount: number) => Promise<{ success: boolean; error?: string }>;
-  useCredits: (amount: number, feature: string, description: string) => Promise<boolean>;
+  spendCredits: (amount: number, feature: string, description: string) => Promise<boolean>;
   refreshCredits: () => Promise<void>;
 };
 
@@ -176,7 +176,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   };
 
   // Function to use credits for a feature
-  const useCredits = async (amount: number, feature: string, description: string): Promise<boolean> => {
+  const spendCredits = async (amount: number, feature: string, description: string): Promise<boolean> => {
     if (!user) {
       toast.error('You must be logged in to use this feature');
       return false;
@@ -260,7 +260,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     isLoading,
     creditHistory,
     purchaseCredits,
-    useCredits,
+    spendCredits,
     refreshCredits,
   };
 

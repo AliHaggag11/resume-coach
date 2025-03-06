@@ -31,7 +31,7 @@ export default function PrepGuideDialog({
   onOpenChange,
   interview
 }: PrepGuideDialogProps) {
-  const { credits, useCredits } = useSubscription();
+  const { credits, spendCredits } = useSubscription();
   const [isGenerating, setIsGenerating] = useState(false);
   const [jobApplication, setJobApplication] = useState<any>(null);
   const [prepGuide, setPrepGuide] = useState<{
@@ -265,7 +265,7 @@ export default function PrepGuideDialog({
       // This ensures users pay for the service even if something fails later
       try {
         console.log(`Deducting ${CREDIT_COSTS.JOBS.AI_PREPARATION_GUIDE} credits for preparation guide`);
-        await useCredits(CREDIT_COSTS.JOBS.AI_PREPARATION_GUIDE, 'AI Interview Preparation Guide', 'interview_prep');
+        await spendCredits(CREDIT_COSTS.JOBS.AI_PREPARATION_GUIDE, 'AI Interview Preparation Guide', 'interview_prep');
         console.log("Credits deducted successfully");
       } catch (creditError) {
         console.error("Error deducting credits:", creditError);
