@@ -188,7 +188,7 @@ function SignInDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (op
 
 export default function CoverLetterForm({ initialValues, formId }: CoverLetterFormProps): ReactElement {
   const router = useRouter();
-  const { credits, useCredits, isLoading: isLoadingCredits } = useSubscription();
+  const { credits, useCredits: spendCredits, isLoading: isLoadingCredits } = useSubscription();
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [formData, setFormData] = useState<FormData>(initialValues || {
     fullName: '',
@@ -510,8 +510,20 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
         return;
       }
 
-      // Use credits for job analysis - fix parameter order (amount, feature, description)
-      await useCredits(ANALYZE_JOB_COST, 'cover-letter', 'Analyze Job Description');
+      // Use spendCredits instead of useCredits
+      try {
+        const creditResult = await spendCredits(ANALYZE_JOB_COST, 'cover-letter', 'Analyze Job Description');
+        
+        if (!creditResult) {
+          setIsAnalyzing(false);
+          return; // Exit early if credits couldn't be spent
+        }
+      } catch (error) {
+        console.error('Error spending credits:', error);
+        toast.error('Failed to process credits. Please try again.');
+        setIsAnalyzing(false);
+        return;
+      }
 
       // Rest of the existing code for analyzing job description
       const response = await fetch('/api/analyze-job', {
@@ -626,9 +638,9 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
     try {
       setIsGenerating(true);
       
-      // Use credits with proper error handling
+      // Use spendCredits with proper error handling
       try {
-        const creditResult = await useCredits(
+        const creditResult = await spendCredits(
           CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER, 
           'cover-letter', 
           `Generate cover letter for ${formData.jobTitle} at ${formData.companyName}`
@@ -636,16 +648,16 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
         
         if (!creditResult) {
           setIsGenerating(false);
-          return; // Exit early if credits couldn't be used
+          return; // Exit early if credits couldn't be spent
         }
       } catch (error) {
-        console.error('Error using credits:', error);
+        console.error('Error spending credits:', error);
         toast.error('Failed to process credits. Please try again.');
         setIsGenerating(false);
         return;
       }
       
-      // Continue with cover letter generation only if credits were successfully used
+      // Continue with cover letter generation only if credits were successfully spent
       const prompt = {
         content: {
           ...formData,
