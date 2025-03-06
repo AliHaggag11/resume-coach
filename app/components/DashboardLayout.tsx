@@ -32,6 +32,9 @@ import {
   Bookmark,
   Calendar,
   ChevronDown,
+  Coins,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -51,6 +54,30 @@ import { useSubscription } from "@/app/context/SubscriptionContext";
 import { Toaster } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSidebar } from "@/app/context/SidebarContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+
+// Define credit package options
+interface CreditPackage {
+  amount: number;
+  price: number;
+  tag?: string;
+  discount?: string;
+}
+
+// Credit package options
+const CREDIT_PACKAGES: CreditPackage[] = [
+  { amount: 50, price: 5, tag: "" },
+  { amount: 125, price: 10, tag: "Popular", discount: "Save 20%" },
+  { amount: 300, price: 20, tag: "Best Value", discount: "Save 33%" }
+];
 
 interface NavItem {
   title: string;
@@ -122,7 +149,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading: authLoading, signOut } = useAuth();
-  const { credits } = useSubscription();
+  const { credits, isLoading: creditsLoading, purchaseCredits } = useSubscription();
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -130,6 +157,9 @@ export default function DashboardLayout({
     "/jobs": pathname.startsWith("/jobs")
   });
   const { theme, setTheme } = useTheme();
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Check if we're on mobile
   useEffect(() => {
@@ -165,6 +195,29 @@ export default function DashboardLayout({
   const userInitials = user?.email
     ? user.email.substring(0, 2).toUpperCase()
     : "U";
+
+  const handlePurchase = async () => {
+    if (selectedPackage === null) return;
+    
+    const packageAmount = CREDIT_PACKAGES[selectedPackage].amount;
+    setIsPurchasing(true);
+    
+    try {
+      const result = await purchaseCredits(packageAmount);
+      
+      if (result.success) {
+        toast.success(`Successfully added ${packageAmount} credits to your account!`);
+        setIsOpen(false);
+      } else {
+        toast.error(`Purchase failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error purchasing credits:', error);
+      toast.error('An unexpected error occurred during purchase');
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -234,13 +287,6 @@ export default function DashboardLayout({
                   <h2 className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">
                     Main Navigation
                   </h2>
-                </div>
-              )}
-              
-              {/* Credits indicator for logged-in users */}
-              {user && (
-                <div className="mb-3">
-                  <CreditsIndicator collapsed={isCollapsed && !isMobile} />
                 </div>
               )}
               
@@ -428,6 +474,157 @@ export default function DashboardLayout({
               </div>
 
               <div className="space-y-1">
+                {/* Add credits indicator here for logged-in users with custom styling */}
+                {(!isCollapsed || isMobile) && user && (
+                  <div className="mb-2 relative">
+                    {/* Hidden original credits indicator for functionality */}
+                    <div className="sr-only">
+                      <CreditsIndicator collapsed={false} />
+                    </div>
+                    
+                    {/* Custom styled credits display */}
+                    <div className="px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-blue-500/15 p-1.5 rounded-md">
+                            <Coins className="h-4 w-4 text-blue-500" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium flex items-center gap-1">
+                              <span>{creditsLoading ? "Loading..." : `${credits} Credits`}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">AI-powered features</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setIsOpen(true)}
+                          className="h-7 w-7 p-0 rounded-full bg-transparent hover:bg-blue-500/20 text-blue-500 flex items-center justify-center"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {isCollapsed && !isMobile && user && (
+                  <div className="mb-2 flex justify-center relative">
+                    {/* Hidden original credits indicator for functionality */}
+                    <div className="sr-only">
+                      <CreditsIndicator collapsed={true} />
+                    </div>
+                    
+                    {/* Custom styled credits icon for collapsed view */}
+                    <button
+                      onClick={() => setIsOpen(true)}
+                      className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-colors group"
+                    >
+                      <Coins className="h-5 w-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                    </button>
+                  </div>
+                )}
+                
+                {/* Purchase credits dialog */}
+                <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                  <DialogContent className="sm:max-w-md border-0 bg-background/95 backdrop-blur-sm">
+                    <DialogHeader className="space-y-3">
+                      <DialogTitle className="flex items-center gap-2.5 text-xl">
+                        <div className="bg-blue-500/15 p-1.5 rounded-md">
+                          <Coins className="h-5 w-5 text-blue-500" />
+                        </div>
+                        Purchase Credits
+                      </DialogTitle>
+                      <DialogDescription className="text-muted-foreground text-sm">
+                        Credits are used for AI-powered features like resume generation, mock interviews, and more.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="grid gap-5 py-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Current Balance:</span>
+                        <div className="font-semibold text-lg flex items-center gap-2">
+                          <div className="bg-blue-500/15 p-1 rounded-md">
+                            <Coins className="h-4 w-4 text-blue-500" />
+                          </div>
+                          {credits} Credits
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Select a Package:</p>
+                        <div className="space-y-3 pt-1">
+                          {CREDIT_PACKAGES.map((pkg, index) => (
+                            <div 
+                              key={index}
+                              className={cn(
+                                "relative border rounded-xl p-4 cursor-pointer transition-all",
+                                selectedPackage === index 
+                                  ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500" 
+                                  : "border-border hover:border-blue-500/30 hover:bg-blue-500/5"
+                              )}
+                              onClick={() => setSelectedPackage(index)}
+                            >
+                              {pkg.tag && (
+                                <span className={cn(
+                                  "absolute right-3 top-0 -translate-y-1/2 text-xs px-3 py-0.5 rounded-full font-medium",
+                                  pkg.tag === "Popular" 
+                                    ? "bg-blue-500 text-white" 
+                                    : "bg-blue-500 text-white"
+                                )}>
+                                  {pkg.tag}
+                                </span>
+                              )}
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                  <div className="bg-blue-900/20 rounded-lg p-2.5">
+                                    <Sparkles className="h-6 w-6 text-blue-500" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-lg">{pkg.amount} Credits</div>
+                                    {pkg.discount && (
+                                      <div className="text-sm text-blue-500 font-medium">{pkg.discount}</div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-xl font-bold">${pkg.price}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <DialogFooter className="sm:justify-between gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsOpen(false)}
+                        disabled={isPurchasing}
+                        className="w-full sm:w-auto border-blue-500/20 hover:bg-blue-500/5 hover:text-blue-600 hover:border-blue-500/30"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handlePurchase} 
+                        disabled={selectedPackage === null || isPurchasing}
+                        className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        {isPurchasing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            Purchase
+                            <Plus className="h-4 w-4" />
+                          </>
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
                 {(!isCollapsed || isMobile) && (
                   <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-muted/50">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">

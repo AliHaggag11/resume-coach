@@ -18,11 +18,6 @@ import {
 import { toast } from 'sonner';
 import { 
   Loader2, 
-  FileSearch, 
-  BrainCircuit, 
-  ListChecks, 
-  Sparkles, 
-  CheckCircle2,
   Building2,
   Briefcase,
   MapPin,
@@ -33,7 +28,6 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface JobApplicationDialogProps {
   open: boolean;
@@ -73,15 +67,7 @@ export default function JobApplicationDialog({
 }: JobApplicationDialogProps) {
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<{
-    requiredSkills: string[];
-    keyQualifications: string[];
-    preparationTips: string[];
-    interviewQuestions: string[];
-    companyInsights: string[];
-  } | null>(null);
-  const [activeTab, setActiveTab] = useState('details');
+  const isAddMode = !application?.id;
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -100,15 +86,16 @@ export default function JobApplicationDialog({
       setFormData({
         company_name: application.company_name || '',
         job_title: application.job_title || '',
-        job_description: application.job_description || '',
-        job_link: application.job_link || '',
         status: application.status || 'applied',
-        salary_range: application.salary_range || '',
+        job_description: application.job_description || '',
         location: application.location || '',
         remote_type: application.remote_type || 'onsite',
+        salary_range: application.salary_range || '',
+        job_link: application.job_link || '',
         notes: application.notes || '',
       });
     } else {
+      // Reset the form when creating a new application
       setFormData({
         company_name: '',
         job_title: '',
@@ -121,220 +108,62 @@ export default function JobApplicationDialog({
         notes: '',
       });
     }
-  }, [application]);
-
-  // Reset AI suggestions and set active tab to 'details' whenever dialog opens
-  useEffect(() => {
-    if (open) {
-      setActiveTab('details');
-      if (!application) {
-        setAiSuggestions(null);
-      }
-    }
   }, [open, application]);
 
-  const analyzeJobDescription = async () => {
-    if (!formData.job_description) {
-      toast.error('Please add a job description to analyze');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast.error('You must be logged in to add or edit applications');
       return;
     }
 
     try {
-      setIsAnalyzing(true);
-      
-      const prompt = {
-        content: formData.job_description,
-        title: formData.job_title,
-        company: formData.company_name,
-        format: "json",
-        system: "You are a job analysis assistant that ONLY responds with JSON. Your task is to analyze job descriptions and extract key information in the exact JSON format specified. Never return plain text or explanations.",
-        template: {
-          requiredSkills: ["skill1", "skill2", "skill3", "skill4", "skill5"],
-          keyQualifications: ["qual1", "qual2", "qual3", "qual4", "qual5"],
-          preparationTips: ["tip1", "tip2", "tip3"],
-          interviewQuestions: ["question1", "question2", "question3", "question4"],
-          companyInsights: ["insight1", "insight2", "insight3"]
-        },
-        instructions: "Extract information from the job description and return it in the exact JSON format shown in the template. Do not include any text outside the JSON structure.",
-        rules: [
-          "Response MUST be valid JSON",
-          "Do not include any text before or after the JSON",
-          "Use the exact field names shown in the template",
-          "Each array must contain strings only",
-          "Follow the exact number of items specified in the template"
-        ]
-      };
-
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt,
-          type: 'job_analysis',
-          format: 'json',
-          temperature: 0 // Add temperature parameter to make responses more consistent
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.details || error.error || 'Analysis failed');
-      }
-
-      const data = await response.json();
-      
-      if (!data.result) {
-        throw new Error('No analysis results received');
-      }
-
-      try {
-        // Clean the result string by removing markdown code blocks if present
-        const cleanResult = data.result
-          .replace(/```json\n?/g, '')
-          .replace(/```\n?/g, '')
-          .trim();
-        
-        let analysis;
-        try {
-          // First try parsing the cleaned result
-          analysis = JSON.parse(cleanResult);
-        } catch (initialParseError) {
-          console.log('Initial parse failed, attempting to convert plain text to JSON');
-          
-          // If we got plain text, try to convert it to our expected format
-          const lines = cleanResult.split('\n').filter((line: string) => line.trim());
-          const skills = lines
-            .filter((line: string) => /javascript|python|java|react|node|sql|nosql|programming|development|testing/i.test(line))
-            .slice(0, 5);
-          const qualifications = lines
-            .filter((line: string) => /experience|knowledge|proficiency|familiarity|understanding|degree|years/i.test(line))
-            .slice(0, 5);
-          const tips = [
-            "Review the technical skills mentioned in the job description",
-            "Prepare examples of relevant project experience",
-            "Research the company's tech stack and products"
-          ];
-          const questions = [
-            "Describe your experience with the technologies mentioned",
-            "How do you approach problem-solving and debugging?",
-            "Tell me about a challenging project you worked on",
-            "How do you stay updated with new technologies?"
-          ];
-          const insights = [
-            "Values technical excellence and best practices",
-            "Emphasizes collaboration and teamwork",
-            "Focus on continuous learning and improvement"
-          ];
-
-          analysis = {
-            requiredSkills: skills.length ? skills : ["JavaScript", "Python", "React", "Node.js", "SQL"],
-            keyQualifications: qualifications.length ? qualifications : [
-              "Bachelor's degree in Computer Science or related field",
-              "3+ years of software development experience",
-              "Strong problem-solving skills",
-              "Experience with modern web technologies",
-              "Knowledge of software development best practices"
-            ],
-            preparationTips: tips,
-            interviewQuestions: questions,
-            companyInsights: insights
-          };
-        }
-        
-        // Log the parsed response for debugging
-        console.log('Parsed AI response:', analysis);
-        
-        // Check if we got the wrong format
-        if (analysis.atsCompatibility || analysis.impactStatements || analysis.keywordsMatch) {
-          console.error('Received resume analysis format instead of job analysis:', analysis);
-          toast.error('AI returned resume analysis instead of job analysis. Retrying...');
-          // Retry the analysis once
-          return analyzeJobDescription();
-        }
-        
-        // Initialize default arrays if missing
-        const validatedAnalysis = {
-          requiredSkills: Array.isArray(analysis.requiredSkills) ? analysis.requiredSkills.slice(0, 5) : [],
-          keyQualifications: Array.isArray(analysis.keyQualifications) ? analysis.keyQualifications.slice(0, 5) : [],
-          preparationTips: Array.isArray(analysis.preparationTips) ? analysis.preparationTips.slice(0, 3) : [],
-          interviewQuestions: Array.isArray(analysis.interviewQuestions) ? analysis.interviewQuestions.slice(0, 4) : [],
-          companyInsights: Array.isArray(analysis.companyInsights) ? analysis.companyInsights.slice(0, 3) : []
-        };
-
-        // Log what fields we got
-        const missingFields = Object.entries(validatedAnalysis)
-          .filter(([_, arr]) => arr.length === 0)
-          .map(([field]) => field);
-        
-        if (missingFields.length > 0) {
-          console.error('Missing or invalid fields:', missingFields);
-          console.error('Received analysis:', analysis);
-          throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-        }
-        
-        setAiSuggestions(validatedAnalysis);
-        toast.success('Job description analyzed successfully');
-        // Automatically switch to AI tab when analysis is complete
-        setActiveTab('ai');
-      } catch (parseError) {
-        console.error('Failed to parse analysis:', parseError);
-        console.error('Raw result:', data.result);
-        throw new Error(`Failed to process analysis results: ${parseError instanceof Error ? parseError.message : 'Invalid response format'}`);
-      }
-    } catch (error) {
-      console.error('Error analyzing job:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to analyze job description');
-      setAiSuggestions(null);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
       setIsSaving(true);
-
-      if (!formData.company_name || !formData.job_title) {
-        toast.error('Please fill in all required fields');
-        return;
+      
+      let payload;
+      
+      if (isAddMode) {
+        // For new applications, use all form data
+        payload = { ...formData, user_id: user.id };
+      } else {
+        // For editing, only update editable fields
+        payload = {
+          job_description: formData.job_description,
+          notes: formData.notes,
+        };
       }
-
-      const data = {
-        ...formData,
-        user_id: user.id,
-        ai_analysis: aiSuggestions // Save the AI analysis with the application
-      };
 
       let result;
+      
       if (application?.id) {
+        // Update existing application
         result = await supabase
           .from('job_applications')
-          .update(data)
-          .eq('id', application.id)
-          .select()
-          .single();
+          .update(payload)
+          .eq('id', application.id);
       } else {
+        // Insert new application
         result = await supabase
           .from('job_applications')
-          .insert([data])
-          .select()
-          .single();
+          .insert([payload]);
       }
 
-      if (result.error) throw result.error;
+      if (result.error) {
+        throw result.error;
+      }
 
       toast.success(
         application?.id
-          ? 'Job application updated successfully'
-          : 'Job application added successfully'
+          ? 'Application updated successfully'
+          : 'Application added successfully'
       );
+      
+      onOpenChange(false);
       onClose();
     } catch (error) {
-      console.error('Error saving job application:', error);
-      toast.error('Failed to save job application');
+      console.error('Error saving application:', error);
+      toast.error('Failed to save application. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -350,46 +179,38 @@ export default function JobApplicationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6">
           <DialogHeader>
             <DialogTitle className="text-2xl font-semibold tracking-tight">
-              {application?.id ? 'Edit Job Application' : 'Add New Job Application'}
+              {isAddMode ? 'Add New Job Application' : 'Edit Job Application'}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {application?.id 
-                ? 'Update the details of your job application'
-                : 'Track a new job application to monitor your job search progress'
+              {isAddMode 
+                ? 'Track a new job application to monitor your job search progress'
+                : 'Update the job description and notes for your application'
               }
             </DialogDescription>
           </DialogHeader>
         </div>
         
-        <div className="p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 mb-6">
-              <TabsTrigger value="details" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Application Details
-              </TabsTrigger>
-              <TabsTrigger value="ai" className="flex items-center gap-2" disabled={!formData.job_description}>
-                <BrainCircuit className="h-4 w-4" />
-                AI Analysis
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="details" className="space-y-6 pt-2">
-              <form id="application-form" onSubmit={handleSubmit} className="space-y-6">
-                {/* Main Info Card */}
+        <div className="p-6 overflow-y-auto flex-grow">
+          <div className="space-y-6">
+            <form id="application-form" onSubmit={handleSubmit}>
+              {isAddMode ? (
+                // Add mode - all fields are editable
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-primary" />
-                      Job Information
+                      <FileText className="h-5 w-5 text-primary" />
+                      Application Details
                     </CardTitle>
+                    <CardDescription>
+                      Enter information about the job you're applying for
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="company_name" className="text-sm font-medium">
                           Company Name <span className="text-destructive">*</span>
@@ -523,31 +344,7 @@ export default function JobApplicationDialog({
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
                         <Label htmlFor="job_description" className="text-sm font-medium">Job Description</Label>
-                        {formData.job_description && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={analyzeJobDescription}
-                            disabled={isAnalyzing}
-                            className="h-8 px-2 text-xs"
-                          >
-                            {isAnalyzing ? (
-                              <>
-                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                Analyzing...
-                              </>
-                            ) : (
-                              <>
-                                <BrainCircuit className="mr-1 h-3 w-3" />
-                                Analyze with AI
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
                       <Textarea
                         id="job_description"
                         value={formData.job_description}
@@ -560,9 +357,95 @@ export default function JobApplicationDialog({
                     </div>
                   </CardContent>
                 </Card>
+              ) : (
+                // Edit mode - read-only fields displayed in a clean format
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Company</h3>
+                      <p className="text-base font-medium">{formData.company_name}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Job Title</h3>
+                      <p className="text-base font-medium">{formData.job_title}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Location</h3>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-sm">{formData.location || 'Not specified'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Work Type</h3>
+                      <p className="text-sm capitalize">{formData.remote_type}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Status</h3>
+                      <Badge 
+                        className={`${statusColors[formData.status]} px-2 py-1`}
+                      >
+                        {formatStatus(formData.status)}
+                      </Badge>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Salary Range</h3>
+                      <p className="text-sm">{formData.salary_range || 'Not specified'}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Job Posting URL</h3>
+                      {formData.job_link ? (
+                        <a 
+                          href={formData.job_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm text-primary hover:underline truncate inline-block max-w-full"
+                        >
+                          {formData.job_link}
+                        </a>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {application?.job_link || 'No URL provided'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                {/* Notes Card */}
+              {/* Job Description Card - only shown in edit mode */}
+              {!isAddMode && (
                 <Card className="border shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Job Description
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      id="job_description"
+                      value={formData.job_description}
+                      onChange={(e) =>
+                        setFormData({ ...formData, job_description: e.target.value })
+                      }
+                      placeholder="Paste the full job description here"
+                      className="min-h-[12rem]"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Notes Card */}
+              <Card className="border shadow-sm mt-6">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <StickyNote className="h-5 w-5 text-primary" />
@@ -580,170 +463,10 @@ export default function JobApplicationDialog({
                   </CardContent>
                 </Card>
               </form>
-            </TabsContent>
-            
-            <TabsContent value="ai" className="space-y-4 pt-2">
-              <Card className="border shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <BrainCircuit className="h-5 w-5 text-primary" />
-                    AI Job Analysis
-                  </CardTitle>
-                  <CardDescription>
-                    Let AI analyze the job description to extract key information
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {!formData.job_description ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
-                      <p className="text-muted-foreground">Add a job description first to enable AI analysis</p>
                     </div>
-                  ) : !aiSuggestions && !isAnalyzing ? (
-                    <div className="text-center py-8">
-                      <Button
-                        onClick={analyzeJobDescription}
-                        className="mx-auto bg-primary hover:bg-primary/90"
-                        disabled={isAnalyzing}
-                      >
-                        {isAnalyzing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Analyzing...
-                          </>
-                        ) : (
-                          <>
-                            <FileSearch className="h-4 w-4 mr-2" />
-                            Analyze Job Description
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-xs text-muted-foreground mt-3">
-                        Our AI will extract key requirements, skills, and insights from this job
-                      </p>
-                    </div>
-                  ) : isAnalyzing ? (
-                    <div className="space-y-6 py-4">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-pulse flex flex-col items-center">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                          <p className="text-muted-foreground">Analyzing job description...</p>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="space-y-2 animate-pulse">
-                          <div className="h-5 bg-muted rounded w-1/4"></div>
-                          <div className="flex flex-wrap gap-2">
-                            {[1, 2, 3, 4, 5].map(i => (
-                              <div key={i} className="h-8 bg-muted rounded w-24"></div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-2 animate-pulse">
-                          <div className="h-5 bg-muted rounded w-1/3"></div>
-                          <div className="space-y-2">
-                            {[1, 2, 3].map(i => (
-                              <div key={i} className="h-4 bg-muted rounded"></div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : aiSuggestions && (
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          Required Skills
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {aiSuggestions.requiredSkills.map((skill, i) => (
-                            <Badge 
-                              key={i} 
-                              variant="secondary"
-                              className="px-3 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border-none text-sm"
-                            >
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-primary" />
-                          Key Qualifications
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {aiSuggestions.keyQualifications.map((qual, i) => (
-                            <div 
-                              key={i} 
-                              className="px-3 py-2 rounded-md bg-muted/50 border border-muted text-sm"
-                            >
-                              {qual}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="font-medium mb-3 flex items-center gap-2">
-                            <ListChecks className="h-4 w-4 text-primary" />
-                            Preparation Tips
-                          </h4>
-                          <ul className="list-disc pl-5 space-y-2">
-                            {aiSuggestions.preparationTips.map((tip, i) => (
-                              <li key={i} className="text-sm text-muted-foreground">{tip}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium mb-3 flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-primary" />
-                            Company Insights
-                          </h4>
-                          <ul className="list-disc pl-5 space-y-2">
-                            {aiSuggestions.companyInsights.map((insight, i) => (
-                              <li key={i} className="text-sm text-muted-foreground">{insight}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium mb-3 flex items-center gap-2">
-                          <FileSearch className="h-4 w-4 text-primary" />
-                          Likely Interview Questions
-                        </h4>
-                        <div className="space-y-2">
-                          {aiSuggestions.interviewQuestions.map((question, i) => (
-                            <div 
-                              key={i} 
-                              className="px-4 py-3 rounded-md bg-muted/30 border border-muted text-sm"
-                            >
-                              {question}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-                {aiSuggestions && (
-                  <CardFooter className="bg-muted/20 border-t px-6 py-4">
-                    <div className="text-xs text-muted-foreground">
-                      The analysis above is automatically generated and will be saved with your application
-                    </div>
-                  </CardFooter>
-                )}
-              </Card>
-            </TabsContent>
-          </Tabs>
         </div>
         
-        <div className="border-t p-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+        <div className="border-t p-6 flex flex-col-reverse sm:flex-row justify-end gap-3 bg-background">
           <Button
             type="button"
             variant="outline"
@@ -759,7 +482,7 @@ export default function JobApplicationDialog({
             className="w-full sm:w-auto bg-primary hover:bg-primary/90"
           >
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {application?.id ? 'Update' : 'Save'} Application
+            {isAddMode ? 'Add Application' : 'Update Application'}
           </Button>
         </div>
       </DialogContent>

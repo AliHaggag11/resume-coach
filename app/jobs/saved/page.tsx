@@ -220,88 +220,135 @@ export default function SavedJobsPage() {
           </Card>
         ) : (
           filteredJobs.map((job) => (
-            <Card key={job.id} className="overflow-hidden group">
+            <Card key={job.id} className="group relative overflow-hidden transition-all hover:shadow-lg hover:border-primary/20">
               <CardContent className="p-0">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="h-14 w-14 rounded-md border flex items-center justify-center shrink-0 bg-muted/30 group-hover:border-primary/20 transition-colors">
-                      {job.job_description?.includes('employer_logo:') && 
-                       job.job_description.split('employer_logo:')[1]?.split('\n')[0]?.trim() !== "" ? (
-                        <img 
-                          src={job.job_description.split('employer_logo:')[1]?.split('\n')[0]}
-                          alt={`${job.company_name} logo`}
-                          className="h-10 w-10 object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.parentElement?.classList.add('fallback');
-                            target.style.display = 'none';
-                            const fallbackIcon = document.createElement('div');
-                            fallbackIcon.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
-                            target.parentElement?.appendChild(fallbackIcon.firstChild!);
-                          }}
-                        />
-                      ) : (
-                        <BriefcaseIcon className="h-6 w-6 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="space-y-1 flex-1">
-                      <h3 className="font-medium leading-tight">{job.job_title}</h3>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Building2 className="h-3.5 w-3.5 mr-1" />
-                        {job.company_name}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <MapPin className="h-3.5 w-3.5 mr-1" />
-                        {job.location || 'Location not specified'} • {job.remote_type}
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        <Badge variant="outline" className="bg-muted/50">
-                          Saved {formatDate(job.created_at)}
-                        </Badge>
+                <div className="relative p-5 sm:p-6">
+                  {/* Top Section */}
+                  <div className="flex items-start gap-5">
+                    {/* Logo Section */}
+                    <div className="relative">
+                      <div className="h-16 w-16 rounded-xl border-2 border-muted bg-card flex items-center justify-center overflow-hidden">
+                        {job.job_description?.includes('employer_logo:') && 
+                         job.job_description.split('employer_logo:')[1]?.split('\n')[0]?.trim() !== "" ? (
+                          <img 
+                            src={job.job_description.split('employer_logo:')[1]?.split('\n')[0]}
+                            alt={`${job.company_name} logo`}
+                            className="h-12 w-12 object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.parentElement?.classList.add('fallback');
+                              target.style.display = 'none';
+                              const fallbackIcon = document.createElement('div');
+                              fallbackIcon.innerHTML = '<svg class="h-8 w-8 text-muted-foreground/50" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="16" x="8" y="4" rx="1"/><path d="M18 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/><path d="M4 8h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1Z"/></svg>';
+                              target.parentElement?.appendChild(fallbackIcon.firstChild!);
+                            }}
+                          />
+                        ) : (
+                          <BriefcaseIcon className="h-8 w-8 text-muted-foreground/50" />
+                        )}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                        onClick={() => handleDeleteJob(job.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Remove
-                      </Button>
+
+                    {/* Content Section */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col gap-3">
+                        {/* Title and Company */}
+                        <div>
+                          <h3 className="text-xl font-semibold leading-tight group-hover:text-primary transition-colors">
+                            {job.job_title}
+                          </h3>
+                          <div className="mt-1.5 flex items-center gap-3 text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="h-4 w-4" />
+                              <span className="text-sm font-medium">{job.company_name}</span>
+                            </div>
+                            <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="h-4 w-4" />
+                              <span className="text-sm">{job.location || 'Location not specified'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tags Section */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-medium">
+                            {job.remote_type}
+                          </Badge>
+                          <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-muted">
+                            Saved {formatDate(job.created_at)}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions Section - Desktop */}
+                    <div className="hidden sm:flex flex-col gap-2">
                       <Button
                         variant="default"
                         size="sm"
-                        className="gap-1.5"
+                        className="w-[100px] gap-2 bg-primary/10 text-primary hover:bg-primary/20 border-primary/10"
                         onClick={() => applyToJob(job)}
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
+                        <ExternalLink className="h-4 w-4" />
                         Apply
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-[100px] gap-2 border-destructive/20 text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteJob(job.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
                       </Button>
                     </div>
                   </div>
-                  <div>
+
+                  {/* Mobile Actions */}
+                  <div className="sm:hidden flex gap-2 mt-4">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1 gap-2 bg-primary/10 text-primary hover:bg-primary/20 border-primary/10"
+                      onClick={() => applyToJob(job)}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Apply
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2 border-destructive/20 text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteJob(job.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  </div>
+
+                  {/* Description Toggle */}
+                  <div className="mt-4 pt-4 border-t">
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="px-0 text-primary/80 font-medium"
+                      className="px-0 -ml-2 text-muted-foreground hover:text-primary"
                       onClick={() => toggleDescription(job.id)}
                     >
                       {expandedDescriptions.has(job.id) ? (
                         <>
-                          <ChevronUp className="h-4 w-4 mr-1" />
-                          Hide Description
+                          <ChevronUp className="h-4 w-4 mr-1.5" />
+                          Hide Full Description
                         </>
                       ) : (
                         <>
-                          <ChevronDown className="h-4 w-4 mr-1" />
-                          Show Description
+                          <ChevronDown className="h-4 w-4 mr-1.5" />
+                          Show Full Description
                         </>
                       )}
                     </Button>
                     {expandedDescriptions.has(job.id) && (
-                      <div className="mt-2 text-sm text-muted-foreground space-y-2 whitespace-pre-wrap">
+                      <div className="mt-3 pl-2 text-sm text-muted-foreground prose prose-sm max-w-none prose-p:leading-relaxed prose-headings:text-muted-foreground">
                         {job.job_description.includes('job_id:') 
                           ? job.job_description.split('job_id:')[0] 
                           : job.job_description}
