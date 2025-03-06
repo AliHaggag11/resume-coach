@@ -221,10 +221,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     try {
       // This would typically integrate with a payment processor
-      // For now, simulate adding credits directly
-      const { data, error } = await supabase.rpc('add_credits', {
-        p_user_id: user.id,
-        p_amount: amount
+      // For now, use our debug function to diagnose issues
+      const { data, error } = await supabase.rpc('add_credits_debug', {
+        p_amount: amount,
+        p_user_id: user.id
       });
 
       if (error) {
@@ -232,13 +232,26 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return { success: false, error: error.message };
       }
 
-      // Update local state
-      await refreshCredits();
-      toast.success(`Added ${amount} credits to your account`);
-      return { success: true };
+      // Log the detailed response for debugging
+      console.log('Credit purchase response:', data);
+      
+      if (data && data.success) {
+        // Update local state
+        await refreshCredits();
+        toast.success(`Added ${amount} credits to your account`);
+        return { success: true };
+      } else {
+        // Handle failed operation with detailed error
+        const errorStep = data?.step || 'unknown';
+        const errorMsg = data?.error || data?.message || 'Unknown error occurred';
+        console.error(`Credit purchase failed at step ${errorStep}: ${errorMsg}`);
+        toast.error(`Failed to add credits: ${errorMsg}`);
+        return { success: false, error: `Failed at ${errorStep}: ${errorMsg}` };
+      }
     } catch (error: any) {
       console.error('Error in credit purchase:', error);
-      return { success: false, error: error.message || 'An unexpected error occurred' };
+      toast.error('An unexpected error occurred');
+      return { success: false, error: error.message };
     }
   };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/app/context/AuthContext';
+import { useSubscription, CREDIT_COSTS } from '@/app/context/SubscriptionContext';
 
 interface MockInterviewDialogProps {
   open: boolean;
@@ -95,10 +96,12 @@ export default function MockInterviewDialog({
   jobDetails,
 }: MockInterviewDialogProps) {
   const { user } = useAuth();
+  const { credits, useCredits, refreshCredits } = useSubscription();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [creditsAlreadyUsed, setCreditsAlreadyUsed] = useState(false);
   const [interviewState, setInterviewState] = useState<InterviewState>({
     stage: 'intro',
     progress: 0,
@@ -107,16 +110,16 @@ export default function MockInterviewDialog({
   });
   const [startTime, setStartTime] = useState<number | null>(null);
   const [thinkStartTime, setThinkStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isInterviewComplete, setIsInterviewComplete] = useState(false);
+  const [performanceSummary, setPerformanceSummary] = useState<PerformanceSummary | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'chat' | 'performance'>('chat');
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   
-  // Add state for performance summary and interview completion
-  const [isInterviewComplete, setIsInterviewComplete] = useState(false);
-  const [performanceSummary, setPerformanceSummary] = useState<PerformanceSummary | null>(null);
-
-  // Add state to toggle between summary and chat view
-  const [viewMode, setViewMode] = useState<'chat' | 'summary'>('chat');
-
   // Load saved interview session from Supabase when dialog opens
   useEffect(() => {
     if (open && user?.id) {
@@ -142,6 +145,7 @@ export default function MockInterviewDialog({
         }
         // If no session found or error, initialize a fresh session
         initializeFreshSession();
+        setCreditsAlreadyUsed(false); // New session, credits not used yet
         return;
       }
       
@@ -161,6 +165,9 @@ export default function MockInterviewDialog({
           setPerformanceSummary(sessionData.performanceSummary || null);
           setViewMode(sessionData.viewMode || 'chat');
           
+          // Set credits already used flag
+          setCreditsAlreadyUsed(true);
+          
           // Only start timer if interview was in progress and not complete
           if (sessionData.startTime && !sessionData.isInterviewComplete) {
             startTimer();
@@ -169,14 +176,17 @@ export default function MockInterviewDialog({
           console.error('Error parsing saved interview session:', err);
           // If there's an error parsing, initialize a fresh session
           initializeFreshSession();
+          setCreditsAlreadyUsed(false);
         }
       } else {
         // No saved session found, initialize a fresh one
         initializeFreshSession();
+        setCreditsAlreadyUsed(false);
       }
     } catch (err) {
       console.error('Error loading interview session:', err);
       initializeFreshSession();
+      setCreditsAlreadyUsed(false);
     }
   };
   
@@ -195,7 +205,8 @@ export default function MockInterviewDialog({
           startTime: startTime ? new Date(startTime).toISOString() : null,
           isInterviewComplete,
           performanceSummary,
-          viewMode
+          viewMode,
+          creditsAlreadyUsed
         };
         
         try {
@@ -251,6 +262,8 @@ export default function MockInterviewDialog({
       
       // Initialize fresh session
       initializeFreshSession();
+      setCreditsAlreadyUsed(false);
+      
       // Show success toast
       toast.success('Interview session reset successfully');
     } catch (err) {
@@ -297,6 +310,61 @@ export default function MockInterviewDialog({
 
   // Start the interview
   const startInterview = async () => {
+    // Verify actual credit status before proceeding
+    let actualCreditStatus = false;
+    let creditsJustDeducted = false; // Track if we just deducted credits in this execution
+
+    if (user?.id) {
+      try {
+        // Get the current credit balance directly from the database
+        const { data: creditData, error: creditError } = await supabase
+          .from('user_credits')
+          .select('credits')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (creditError) {
+          console.error('Error fetching credit balance:', creditError);
+        } else if (creditData) {
+          // Update flag based on whether we have enough credits
+          actualCreditStatus = creditData.credits >= CREDIT_COSTS.JOBS.PRACTICE_WITH_AI;
+          console.log(`Verified credit balance: ${creditData.credits} credits available`);
+        }
+      } catch (err) {
+        console.error('Exception checking credit balance:', err);
+      }
+    }
+    
+    // Check if credits have already been used or if we need to deduct new credits
+    if (!creditsAlreadyUsed) {
+      // Verify we have enough credits (using most up-to-date info from DB)
+      if (credits < CREDIT_COSTS.JOBS.PRACTICE_WITH_AI || !actualCreditStatus) {
+        toast.error(`Not enough credits. You need ${CREDIT_COSTS.JOBS.PRACTICE_WITH_AI} credits to start an AI interview practice session.`);
+        return;
+      }
+      
+      // Deduct credits
+      console.log(`Attempting to deduct ${CREDIT_COSTS.JOBS.PRACTICE_WITH_AI} credits...`);
+      const success = await useCredits(
+        CREDIT_COSTS.JOBS.PRACTICE_WITH_AI, 
+        'AI Interview Practice', 
+        `${jobDetails.company_name} ${interview.interview_type} Interview Practice`
+      );
+      
+      if (!success) {
+        console.error('Failed to deduct credits');
+        toast.error('Failed to process credits. Please try again.');
+        return;
+      }
+      
+      console.log('Credits deducted successfully');
+      // Set flag to indicate credits have been used
+      setCreditsAlreadyUsed(true);
+      creditsJustDeducted = true; // Local variable for this execution
+    } else {
+      console.log('Credits already used, continuing with existing session');
+    }
+    
     setIsLoading(true);
     setStartTime(Date.now());
     try {
@@ -345,7 +413,11 @@ Remember:
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, type: 'interview' }),
+        body: JSON.stringify({ 
+          prompt: prompt,
+          type: 'mock_interview',
+          temperature: 0.7
+        })
       });
 
       if (!response.ok) {
@@ -353,6 +425,121 @@ Remember:
       }
 
       const data = await response.json();
+      
+      // Check if response looks like a resume template (misaligned AI response)
+      const aiMessage = data.result;
+      
+      // More comprehensive check for resume patterns
+      const resumeKeywords = [
+        "**Summary**", "**Experience**", "**Skills**", "**Education**", 
+        "**Projects**", "**Awards**", "**Contact**", "[Your", "Resume", 
+        "CV", "curriculum vitae"
+      ];
+      
+      const boldPatternCount = (aiMessage.match(/\*\*[A-Za-z0-9\s]+\*\*/g) || []).length;
+      const keywordMatches = resumeKeywords.filter(keyword => 
+        aiMessage.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      // Log detection for debugging
+      console.log("AI Response Analysis:", {
+        boldPatternCount,
+        keywordMatches,
+        messageLength: aiMessage.length,
+        firstLine: aiMessage.split('\n')[0]
+      });
+      
+      // Consider it a resume template if:
+      // 1. Has 3+ section headers (bold patterns) OR
+      // 2. Contains 2+ resume-specific keywords OR
+      // 3. Contains "[Your" placeholder text
+      const isResumeTemplate = 
+        boldPatternCount >= 3 || 
+        keywordMatches.length >= 2 ||
+        aiMessage.includes("[Your");
+      
+      if (isResumeTemplate) {
+        // Basic logging for resume detection
+        console.log('Resume template detected instead of interview');
+        
+        // Show user feedback
+        toast.error('AI generated a resume instead of an interview. Processing refund...', { 
+          id: 'refund-toast',
+          duration: 5000 
+        });
+        
+        // CHECK if we just deducted credits in this execution
+        if ((creditsAlreadyUsed || creditsJustDeducted) && user?.id) {
+          try {
+            // Get current credit balance
+            const { data: userCredits, error: creditError } = await supabase
+              .from('user_credits')
+              .select('credits')
+              .eq('user_id', user.id)
+              .single();
+            
+            if (creditError) {
+              throw new Error('Failed to get credit balance');
+            }
+            
+            const currentCredits = userCredits?.credits || 0;
+            
+            // Update credit balance
+            const newBalance = currentCredits + CREDIT_COSTS.JOBS.PRACTICE_WITH_AI;
+            const { error: updateError } = await supabase
+              .from('user_credits')
+              .update({ credits: newBalance })
+              .eq('user_id', user.id);
+              
+            if (updateError) {
+              throw new Error('Failed to update credit balance');
+            }
+            
+            // Log transaction
+            await supabase
+              .from('credit_transactions')
+              .insert({
+                user_id: user.id,
+                amount: CREDIT_COSTS.JOBS.PRACTICE_WITH_AI,
+                transaction_type: 'DIRECT_REFUND',
+                description: 'AI interview error refund - resume template generated',
+                credits_before: currentCredits,
+                credits_after: newBalance
+              });
+              
+            // Success - update state and notify user
+            setCreditsAlreadyUsed(false);
+            
+            toast.success(`Credits refunded successfully!`, { 
+              id: 'refund-toast', 
+              duration: 3000
+            });
+            
+            // Refresh just the credits display instead of the whole page
+            setTimeout(() => {
+              refreshCredits();
+            }, 1500);
+            
+          } catch (error) {
+            // Handle any errors
+            console.error('Error during refund:', error);
+            
+            toast.error(
+              'Refund failed. Please contact support for assistance.', 
+              { id: 'refund-toast', duration: 8000 }
+            );
+          }
+        } else {
+          toast.info('No credits were deducted for this session.', { 
+            id: 'refund-toast' 
+          });
+        }
+        
+        // Reset state
+        initializeFreshSession();
+        setIsLoading(false);
+        return;
+      }
       
       // Add system message about interview format
       setMessages([
@@ -731,7 +918,7 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
           const summary = generatePerformanceSummary();
           setPerformanceSummary(summary);
           setIsInterviewComplete(true);
-          setViewMode('summary'); // Switch to summary view
+          setViewMode('performance'); // Switch to performance view
           toast.success('Interview completed! Check your performance analysis.');
         }, 1000);
       }
@@ -888,11 +1075,20 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                className={`whitespace-nowrap h-8 border font-medium ${
+                    credits < CREDIT_COSTS.JOBS.PRACTICE_WITH_AI && !user
+                    ? 'text-muted-foreground border-muted cursor-not-allowed'
+                    : 'text-destructive border-destructive/30 hover:bg-destructive/10'
+                }`}
+                disabled={!user}
                 onClick={() => {
-                  if (window.confirm('Are you sure you want to reset this interview session? All progress will be lost.')) {
-                    resetInterview();
+                  if (!user) {
+                    toast.error("You must be logged in to reset the interview.");
+                    return;
                   }
+                  
+                  // Open the reset confirmation dialog instead of using window.confirm
+                  setResetDialogOpen(true);
                 }}
               >
                 <RefreshCcw className="h-3.5 w-3.5" />
@@ -901,15 +1097,15 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
             )}
             
             {isInterviewComplete && (
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'chat' | 'summary')} className="mx-auto">
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'chat' | 'performance')} className="mx-auto">
                 <TabsList className="grid grid-cols-2 w-48">
                   <TabsTrigger value="chat" className="flex items-center gap-1.5">
                     <MessageSquare className="h-3.5 w-3.5" />
                     Interview
                   </TabsTrigger>
-                  <TabsTrigger value="summary" className="flex items-center gap-1.5">
+                  <TabsTrigger value="performance" className="flex items-center gap-1.5">
                     <BrainCircuit className="h-3.5 w-3.5" />
-                    Summary
+                    Performance
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -989,6 +1185,25 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                   <p className="text-sm sm:text-base text-muted-foreground mb-2">
                     Our AI interviewer will adapt to your responses and provide feedback on your answers.
                   </p>
+                  
+                  {/* Credit cost indicator */}
+                  <div className="mb-4 flex justify-center">
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+                      !creditsAlreadyUsed && credits < CREDIT_COSTS.JOBS.PRACTICE_WITH_AI 
+                        ? 'border-destructive/50 bg-destructive/10 text-destructive'
+                        : 'border-primary/30 bg-primary/5 text-primary'
+                    }`}>
+                      <Sparkles className="h-4 w-4" />
+                      {creditsAlreadyUsed ? (
+                        <span className="text-sm font-medium">Session credit already used</span>
+                      ) : credits < CREDIT_COSTS.JOBS.PRACTICE_WITH_AI ? (
+                        <span className="text-sm font-medium">Not enough credits ({credits}/{CREDIT_COSTS.JOBS.PRACTICE_WITH_AI} needed)</span>
+                      ) : (
+                        <span className="text-sm font-medium">Cost: {CREDIT_COSTS.JOBS.PRACTICE_WITH_AI} credits</span>
+                      )}
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-3 mb-4 mt-5 text-left">
                     <div className="flex items-start space-x-2">
                       <div className="mt-0.5 bg-primary/10 p-1.5 rounded-full">
@@ -1030,7 +1245,7 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                 </div>
                 <Button 
                   onClick={startInterview} 
-                  disabled={isLoading} 
+                  disabled={isLoading || (!creditsAlreadyUsed && credits < CREDIT_COSTS.JOBS.PRACTICE_WITH_AI)} 
                   size="lg" 
                   className="mt-2 sm:mt-4 text-sm px-8 rounded-full shadow-md transition-all hover:shadow-lg"
                 >
@@ -1039,15 +1254,20 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Preparing Interview...
                     </>
+                  ) : !creditsAlreadyUsed && credits < CREDIT_COSTS.JOBS.PRACTICE_WITH_AI ? (
+                    <>
+                      Insufficient Credits
+                      <XCircle className="ml-2 h-4 w-4" />
+                    </>
                   ) : (
                     <>
-                      Start Interview
+                      {creditsAlreadyUsed ? "Continue Interview" : "Start Interview"}
                       <BrainCircuit className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
               </div>
-            ) : isInterviewComplete && performanceSummary && viewMode === 'summary' ? (
+            ) : isInterviewComplete && performanceSummary && viewMode === 'performance' ? (
               // Performance Summary View - full replacement of chat when interview is complete
               <div className="animate-fade-in">
                 <Card className="border border-primary/20 bg-primary/5 overflow-hidden">
@@ -1399,12 +1619,38 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
           )}
           {isInterviewComplete && (
             <p className="text-[10px] text-center text-muted-foreground mt-2">
-              {viewMode === 'summary' 
+              {viewMode === 'performance' 
                 ? 'Click the "Interview" button above to review your conversation' 
-                : 'Click the "Summary" button above to see your performance analysis'}
+                : 'Click the "Performance" button above to see your performance analysis'}
             </p>
           )}
         </div>
+
+        {/* Reset Confirmation Dialog */}
+        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Reset Interview</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to reset this interview session? All current progress will be lost.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex flex-row justify-end gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setResetDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  resetInterview();
+                  setResetDialogOpen(false);
+                }}
+              >
+                Reset Interview
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
