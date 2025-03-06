@@ -29,6 +29,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false); // Track the authentication state
   const [rememberMe, setRememberMe] = useState(false);
   const { signIn, signInWithGithub, signInWithGoogle, user } = useAuth();
   const router = useRouter();
@@ -37,6 +38,7 @@ export default function SignInPage() {
   // If user is already authenticated, redirect them
   useEffect(() => {
     if (user) {
+      setIsAuthenticating(false); // Clear authentication state when complete
       router.push(redirectPath);
     }
   }, [user, router, redirectPath]);
@@ -44,6 +46,7 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setIsAuthenticating(true); // Start authentication
     setError(null);
 
     try {
@@ -51,13 +54,14 @@ export default function SignInPage() {
       
       if (error) {
         setError(error.message);
+        setIsAuthenticating(false); // Clear authentication state on error
         return;
       }
       
-      // Use the redirect parameter if available
-      router.push(redirectPath);
+      // Redirection will happen in the useEffect hook when user state updates
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
+      setIsAuthenticating(false); // Clear authentication state on error
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -66,20 +70,30 @@ export default function SignInPage() {
 
   const handleGithubSignIn = async () => {
     try {
+      setIsAuthenticating(true); // Start authentication
       const { error } = await signInWithGithub();
-      if (error) setError(error.message);
+      if (error) {
+        setError(error.message);
+        setIsAuthenticating(false); // Clear authentication state on error
+      }
     } catch (err) {
       setError("Failed to sign in with GitHub");
+      setIsAuthenticating(false); // Clear authentication state on error
       console.error(err);
     }
   };
 
   const handleGoogleSignIn = async () => {
     try {
+      setIsAuthenticating(true); // Start authentication
       const { error } = await signInWithGoogle();
-      if (error) setError(error.message);
+      if (error) {
+        setError(error.message);
+        setIsAuthenticating(false); // Clear authentication state on error
+      }
     } catch (err) {
       setError("Failed to sign in with Google");
+      setIsAuthenticating(false); // Clear authentication state on error
       console.error(err);
     }
   };
@@ -90,6 +104,21 @@ export default function SignInPage() {
       <Suspense fallback={null}>
         <SignInWithRedirect onParamsReady={setRedirectPath} />
       </Suspense>
+      
+      {/* Full-page loading overlay */}
+      {isAuthenticating && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center"
+        >
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            <div className="absolute w-full h-full rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
+          </div>
+          <p className="mt-6 text-lg font-medium text-foreground">Signing you in...</p>
+          <p className="mt-2 text-sm text-muted-foreground">You'll be redirected to the dashboard shortly</p>
+        </motion.div>
+      )}
       
       {/* Background decorations */}
       <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
@@ -117,6 +146,7 @@ export default function SignInPage() {
                   variant="outline" 
                   className="relative h-11"
                   onClick={handleGoogleSignIn}
+                  disabled={isLoading || isAuthenticating}
                 >
                   <div className="absolute left-4 flex h-5 w-5">
                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo" className="w-full h-auto" />
@@ -127,6 +157,7 @@ export default function SignInPage() {
                   variant="outline"
                   className="relative h-11"
                   onClick={handleGithubSignIn}
+                  disabled={isLoading || isAuthenticating}
                 >
                   <Github className="absolute left-4 h-5 w-5" />
                   Continue with GitHub
@@ -166,6 +197,7 @@ export default function SignInPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="h-11"
                     required
+                    disabled={isAuthenticating}
                   />
                 </div>
                 
@@ -189,6 +221,7 @@ export default function SignInPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-11"
                     required
+                    disabled={isAuthenticating}
                   />
                 </div>
 
@@ -197,6 +230,7 @@ export default function SignInPage() {
                     id="remember" 
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    disabled={isAuthenticating}
                   />
                   <label
                     htmlFor="remember"
@@ -211,7 +245,7 @@ export default function SignInPage() {
                 <Button 
                   type="submit" 
                   className="w-full h-11 text-base font-medium"
-                  disabled={isLoading}
+                  disabled={isLoading || isAuthenticating}
                 >
                   {isLoading ? (
                     <>

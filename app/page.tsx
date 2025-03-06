@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Sparkles, Layout, Target, ChevronRight, Zap, Star, Crown, Shield, Clock, RefreshCcw, Download, FileCheck, Users, Check, PenTool, Mail, Phone, MapPin, Send } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, Layout, Target, ChevronRight, Zap, Star, Crown, Shield, Clock, RefreshCcw, Download, FileCheck, Users, Check, PenTool, Mail, Phone, MapPin, Send, Loader2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { z } from "zod";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 // Feature content from features page
 const features = [
@@ -197,9 +200,91 @@ const tiers = [
 ];
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [isAIEnhanced, setIsAIEnhanced] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  
+  // Contact form state
+  const [contactFormData, setContactFormData] = useState({
+    name: user?.user_metadata?.full_name || "",
+    email: user?.email || "",
+    subject: "",
+    message: "",
+  });
+  const [contactErrors, setContactErrors] = useState<Record<string, string>>({});
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  
+  const contactSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Please enter a valid email address"),
+    subject: z.string().min(5, "Subject must be at least 5 characters"),
+    message: z.string().min(20, "Message must be at least 20 characters"),
+  });
+
+  const validateContactField = (field: keyof typeof contactFormData, value: string) => {
+    try {
+      contactSchema.shape[field].parse(value);
+      setContactErrors(prev => ({ ...prev, [field]: "" }));
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setContactErrors(prev => ({ ...prev, [field]: error.errors[0].message }));
+      }
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactErrors({});
+
+    try {
+      contactSchema.parse(contactFormData);
+      setIsSubmittingContact(true);
+
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: contactFormData.name,
+          email: contactFormData.email,
+          subject: contactFormData.subject,
+          message: contactFormData.message,
+          user_id: user?.id || null,
+        });
+
+      if (error) throw error;
+
+      toast.success("Message sent successfully! We'll get back to you soon.", {
+        description: "Thank you for contacting us. We typically respond within 24 hours.",
+      });
+      
+      // Only clear subject and message if successful
+      setContactFormData(prev => ({
+        ...prev,
+        subject: "",
+        message: "",
+      }));
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach(err => {
+          if (err.path[0]) {
+            fieldErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setContactErrors(fieldErrors);
+        toast.error("Please fix the errors in the form", {
+          description: "Some fields need your attention before submitting.",
+        });
+      } else {
+        console.error('Error submitting contact form:', error);
+        toast.error("Failed to send message", {
+          description: error.message || "Please try again later.",
+        });
+      }
+    } finally {
+      setIsSubmittingContact(false);
+    }
+  };
 
   const handleAIToggle = () => {
     setIsTransitioning(true);
@@ -1204,62 +1289,118 @@ export default function HomePage() {
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent opacity-20 rounded-lg blur-xl" />
               <div className="relative rounded-lg border bg-card/50 backdrop-blur-sm p-8 shadow-xl">
-                <form className="space-y-6" onSubmit={(e) => {
-                  e.preventDefault();
-                  toast.success("Message sent successfully! We'll get back to you soon.", {
-                    description: "Thank you for contacting us. We typically respond within 24 hours.",
-                  });
-                }}>
+                <form onSubmit={handleContactSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label htmlFor="landing-name" className="text-sm font-medium">
+                      <label htmlFor="landing-name" className="text-sm font-medium flex items-center gap-2">
                         Name
+                        {contactErrors.name && (
+                          <span className="text-destructive text-xs flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {contactErrors.name}
+                          </span>
+                        )}
                       </label>
                       <Input
                         id="landing-name"
+                        value={contactFormData.name}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setContactFormData(prev => ({ ...prev, name: value }));
+                          validateContactField("name", value);
+                        }}
                         placeholder="Your name"
-                        className="h-11"
+                        className={`h-11 transition-colors ${contactErrors.name ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        disabled={isSubmittingContact}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="landing-email" className="text-sm font-medium">
+                      <label htmlFor="landing-email" className="text-sm font-medium flex items-center gap-2">
                         Email
+                        {contactErrors.email && (
+                          <span className="text-destructive text-xs flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {contactErrors.email}
+                          </span>
+                        )}
                       </label>
                       <Input
                         id="landing-email"
                         type="email"
+                        value={contactFormData.email}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setContactFormData(prev => ({ ...prev, email: value }));
+                          validateContactField("email", value);
+                        }}
                         placeholder="your@email.com"
-                        className="h-11"
+                        className={`h-11 transition-colors ${contactErrors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                        disabled={isSubmittingContact}
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="landing-subject" className="text-sm font-medium">
+                    <label htmlFor="landing-subject" className="text-sm font-medium flex items-center gap-2">
                       Subject
+                      {contactErrors.subject && (
+                        <span className="text-destructive text-xs flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {contactErrors.subject}
+                        </span>
+                      )}
                     </label>
                     <Input
                       id="landing-subject"
+                      value={contactFormData.subject}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setContactFormData(prev => ({ ...prev, subject: value }));
+                        validateContactField("subject", value);
+                      }}
                       placeholder="What's this about?"
-                      className="h-11"
+                      className={`h-11 transition-colors ${contactErrors.subject ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                      disabled={isSubmittingContact}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="landing-message" className="text-sm font-medium">
+                    <label htmlFor="landing-message" className="text-sm font-medium flex items-center gap-2">
                       Message
+                      {contactErrors.message && (
+                        <span className="text-destructive text-xs flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {contactErrors.message}
+                        </span>
+                      )}
                     </label>
                     <Textarea
                       id="landing-message"
+                      value={contactFormData.message}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setContactFormData(prev => ({ ...prev, message: value }));
+                        validateContactField("message", value);
+                      }}
                       placeholder="Type your message here..."
-                      className="min-h-[120px] resize-none"
+                      className={`min-h-[120px] resize-none transition-colors ${contactErrors.message ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                      disabled={isSubmittingContact}
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full h-11 gap-2">
-                    Send Message
-                    <Send className="h-4 w-4" />
+                  <Button type="submit" className="w-full h-11 gap-2" disabled={isSubmittingContact}>
+                    {isSubmittingContact ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        Send Message
+                        <Send className="h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 </form>
               </div>
