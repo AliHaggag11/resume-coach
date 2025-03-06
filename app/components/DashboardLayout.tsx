@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,11 @@ import {
   Home,
   Award,
   BarChart,
+  Search,
+  ClipboardList,
+  Bookmark,
+  Calendar,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -42,6 +47,10 @@ import {
 import { Switch } from "@/app/components/ui/switch";
 import { motion } from "framer-motion";
 import CreditsIndicator from "./CreditsIndicator";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { Toaster } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useSidebar } from "@/app/context/SidebarContext";
 
 interface NavItem {
   title: string;
@@ -49,6 +58,8 @@ interface NavItem {
   icon: React.ElementType;
   role?: string[];
   badge?: string;
+  children?: NavItem[];
+  expanded?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -61,6 +72,29 @@ const navItems: NavItem[] = [
     title: "Jobs",
     href: "/jobs",
     icon: BriefcaseIcon,
+    expanded: false,
+    children: [
+      {
+        title: "Search",
+        href: "/jobs/search",
+        icon: Search,
+      },
+      {
+        title: "Applications",
+        href: "/jobs/applications",
+        icon: ClipboardList,
+      },
+      {
+        title: "Saved Jobs",
+        href: "/jobs/saved",
+        icon: Bookmark,
+      },
+      {
+        title: "Interviews",
+        href: "/jobs/interviews",
+        icon: Calendar,
+      },
+    ],
   },
   {
     title: "Resumes",
@@ -85,13 +119,17 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const { user, signOut } = useAuth();
-  const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
+  const { user, isLoading: authLoading, signOut } = useAuth();
+  const { credits } = useSubscription();
+  const { isCollapsed, setIsCollapsed } = useSidebar();
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({
+    "/jobs": pathname.startsWith("/jobs")
+  });
+  const { theme, setTheme } = useTheme();
 
   // Check if we're on mobile
   useEffect(() => {
@@ -208,45 +246,129 @@ export default function DashboardLayout({
               
               <nav className="space-y-1.5">
                 {filteredNavItems.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                  const hasChildren = item.children && item.children.length > 0;
+                  const isExpanded = expandedItems[item.href] || false;
+                  
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative group",
-                        isActive
-                          ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                        !isMobile && isCollapsed ? "justify-center" : "",
-                        isActive && !isCollapsed && "pl-4",
-                      )}
-                    >
-                      {isActive && !isCollapsed && (
-                        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-                      )}
-                      <div className={cn(
-                        "relative",
-                        isActive && isCollapsed ? 
-                          "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-6 after:bg-primary after:rounded-r-full" : 
-                          ""
-                      )}>
-                        <item.icon className={cn(
-                          "w-5 h-5 transition-transform",
-                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-                          isCollapsed ? "group-hover:scale-110" : ""
-                        )} />
-                      </div>
-                      {(!isCollapsed || isMobile) && (
-                        <span className="truncate">{item.title}</span>
+                    <div key={item.href}>
+                      {hasChildren ? (
+                        <button
+                          onClick={() => {
+                            setExpandedItems(prev => ({
+                              ...prev,
+                              [item.href]: !isExpanded
+                            }));
+                            if (!isExpanded && !isCollapsed) {
+                              router.push(item.href);
+                            }
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative group",
+                            isActive
+                              ? "bg-primary/10 text-primary hover:bg-primary/15"
+                              : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                            !isMobile && isCollapsed ? "justify-center" : "",
+                            isActive && !isCollapsed && "pl-4",
+                          )}
+                        >
+                          {isActive && !isCollapsed && (
+                            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                          )}
+                          <div className={cn(
+                            "relative",
+                            isActive && isCollapsed ? 
+                              "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-6 after:bg-primary after:rounded-r-full" : 
+                              ""
+                          )}>
+                            <item.icon className={cn(
+                              "w-5 h-5 transition-transform",
+                              isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                              isCollapsed ? "group-hover:scale-110" : ""
+                            )} />
+                          </div>
+                          {(!isCollapsed || isMobile) && (
+                            <>
+                              <span className="truncate">{item.title}</span>
+                              <ChevronDown className={cn(
+                                "ml-auto h-4 w-4 shrink-0 transition-transform",
+                                isExpanded ? "rotate-180" : "rotate-0"
+                              )} />
+                            </>
+                          )}
+                          
+                          {item.badge && !isCollapsed && (
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative group",
+                            isActive
+                              ? "bg-primary/10 text-primary hover:bg-primary/15"
+                              : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                            !isMobile && isCollapsed ? "justify-center" : "",
+                            isActive && !isCollapsed && "pl-4",
+                          )}
+                        >
+                          {isActive && !isCollapsed && (
+                            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                          )}
+                          <div className={cn(
+                            "relative",
+                            isActive && isCollapsed ? 
+                              "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-6 after:bg-primary after:rounded-r-full" : 
+                              ""
+                          )}>
+                            <item.icon className={cn(
+                              "w-5 h-5 transition-transform",
+                              isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                              isCollapsed ? "group-hover:scale-110" : ""
+                            )} />
+                          </div>
+                          {(!isCollapsed || isMobile) && (
+                            <span className="truncate">{item.title}</span>
+                          )}
+                          
+                          {item.badge && !isCollapsed && (
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
                       )}
                       
-                      {item.badge && !isCollapsed && (
-                        <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {item.badge}
-                        </span>
+                      {/* Submenu items */}
+                      {hasChildren && isExpanded && !isCollapsed && (
+                        <div className="mt-1 ml-5 pl-2 border-l border-muted space-y-1">
+                          {item.children?.map((child) => {
+                            const isChildActive = pathname === child.href;
+                            return (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                className={cn(
+                                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all relative",
+                                  isChildActive
+                                    ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                              >
+                                <child.icon className={cn(
+                                  "w-4 h-4",
+                                  isChildActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                )} />
+                                <span className="truncate">{child.title}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
                       )}
-                    </Link>
+                    </div>
                   );
                 })}
               </nav>

@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/app/context/AuthContext";
 import { SubscriptionProvider } from "@/app/context/SubscriptionContext";
+import { SidebarProvider } from "@/app/context/SidebarContext";
 import { Toaster } from "sonner";
 import ClientLayout from "./components/ClientLayout";
 
@@ -33,8 +34,10 @@ export default function RootLayout({
         >
           <AuthProvider>
             <SubscriptionProvider>
-              <Toaster position="top-center" />
-              <ClientLayout>{children}</ClientLayout>
+              <SidebarProvider>
+                <Toaster position="top-center" />
+                <ClientLayout>{children}</ClientLayout>
+              </SidebarProvider>
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>
