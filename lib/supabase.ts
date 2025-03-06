@@ -11,11 +11,31 @@ if (supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder
   );
 }
 
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+// Create browser client with improved auth persistence settings
+export const supabase = createBrowserClient(
+  supabaseUrl, 
+  supabaseAnonKey,
+  {
+    auth: {
+      persistSession: true,
+      detectSessionInUrl: true,
+      autoRefreshToken: true,
+      flowType: 'pkce'
+    }
+  }
+);
 
 export const getServiceSupabase = () => {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-supabase-url.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
+    {
+      auth: {
+        persistSession: true,
+        detectSessionInUrl: true,
+        autoRefreshToken: true,
+        flowType: 'pkce'
+      }
+    }
   );
 }; 

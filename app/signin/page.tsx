@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,17 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const { signIn, signInWithGithub, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGithub, signInWithGoogle, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
+
+  // If user is already authenticated, redirect them
+  useEffect(() => {
+    if (user) {
+      router.push(redirectPath);
+    }
+  }, [user, router, redirectPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +43,33 @@ export default function SignInPage() {
         return;
       }
       
-      router.push("/dashboard");
+      // Use the redirect parameter if available
+      router.push(redirectPath);
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    try {
+      const { error } = await signInWithGithub();
+      if (error) setError(error.message);
+    } catch (err) {
+      setError("Failed to sign in with GitHub");
+      console.error(err);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) setError(error.message);
+    } catch (err) {
+      setError("Failed to sign in with Google");
+      console.error(err);
     }
   };
 
@@ -70,7 +100,7 @@ export default function SignInPage() {
                 <Button 
                   variant="outline" 
                   className="relative h-11"
-                  onClick={() => signInWithGoogle()}
+                  onClick={handleGoogleSignIn}
                 >
                   <div className="absolute left-4 flex h-5 w-5">
                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo" className="w-full h-auto" />
@@ -80,7 +110,7 @@ export default function SignInPage() {
                 <Button 
                   variant="outline"
                   className="relative h-11"
-                  onClick={() => signInWithGithub()}
+                  onClick={handleGithubSignIn}
                 >
                   <Github className="absolute left-4 h-5 w-5" />
                   Continue with GitHub
