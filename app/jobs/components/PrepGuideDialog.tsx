@@ -467,14 +467,14 @@ ${generatedGuide.answers.map((a: string) => `- ${a}`).join('\n')}`;
             ) : prepGuide && (
               <>
                 {/* Add credit confirmation banner at the top */}
-                <div className="mb-6 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md p-3">
+                <div className="mb-6 bg-primary/10 border border-primary/20 rounded-md p-3">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <CheckCircle className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                      <p className="text-sm font-medium text-foreground">
                         {CREDIT_COSTS.JOBS.AI_PREPARATION_GUIDE} credits used
                       </p>
-                      <p className="text-xs text-green-700/70 dark:text-green-400/70">
+                      <p className="text-xs text-muted-foreground">
                         Your personalized interview guide has been generated
                       </p>
                     </div>
