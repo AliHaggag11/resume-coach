@@ -70,7 +70,7 @@ const navItems: NavItem[] = [
   },
   {
     title: "Jobs",
-    href: "/jobs",
+    href: "#", // Changed to # to make it non-clickable
     icon: BriefcaseIcon,
     expanded: false,
     children: [

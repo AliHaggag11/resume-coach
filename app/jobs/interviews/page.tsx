@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Plus, Search, BriefcaseIcon, Building2, MapPin, PenLine, Clock, Trash2, Loader2, Calendar, MoreVertical, Video } from 'lucide-react';
+import { Plus, Search, BriefcaseIcon, Building2, MapPin, PenLine, Clock, Trash2, Loader2, Calendar, MoreVertical, Video, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import PrepGuideDialog from '../components/PrepGuideDialog';
 
 interface Interview {
   id: string;
@@ -137,6 +138,8 @@ export default function InterviewsPage() {
   
   const [isAddCalendarDialogOpen, setIsAddCalendarDialogOpen] = useState(false);
   const [calendarUrls, setCalendarUrls] = useState<{ googleUrl: string; outlookUrl: string; iCalUrl: string } | null>(null);
+
+  const [isPrepGuideDialogOpen, setIsPrepGuideDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -273,46 +276,21 @@ export default function InterviewsPage() {
     try {
       console.log("Attempting to delete interview:", interviewId);
       
-      // Try to delete from 'interviews' table first
-      let deleteError;
-      try {
-        const { error } = await supabase
-          .from('interviews')
-          .delete()
-          .eq('id', interviewId);
-        
-        deleteError = error;
-        
-        // If deletion was successful, no need to try the other table
-        if (!error) {
-          console.log("Successfully deleted from 'interviews' table");
-          setInterviews(interviews.filter(interview => interview.id !== interviewId));
-          toast.success('Interview deleted successfully');
-          return;
-        } else {
-          console.error("Error deleting from 'interviews' table:", error);
-        }
-      } catch (err) {
-        console.error("Exception when deleting from 'interviews':", err);
-        // Continue to try the other table
-      }
-      
-      // If first attempt failed, try 'job_interviews' table
-      console.log("Trying to delete from 'job_interviews' table");
-      const { error: jobInterviewError } = await supabase
+      // Delete from the job_interviews table (correct table name)
+      const { error } = await supabase
         .from('job_interviews')
         .delete()
         .eq('id', interviewId);
       
-      if (jobInterviewError) {
-        console.error("Error deleting from 'job_interviews' table:", jobInterviewError);
-        throw jobInterviewError;
+      if (error) {
+        console.error("Error deleting from 'job_interviews' table:", error);
+        throw error;
       }
       
       console.log("Successfully deleted from 'job_interviews' table");
       setInterviews(interviews.filter(interview => interview.id !== interviewId));
       toast.success('Interview deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting interview:', error);
       
       // More detailed error logging
@@ -348,6 +326,11 @@ export default function InterviewsPage() {
   const handlePractice = async (interview: Interview) => {
     setCurrentInterview(interview);
     setIsMockInterviewDialogOpen(true);
+  };
+
+  const handleGenerateGuide = (interview: Interview) => {
+    setCurrentInterview(interview);
+    setIsPrepGuideDialogOpen(true);
   };
 
   const getApplicationDetails = (applicationId: string) => {
@@ -451,9 +434,9 @@ export default function InterviewsPage() {
             return (
               <Card key={interview.id} className="overflow-hidden">
                 <CardContent className="p-0">
-                  <div className="p-6 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="h-14 w-14 rounded-md border bg-muted/30 flex items-center justify-center shrink-0">
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                      <div className="hidden sm:flex h-14 w-14 rounded-md border bg-muted/30 items-center justify-center shrink-0">
                         {application?.job_description?.includes('employer_logo:') && 
                          application.job_description.split('employer_logo:')[1]?.split('\n')[0]?.trim() !== "" ? (
                           <img 
@@ -474,20 +457,44 @@ export default function InterviewsPage() {
                         )}
                       </div>
                       <div className="space-y-1 flex-1">
-                        <h3 className="font-medium leading-tight">
-                          {formatInterviewType(interview.interview_type)} - {application.job_title}
-                        </h3>
-                        <div className="text-sm text-muted-foreground flex items-center">
-                          <Building2 className="h-3.5 w-3.5 mr-1" />
-                          {application.company_name}
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-medium leading-tight line-clamp-2 pr-2">
+                            {formatInterviewType(interview.interview_type)} - {application.job_title}
+                          </h3>
+                          <div className="flex sm:hidden">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-background border shadow-md">
+                                <DropdownMenuItem onClick={() => handleEditInterview(interview)}>
+                                  <PenLine className="h-4 w-4 mr-2" />
+                                  Edit interview
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleAddToCalendar(interview)}>
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  Add to calendar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleDeleteInterview(interview.id)}
+                                  className="text-red-500 focus:text-red-500"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center">
-                          <Clock className="h-3.5 w-3.5 mr-1" />
-                          {formatDateTime(interview.scheduled_at)} ({interview.duration_minutes} minutes)
+                          <Building2 className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">{application.company_name}</span>
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center">
-                          <MapPin className="h-3.5 w-3.5 mr-1" />
-                          {interview.location}
+                          <Clock className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">{formatDateTime(interview.scheduled_at)} ({interview.duration_minutes} minutes)</span>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {getInterviewStatusBadge(interview.scheduled_at)}
@@ -498,50 +505,54 @@ export default function InterviewsPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mt-2 sm:mt-0 justify-end sm:justify-start">
                         {(interview.interview_type.toLowerCase() === 'technical' || 
                           interview.interview_type.toLowerCase() === 'behavioral') && (
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="flex items-center gap-1.5 bg-primary/5 hover:bg-primary/10 border-primary/10 text-primary"
+                            className="flex items-center gap-1.5 bg-primary/5 hover:bg-primary/10 border-primary/10 text-primary flex-grow sm:flex-grow-0"
                             onClick={() => handlePractice(interview)}
                           >
                             <Video className="h-3.5 w-3.5" />
-                            Practice
+                            <span className="sm:inline">Practice</span>
                           </Button>
                         )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditInterview(interview)}>
-                              <PenLine className="h-4 w-4 mr-2" />
-                              Edit interview
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAddToCalendar(interview)}>
-                              <Calendar className="h-4 w-4 mr-2" />
-                              Add to calendar
-                            </DropdownMenuItem>
-                            {(interview.interview_type.toLowerCase() === 'technical' || 
-                             interview.interview_type.toLowerCase() === 'behavioral') && (
-                              <DropdownMenuItem onClick={() => handlePractice(interview)}>
-                                <Video className="h-4 w-4 mr-2" />
-                                Practice with AI
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1.5 bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/10 text-blue-500 flex-grow sm:flex-grow-0"
+                          onClick={() => handleGenerateGuide(interview)}
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          <span className="sm:inline">Prep Guide</span>
+                        </Button>
+                        <div className="hidden sm:block">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-background border shadow-md">
+                              <DropdownMenuItem onClick={() => handleEditInterview(interview)}>
+                                <PenLine className="h-4 w-4 mr-2" />
+                                Edit interview
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem 
-                              onClick={() => handleDeleteInterview(interview.id)}
-                              className="text-red-500 focus:text-red-500"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem onClick={() => handleAddToCalendar(interview)}>
+                                <Calendar className="h-4 w-4 mr-2" />
+                                Add to calendar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteInterview(interview.id)}
+                                className="text-red-500 focus:text-red-500"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     </div>
                     {interview.notes && (
@@ -699,6 +710,12 @@ export default function InterviewsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PrepGuideDialog 
+        open={isPrepGuideDialogOpen}
+        onOpenChange={setIsPrepGuideDialogOpen}
+        interview={currentInterview}
+      />
     </div>
   );
 } 
