@@ -271,17 +271,59 @@ export default function InterviewsPage() {
     
     setIsDeletingInterview(true);
     try {
-      const { error } = await supabase
-        .from('interviews')
+      console.log("Attempting to delete interview:", interviewId);
+      
+      // Try to delete from 'interviews' table first
+      let deleteError;
+      try {
+        const { error } = await supabase
+          .from('interviews')
+          .delete()
+          .eq('id', interviewId);
+        
+        deleteError = error;
+        
+        // If deletion was successful, no need to try the other table
+        if (!error) {
+          console.log("Successfully deleted from 'interviews' table");
+          setInterviews(interviews.filter(interview => interview.id !== interviewId));
+          toast.success('Interview deleted successfully');
+          return;
+        } else {
+          console.error("Error deleting from 'interviews' table:", error);
+        }
+      } catch (err) {
+        console.error("Exception when deleting from 'interviews':", err);
+        // Continue to try the other table
+      }
+      
+      // If first attempt failed, try 'job_interviews' table
+      console.log("Trying to delete from 'job_interviews' table");
+      const { error: jobInterviewError } = await supabase
+        .from('job_interviews')
         .delete()
         .eq('id', interviewId);
-        
-      if (error) throw error;
       
+      if (jobInterviewError) {
+        console.error("Error deleting from 'job_interviews' table:", jobInterviewError);
+        throw jobInterviewError;
+      }
+      
+      console.log("Successfully deleted from 'job_interviews' table");
       setInterviews(interviews.filter(interview => interview.id !== interviewId));
       toast.success('Interview deleted successfully');
     } catch (error) {
       console.error('Error deleting interview:', error);
+      
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      } else {
+        console.error('Unknown error type:', typeof error);
+        console.error('Error stringified:', JSON.stringify(error));
+      }
+      
       toast.error('Failed to delete interview');
     } finally {
       setIsDeletingInterview(false);
@@ -457,6 +499,18 @@ export default function InterviewsPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
+                        {(interview.interview_type.toLowerCase() === 'technical' || 
+                          interview.interview_type.toLowerCase() === 'behavioral') && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-1.5 bg-primary/5 hover:bg-primary/10 border-primary/10 text-primary"
+                            onClick={() => handlePractice(interview)}
+                          >
+                            <Video className="h-3.5 w-3.5" />
+                            Practice
+                          </Button>
+                        )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
