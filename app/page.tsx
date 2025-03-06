@@ -3,10 +3,198 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Sparkles, Layout, Target, ChevronRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, Layout, Target, ChevronRight, Zap, Star, Crown, Shield, Clock, RefreshCcw, Download, FileCheck, Users, Check, PenTool, Mail, Phone, MapPin, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Footer from "@/components/Footer";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+
+// Feature content from features page
+const features = [
+  {
+    icon: PenTool,
+    title: "AI Resume Builder",
+    description: "Create professional, ATS-optimized resumes in minutes with our AI-powered builder",
+    benefits: [
+      "Smart content suggestions",
+      "Real-time feedback",
+      "Keyword optimization",
+      "Professional formatting"
+    ],
+    gradient: "from-blue-500/30 to-blue-300/30"
+  },
+  {
+    icon: Mail,
+    title: "Cover Letter Generator",
+    description: "Generate tailored cover letters that complement your resume and impress employers",
+    benefits: [
+      "Company-specific content",
+      "Role-matching language",
+      "Professional tone",
+      "Multiple style options"
+    ],
+    gradient: "from-purple-500/30 to-purple-300/30"
+  },
+  {
+    icon: FileCheck,
+    title: "ATS Optimization",
+    description: "Ensure your resume passes Applicant Tracking Systems with our optimization tools",
+    benefits: [
+      "Keyword analysis",
+      "Format verification",
+      "Compatibility checking",
+      "Improvement recommendations"
+    ],
+    gradient: "from-green-500/30 to-green-300/30"
+  }
+];
+
+// Template preview from templates page
+const templates = [
+  {
+    name: "Modern",
+    description: "Clean and contemporary design with a focus on readability",
+    image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&q=80",
+    popular: true,
+    premium: false,
+    features: [
+      "Blue accent colors",
+      "Streamlined layout",
+      "Perfect for most industries",
+      "Clean section headers",
+    ],
+  },
+  {
+    name: "Classic",
+    description: "Traditional format with a timeless professional appeal",
+    image: "https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=800&q=80",
+    popular: false,
+    premium: false,
+    features: [
+      "Left-aligned markers",
+      "Traditional styling",
+      "Subtle formatting",
+      "Great for formal industries",
+    ],
+  },
+  {
+    name: "Minimal",
+    description: "Simple and streamlined layout with minimal styling",
+    image: "https://images.unsplash.com/photo-1586281380117-8c2eadb2d094?w=800&q=80",
+    popular: true,
+    premium: false,
+    features: [
+      "Clean lines",
+      "Maximum whitespace",
+      "Minimalist aesthetic",
+      "Horizontal section dividers",
+    ],
+  },
+  {
+    name: "Professional",
+    description: "Polished appearance ideal for corporate environments",
+    image: "https://images.unsplash.com/photo-1600267204091-5c1ab8b10c02?w=800&q=80",
+    popular: false,
+    premium: false,
+    features: [
+      "Top border accent",
+      "Clear section headings",
+      "Balanced layout",
+      "Professional formatting",
+    ],
+  },
+  {
+    name: "Creative",
+    description: "Vibrant and distinctive design for creative professionals",
+    image: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=800&q=80",
+    popular: false,
+    premium: false,
+    features: [
+      "Side column accent",
+      "Purple color scheme",
+      "Modern typography",
+      "Perfect for design roles",
+    ],
+  },
+  {
+    name: "Technical",
+    description: "Structured layout highlighting technical skills and experience",
+    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80",
+    popular: false,
+    premium: false,
+    features: [
+      "Bullet indicators",
+      "Tech-focused layout",
+      "Clean structure",
+      "Skills emphasis",
+    ],
+  },
+  {
+    name: "Executive",
+    description: "Sophisticated design for leadership and executive roles",
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+    popular: false,
+    premium: false,
+    features: [
+      "Gold accent details",
+      "Understated elegance",
+      "Leadership focus",
+      "Distinctive headers",
+    ],
+  },
+];
+
+// Pricing tiers from pricing page
+const tiers = [
+  {
+    name: "Free",
+    price: "0",
+    description: "Perfect for getting started with your resume",
+    icon: Star,
+    features: [
+      "Access to basic templates",
+      "Simple resume builder",
+      "Export to PDF",
+      "Basic formatting options",
+      "Up to 1 resume",
+    ],
+    cta: "Get Started",
+    gradient: "from-blue-500/10 via-blue-400/10 to-blue-300/10",
+  },
+  {
+    name: "Pro",
+    price: "12",
+    description: "Everything you need for a professional resume",
+    icon: Zap,
+    features: [
+      "All Free features",
+      "AI writing assistance",
+      "Premium templates",
+      "Multiple resume versions",
+      "Cover letter builder",
+    ],
+    popular: true,
+    cta: "Upgrade to Pro",
+    gradient: "from-primary/20 via-primary/10 to-primary/5",
+  },
+  {
+    name: "Enterprise",
+    price: "29",
+    description: "Advanced features for teams and businesses",
+    icon: Crown,
+    features: [
+      "All Pro features",
+      "Team collaboration",
+      "Custom branding",
+      "Advanced analytics",
+      "Dedicated support",
+    ],
+    cta: "Contact Sales",
+    gradient: "from-purple-500/10 via-purple-400/10 to-purple-300/10",
+  },
+];
 
 export default function HomePage() {
   const [isAIEnhanced, setIsAIEnhanced] = useState(true);
@@ -689,123 +877,173 @@ export default function HomePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Features Section */}
-        <section className="w-full py-24 md:py-32 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/30 to-background" />
-          
-          {/* Decorative elements */}
-          <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
-          <div className="absolute inset-0">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
+        {/* NEW: Features Section */}
+        <section className="py-24 md:py-32 relative overflow-hidden">
+          <div className="container px-4 md:px-6">
+            <div className="text-center space-y-4 mb-16">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 mb-4 border border-primary/20 shadow-glow">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <span className="text-sm font-medium text-primary">Powerful Features</span>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                Everything You Need to
+                <span className="block mt-1">Land Your Dream Job</span>
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-[600px] mx-auto mt-4">
+                Our AI-powered platform combines cutting-edge technology with professional templates to create resumes that stand out and get you noticed.
+              </p>
+            </div>
+            
+            <div className="grid gap-12 md:gap-24">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  className="grid md:grid-cols-2 gap-8 md:gap-12 items-center"
+                >
+                  <div className="space-y-6">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+                      <feature.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-2xl font-bold">{feature.title}</h3>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                      <ul className="space-y-2">
+                        {feature.benefits.map((benefit, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className={`relative aspect-video rounded-xl overflow-hidden bg-gradient-to-br ${feature.gradient}`}>
+                    <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-background/80 to-background/20 backdrop-blur-sm" />
+                    <div className="relative h-full flex items-center justify-center p-8">
+                      <feature.icon className="h-16 w-16 text-primary/80" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
-          
-          {/* Floating shapes */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-1/4 right-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl animate-pulse [animation-delay:2s]" />
-          </div>
+        </section>
 
-          <div className="container px-4 md:px-6 relative">
-            <div className="flex flex-col items-center justify-center space-y-16 text-center">
-              <motion.div 
-                className="space-y-4 max-w-[800px]"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 mb-4">
-                  <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                  <span className="text-sm font-medium text-primary">Powerful Features</span>
-                </div>
-                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Everything You Need to
-                  <span className="block mt-1">Land Your Dream Job</span>
-                </h2>
-                <p className="text-muted-foreground text-lg md:text-xl max-w-[600px] mx-auto mt-6">
-                  Our AI-powered platform combines cutting-edge technology with professional templates to create resumes that stand out and get you noticed.
-                </p>
-              </motion.div>
-
-              <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-3 relative">
-                {[
-                  {
-                    icon: Sparkles,
-                    title: "AI-Powered Writing",
-                    description: "Transform your experience into compelling achievements with our advanced AI. Get tailored suggestions and perfect phrasing that highlight your true potential.",
-                    features: ["Smart content suggestions", "Industry-specific keywords", "Impact metrics generation"],
-                    gradient: "from-blue-500/10 via-indigo-500/10 to-purple-500/10",
-                    delay: 0.1,
-                  },
-                  {
-                    icon: Layout,
-                    title: "Beautiful Templates",
-                    description: "Choose from our collection of professionally designed templates. Each template is crafted to help you make a strong first impression.",
-                    features: ["Modern designs", "Customizable layouts", "Mobile-responsive formats"],
-                    gradient: "from-emerald-500/10 via-teal-500/10 to-cyan-500/10",
-                    delay: 0.2,
-                  },
-                  {
-                    icon: Target,
-                    title: "ATS Optimization",
-                    description: "Ensure your resume gets past applicant tracking systems and into human hands. Our smart formatting maximizes your visibility to employers.",
-                    features: ["Keyword optimization", "Format compatibility", "Score tracking"],
-                    gradient: "from-orange-500/10 via-amber-500/10 to-yellow-500/10",
-                    delay: 0.3,
-                  },
-                ].map((feature, index) => (
-                  <motion.div 
-                    key={index}
-                    className="group relative h-full"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: feature.delay }}
-                  >
-                    <div className="relative z-10 h-full overflow-hidden rounded-2xl border bg-background/50 backdrop-blur-sm p-8 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1">
-                      <div className={`absolute inset-0 bg-gradient-to-br opacity-20 group-hover:opacity-30 transition-opacity duration-300 ${feature.gradient}`} />
-                      <div className="relative h-full flex flex-col">
-                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors mb-6">
-                          <feature.icon className="h-7 w-7 text-primary" />
+        {/* NEW: Templates Section */}
+        <section className="py-24 md:py-32 relative overflow-hidden bg-muted/50">
+          <div className="container px-4 md:px-6">
+            <div className="text-center space-y-4 mb-16">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5">
+                <Layout className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Professional Templates</span>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                Stand Out with Stunning Templates
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-[600px] mx-auto mt-4">
+                Choose from our collection of professionally designed, ATS-optimized resume templates
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {templates.slice(0, 6).map((template, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="group relative rounded-xl overflow-hidden bg-background border shadow-sm flex flex-col"
+                >
+                  {/* Template preview area */}
+                  <div className="p-6 bg-card border-b">
+                    <div className="aspect-[4/3] w-full bg-background flex items-center justify-center">
+                      {/* Stylized resume preview - simplified version */}
+                      <div className="w-full space-y-3">
+                        <div className="h-3 bg-muted-foreground/90 w-full rounded max-w-[80%]"></div>
+                        <div className="h-2.5 bg-muted-foreground/50 w-[60%] rounded"></div>
+                        {template.name === "Modern" && (
+                          <div className="h-2.5 bg-blue-500 w-[45%] rounded"></div>
+                        )}
+                        {template.name === "Classic" && (
+                          <div className="h-2.5 bg-muted-foreground/70 w-[40%] rounded"></div>
+                        )}
+                        {template.name === "Minimal" && (
+                          <div className="h-2.5 bg-muted-foreground/70 w-[35%] rounded"></div>
+                        )}
+                        {template.name === "Professional" && (
+                          <div className="h-2.5 bg-muted-foreground/70 w-[40%] rounded"></div>
+                        )}
+                        {template.name === "Creative" && (
+                          <div className="h-2.5 bg-purple-500 w-[45%] rounded"></div>
+                        )}
+                        {template.name === "Technical" && (
+                          <div className="h-2.5 bg-muted-foreground/80 w-[55%] rounded"></div>
+                        )}
+                        {template.name === "Executive" && (
+                          <div className="h-2.5 bg-amber-500/70 w-[50%] rounded"></div>
+                        )}
+                        <div className="flex gap-3">
+                          <div className="h-2 bg-muted-foreground/30 w-[30%] rounded"></div>
+                          <div className="h-2 bg-muted-foreground/20 w-[30%] rounded"></div>
                         </div>
-                        <div className="space-y-2 mb-8">
-                          <h3 className="text-2xl font-bold tracking-tight">{feature.title}</h3>
-                          <p className="text-muted-foreground/90 leading-relaxed">
-                            {feature.description}
-                          </p>
-                        </div>
-                        <div className="mt-auto pt-6 border-t border-border/50">
-                          <ul className="space-y-3">
-                            {feature.features.map((item, i) => (
-                              <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground group-hover:text-muted-foreground/80 transition-colors">
-                                <div className="h-1.5 w-1.5 rounded-full bg-primary/70" />
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                        <div className="h-1.5 bg-muted-foreground/10 w-full rounded"></div>
+                        <div className="h-1.5 bg-muted-foreground/10 w-full rounded"></div>
+                        <div className="h-1.5 bg-muted-foreground/10 w-[80%] rounded"></div>
+                        <div className="h-4"></div>
+                        <div className="h-2.5 bg-muted-foreground/70 w-[45%] rounded"></div>
                       </div>
                     </div>
-                    <div className={`absolute -inset-2 rounded-3xl bg-gradient-to-br ${feature.gradient} opacity-0 blur-2xl transition-all duration-300 group-hover:opacity-20`} />
-                  </motion.div>
-                ))}
-              </div>
+                  </div>
 
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-bold text-xl">{template.name}</h3>
+                      {template.popular && (
+                        <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+                          Popular
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground text-sm mb-4">{template.description}</p>
+                    
+                    <div className="space-y-2 mb-6 flex-1">
+                      {template.features.slice(0, 4).map((feature, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <Star className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span className="text-sm">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Link href="/signup" className="mt-auto">
+                      <Button variant="outline" className="w-full gap-2 group">
+                        Use this template
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                </motion.div>
+              ))}
+              
               <motion.div
-                className="pt-8"
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="sm:col-span-2 lg:col-span-3 rounded-xl bg-primary/5 border p-8 text-center space-y-4"
               >
-                <Link href="/features">
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="rounded-full h-12 px-8 text-base group relative overflow-hidden"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      Explore All Features
-                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <h3 className="text-xl font-bold">Looking for More Options?</h3>
+                <p className="text-muted-foreground">We have additional templates for every profession and career stage</p>
+                <Link href="/signup">
+                  <Button className="gap-2">
+                    Get Started Free
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
               </motion.div>
@@ -813,109 +1051,247 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="w-full py-24 md:py-32 relative overflow-hidden">
-          {/* Background effects */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-primary/5 to-background" />
-          <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
-          <div className="absolute inset-0">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
-          </div>
-
-          <div className="container relative px-4 md:px-6">
-            <motion.div 
-              className="flex flex-col items-center justify-center space-y-8 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
+        {/* NEW: Pricing Section */}
+        <section className="py-24 md:py-32 relative overflow-hidden">
+          <div className="container px-4 md:px-6">
+            <div className="text-center space-y-4 mb-16">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5">
-                <Target className="h-4 w-4 text-primary animate-pulse" />
-                <span className="text-sm font-medium text-primary">Start Your Journey</span>
+                <Target className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Simple Pricing</span>
               </div>
-
-              <div className="space-y-4 max-w-[800px]">
-                <h2 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Ready to Transform Your
-                  <span className="block mt-1">Career Journey?</span>
-                </h2>
-                <p className="mx-auto max-w-[600px] text-muted-foreground text-lg md:text-xl">
-                  Join over 10,000+ professionals who have already elevated their job search with our AI-powered resume builder.
-                </p>
-              </div>
-
-              <div className="grid gap-4 min-[400px]:flex items-center justify-center mt-4">
-                <Link href="/signup">
-                  <Button 
-                    size="lg" 
-                    className="min-w-[200px] h-12 text-base gap-2 rounded-full group relative overflow-hidden"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      Get Started Free
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Button>
-                </Link>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="min-w-[200px] h-12 text-base rounded-full group"
-                  onClick={() => setIsPreviewOpen(true)}
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                Choose the Right Plan for You
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-[600px] mx-auto mt-4">
+                From free resume building to advanced features, we have a plan that fits your needs
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              {tiers.map((tier, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className={`relative rounded-xl border bg-card p-6 shadow-sm ${tier.popular ? 'ring-2 ring-primary' : ''}`}
                 >
-                  <span className="relative z-10 flex items-center gap-2">
-                    View Demo
-                    <Layout className="h-4 w-4 transition-transform group-hover:scale-110" />
-                  </span>
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 pt-12">
-                {[
-                  { label: "Active Users", value: "10K+", icon: CheckCircle2 },
-                  { label: "Success Rate", value: "89%", icon: Target },
-                  { label: "Templates", value: "50+", icon: Layout },
-                  { label: "Time Saved", value: "3hrs", icon: Sparkles },
-                ].map((stat, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/30 backdrop-blur-sm border group hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <stat.icon className="h-5 w-5 text-primary" />
+                  {tier.popular && (
+                    <div className="absolute -top-4 left-0 right-0 mx-auto w-fit px-3 py-1 rounded-full bg-primary text-sm font-medium text-primary-foreground">
+                      Most Popular
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
-                  </motion.div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-8 pt-12">
-                <div className="flex -space-x-3">
-                  {[
-                    "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150",
-                    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-                    "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150",
-                  ].map((url, index) => (
-                    <div
-                      key={index}
-                      className="relative w-10 h-10 rounded-full border-2 border-background overflow-hidden ring-1 ring-border"
-                    >
-                      <img src={url} alt="User" className="w-full h-full object-cover" />
+                  )}
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-xl">{tier.name}</h3>
+                      <p className="text-sm text-muted-foreground">{tier.description}</p>
                     </div>
-                  ))}
-                  <div className="relative w-10 h-10 rounded-full bg-primary/10 border-2 border-background ring-1 ring-border flex items-center justify-center">
-                    <span className="text-xs font-medium">+5k</span>
+                    <div className={`h-12 w-12 rounded-full bg-gradient-to-br ${tier.gradient} flex items-center justify-center`}>
+                      <tier.icon className="h-6 w-6 text-foreground" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">4.9/5</span> from over 2,483 reviews
-                </div>
+                  
+                  <div className="mb-6">
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-bold">${tier.price}</span>
+                      <span className="text-sm text-muted-foreground ml-2">/month</span>
+                    </div>
+                  </div>
+                  
+                  <ul className="space-y-3 mb-6">
+                    {tier.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <Check className="h-4 w-4 text-primary mt-1 shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <Link href="/signup" className="block mt-auto">
+                    <Button 
+                      variant={tier.popular ? "default" : "outline"} 
+                      className="w-full gap-2"
+                    >
+                      {tier.cta}
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* NEW: Contact Form Section */}
+        <section className="py-24 md:py-32 relative overflow-hidden">
+          <div className="container px-4 md:px-6 max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="text-center mb-12"
+            >
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 mb-4 border border-primary/20">
+                <Mail className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Contact Us</span>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 mb-4">
+                Get in Touch
+              </h2>
+              <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
+                Have questions about ResumeCoach? We're here to help! Fill out the form
+                below and we'll get back to you as soon as possible.
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-8 mb-12">
+              {[
+                {
+                  icon: Mail,
+                  title: "Email",
+                  content: "support@resumecoach.com",
+                  description: "Send us an email anytime!",
+                  action: "mailto:support@resumecoach.com",
+                },
+                {
+                  icon: Phone,
+                  title: "Phone",
+                  content: "+1 (555) 123-4567",
+                  description: "Mon-Fri from 9am to 5pm EST",
+                  action: "tel:+15551234567",
+                },
+                {
+                  icon: MapPin,
+                  title: "Office",
+                  content: "123 Resume Street",
+                  description: "New York, NY 10001",
+                  action: "https://maps.google.com/?q=123+Resume+Street+New+York+NY+10001",
+                },
+              ].map((info, index) => (
+                <motion.a
+                  href={info.action}
+                  target={info.icon === MapPin ? "_blank" : undefined}
+                  rel={info.icon === MapPin ? "noopener noreferrer" : undefined}
+                  key={info.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="group relative block"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg blur" />
+                  <div className="relative p-6 rounded-lg border bg-card text-card-foreground shadow-sm transition-transform duration-300 group-hover:scale-[1.02] group-hover:shadow-lg group-hover:shadow-primary/5">
+                    <div className="mb-4 p-3 rounded-full bg-primary/10 w-fit group-hover:bg-primary/20 transition-colors">
+                      <info.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">{info.title}</h3>
+                    <p className="font-medium text-foreground/90">{info.content}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{info.description}</p>
+                  </div>
+                </motion.a>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="max-w-2xl mx-auto relative"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent opacity-20 rounded-lg blur-xl" />
+              <div className="relative rounded-lg border bg-card/50 backdrop-blur-sm p-8 shadow-xl">
+                <form className="space-y-6" onSubmit={(e) => {
+                  e.preventDefault();
+                  toast.success("Message sent successfully! We'll get back to you soon.", {
+                    description: "Thank you for contacting us. We typically respond within 24 hours.",
+                  });
+                }}>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="landing-name" className="text-sm font-medium">
+                        Name
+                      </label>
+                      <Input
+                        id="landing-name"
+                        placeholder="Your name"
+                        className="h-11"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="landing-email" className="text-sm font-medium">
+                        Email
+                      </label>
+                      <Input
+                        id="landing-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        className="h-11"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="landing-subject" className="text-sm font-medium">
+                      Subject
+                    </label>
+                    <Input
+                      id="landing-subject"
+                      placeholder="What's this about?"
+                      className="h-11"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="landing-message" className="text-sm font-medium">
+                      Message
+                    </label>
+                    <Textarea
+                      id="landing-message"
+                      placeholder="Type your message here..."
+                      className="min-h-[120px] resize-none"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full h-11 gap-2">
+                    Send Message
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
               </div>
             </motion.div>
+          </div>
+        </section>
+
+        {/* Final CTA Section */}
+        <section className="py-24 md:py-32 relative overflow-hidden">
+          <div className="container px-4 md:px-6">
+            <div className="relative rounded-3xl overflow-hidden bg-primary/5 border p-8 md:p-12">
+              <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+              <div className="relative z-10 text-center space-y-8 max-w-2xl mx-auto">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  Ready to Build Your Professional Resume?
+                </h2>
+                <p className="text-muted-foreground text-lg">
+                  Join thousands of professionals who trust our AI-powered resume builder to advance their careers.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link href="/signup">
+                    <Button 
+                      size="lg" 
+                      className="min-w-[200px] h-12 text-base gap-2 rounded-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-glow"
+                    >
+                      Get Started Free
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>

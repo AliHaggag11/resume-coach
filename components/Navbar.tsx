@@ -34,7 +34,7 @@ export default function Navbar() {
 
   const isSupport = user?.user_metadata?.role === 'support' || user?.user_metadata?.role === 'admin';
 
-  const menuItems = [
+  const menuItems = user ? [
     {
       href: "/builder",
       label: "Builder",
@@ -73,37 +73,35 @@ export default function Navbar() {
         description: "Get in touch with our team",
       }
     ] : []),
-    ...(user ? [
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: User,
+      description: "Manage your resumes and profile",
+    },
+    {
+      href: "/jobs",
+      label: "Jobs",
+      icon: BriefcaseIcon,
+      description: "Track your job applications",
+    },
+    ...(!isSupport ? [
       {
-        href: "/dashboard",
-        label: "Dashboard",
-        icon: User,
-        description: "Manage your resumes and profile",
-      },
-      {
-        href: "/jobs",
-        label: "Jobs",
-        icon: BriefcaseIcon,
-        description: "Track your job applications",
-      },
-      ...(!isSupport ? [
-        {
-          href: "/messages",
-          label: "Messages",
-          icon: MessageSquare,
-          description: "View your support messages",
-        }
-      ] : []),
-      ...(isSupport ? [
-        {
-          href: "/support",
-          label: "Support Dashboard",
-          icon: HeadphonesIcon,
-          description: "Manage support tickets and messages",
-        },
-      ] : []),
+        href: "/messages",
+        label: "Messages",
+        icon: MessageSquare,
+        description: "View your support messages",
+      }
     ] : []),
-  ];
+    ...(isSupport ? [
+      {
+        href: "/support",
+        label: "Support Dashboard",
+        icon: HeadphonesIcon,
+        description: "Manage support tickets and messages",
+      },
+    ] : []),
+  ] : [];
 
   return (
     <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -123,20 +121,22 @@ export default function Navbar() {
                 ResumeCoach
               </span>
             </Link>
-            <nav className="hidden md:flex items-center space-x-2">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-primary/10 ${
-                    pathname === item.href ? "bg-primary/15" : ""
-                  }`}
-                >
-                  <item.icon className={`h-4 w-4 ${pathname === item.href ? "text-primary" : ""}`} />
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            {user && (
+              <nav className="hidden md:flex items-center space-x-2">
+                {menuItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-primary/10 ${
+                      pathname === item.href ? "bg-primary/15" : ""
+                    }`}
+                  >
+                    <item.icon className={`h-4 w-4 ${pathname === item.href ? "text-primary" : ""}`} />
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center">
@@ -183,9 +183,14 @@ export default function Navbar() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={async () => {
-                          await signOut();
-                          router.replace('/signin');
+                        onClick={() => {
+                          signOut()
+                            .then(() => {
+                              router.push('/');
+                            })
+                            .catch((error) => {
+                              console.error('Error during sign out:', error);
+                            });
                         }}
                         className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
                       >
@@ -217,7 +222,7 @@ export default function Navbar() {
                           : "bg-primary"
                       }`}
                     >
-                      Sign Up
+                      Get Started
                     </Button>
                   </Link>
                 </>
@@ -332,9 +337,14 @@ export default function Navbar() {
                           <Button
                             variant="outline"
                             className="w-full text-red-600 dark:text-red-400"
-                            onClick={async () => {
-                              await signOut();
-                              router.replace('/signin');
+                            onClick={() => {
+                              signOut()
+                                .then(() => {
+                                  router.push('/');
+                                })
+                                .catch((error) => {
+                                  console.error('Error during sign out:', error);
+                                });
                             }}
                           >
                             <LogOut className="h-4 w-4 mr-2" />
@@ -348,7 +358,7 @@ export default function Navbar() {
                           <Button variant="outline" className="w-full">Sign In</Button>
                         </Link>
                         <Link href="/signup" onClick={() => setIsOpen(false)}>
-                          <Button className="w-full">Sign Up</Button>
+                          <Button className="w-full">Get Started</Button>
                         </Link>
                       </div>
                     )}

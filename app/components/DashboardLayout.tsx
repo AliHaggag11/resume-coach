@@ -29,7 +29,7 @@ import {
   BarChart,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Logo } from "@/app/components/ui/logo";
@@ -90,6 +90,7 @@ export default function DashboardLayout({
   const { user, signOut } = useAuth();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   // Check if we're on mobile
   useEffect(() => {
@@ -328,7 +329,15 @@ export default function DashboardLayout({
                   {(!isCollapsed || isMobile) && <span>Profile</span>}
                 </Link>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => {
+                    signOut()
+                      .then(() => {
+                        router.push('/');
+                      })
+                      .catch((error) => {
+                        console.error('Error during sign out:', error);
+                      });
+                  }}
                   className={cn(
                     "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-red-500/10 text-muted-foreground hover:text-red-500",
                     !isMobile && isCollapsed && "justify-center"
