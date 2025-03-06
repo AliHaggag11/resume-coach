@@ -649,7 +649,7 @@ export default function DashboardPage() {
                   <div key={application.id} className="flex flex-col sm:flex-row items-start gap-3 p-3 sm:p-4 rounded-lg border border-muted/60 bg-card hover:bg-accent/5 transition-colors">
                     <div className="flex items-center sm:items-start w-full sm:w-auto">
                       <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-md border border-muted bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
-                        {application.employer_logo ? (
+                        {application.employer_logo && application.employer_logo.trim() !== "" ? (
                           <img 
                             src={application.employer_logo} 
                             alt={`${application.company_name} logo`}

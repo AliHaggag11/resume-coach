@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/app/context/AuthContext';
 import { Plus, Search, Calendar, BriefcaseIcon, Building2, MapPin, PenLine, MessageSquare, Clock, Trash2, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -778,7 +778,7 @@ export default function JobsPage() {
                                   </div>
                                 </div>
                                 <div className="h-14 w-14 rounded-md border bg-muted/30 flex items-center justify-center shrink-0 group-hover:border-primary/20 transition-colors">
-                                  {job.employer_logo ? (
+                                  {job.employer_logo && job.employer_logo.trim() !== "" ? (
                                     <img 
                                       src={job.employer_logo}
                                       alt={`${job.employer_name} logo`}
@@ -997,7 +997,8 @@ export default function JobsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start gap-3">
                               <div className="h-14 w-14 rounded-md border bg-muted/30 flex items-center justify-center shrink-0 group-hover:border-primary/20 transition-colors">
-                                {application?.job_description?.includes('employer_logo:') ? (
+                                {application?.job_description?.includes('employer_logo:') && 
+                                 application.job_description.split('employer_logo:')[1]?.split('\n')[0]?.trim() !== "" ? (
                                   <img 
                                     src={application.job_description.split('employer_logo:')[1]?.split('\n')[0]}
                                     alt={`${application.company_name} logo`}
@@ -1306,7 +1307,8 @@ export default function JobsPage() {
                       <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary/50 to-primary/20"></div>
                       <div className="flex items-start gap-4">
                         <div className="h-16 w-16 rounded-md border flex items-center justify-center shrink-0 bg-muted/30 group-hover:border-primary/20 transition-colors">
-                          {application.job_description?.includes('employer_logo:') ? (
+                          {application.job_description?.includes('employer_logo:') && 
+                           application.job_description.split('employer_logo:')[1]?.split('\n')[0]?.trim() !== "" ? (
                             <img 
                               src={application.job_description.split('employer_logo:')[1]?.split('\n')[0]}
                               alt={`${application.company_name} logo`}
@@ -1458,7 +1460,7 @@ export default function JobsPage() {
                       
                       <div className="flex items-start gap-4">
                         <div className="h-14 w-14 rounded-md border flex items-center justify-center shrink-0 bg-muted/30 group-hover:border-primary/20 transition-colors">
-                          {job.employer_logo ? (
+                          {job.employer_logo && job.employer_logo.trim() !== "" ? (
                             <img 
                               src={job.employer_logo}
                               alt={`${job.employer_name} logo`}

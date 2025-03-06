@@ -64,7 +64,7 @@ export default function ApplicationDetailsDialog({
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-t-lg">
           <div className="flex items-start gap-5">
             <div className="h-20 w-20 rounded-xl border bg-background shadow-sm flex items-center justify-center shrink-0">
-              {employerLogo ? (
+              {employerLogo && employerLogo.trim() !== "" ? (
                 <img 
                   src={employerLogo}
                   alt={`${application.company_name} logo`}

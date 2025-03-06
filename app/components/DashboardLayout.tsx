@@ -261,7 +261,7 @@ export default function DashboardLayout({
                 {(!isCollapsed || isMobile) ? (
                   <>
                     <Avatar className="border-2 border-primary/10 h-10 w-10 ring-2 ring-background">
-                      <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email || "User"} />
+                      <AvatarImage src={user?.user_metadata?.avatar_url || null} alt={user?.email || "User"} />
                       <AvatarFallback className="bg-primary/20 text-primary font-medium">{userInitials}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
@@ -278,7 +278,7 @@ export default function DashboardLayout({
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-10 w-10 mx-auto">
                         <Avatar className="h-10 w-10 border-2 border-primary/10 ring-2 ring-background">
-                          <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email || "User"} />
+                          <AvatarImage src={user?.user_metadata?.avatar_url || null} alt={user?.email || "User"} />
                           <AvatarFallback className="bg-primary/20 text-primary font-medium">{userInitials}</AvatarFallback>
                         </Avatar>
                       </Button>
