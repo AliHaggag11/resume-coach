@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -12,6 +12,18 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Github, Loader2, Lock, Mail } from "lucide-react";
 
+// Component to handle redirect parameters
+function SignInWithRedirect({ onParamsReady }: { onParamsReady: (redirectPath: string) => void }) {
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
+  
+  useEffect(() => {
+    onParamsReady(redirectPath);
+  }, [redirectPath, onParamsReady]);
+  
+  return null;
+}
+
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,8 +32,7 @@ export default function SignInPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const { signIn, signInWithGithub, signInWithGoogle, user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/dashboard';
+  const [redirectPath, setRedirectPath] = useState('/dashboard');
 
   // If user is already authenticated, redirect them
   useEffect(() => {
@@ -75,6 +86,11 @@ export default function SignInPage() {
 
   return (
     <div className="relative isolate h-[calc(100vh-4rem)] overflow-x-hidden">
+      {/* Wrap useSearchParams in Suspense boundary */}
+      <Suspense fallback={null}>
+        <SignInWithRedirect onParamsReady={setRedirectPath} />
+      </Suspense>
+      
       {/* Background decorations */}
       <div className="absolute inset-0 bg-grid-pattern opacity-[0.15]" />
       <div className="absolute inset-0">
