@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/app/context/AuthContext';
 
 interface MockInterviewDialogProps {
   open: boolean;
@@ -92,13 +94,15 @@ export default function MockInterviewDialog({
   interview,
   jobDetails,
 }: MockInterviewDialogProps) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [interviewState, setInterviewState] = useState<InterviewState>({
     stage: 'intro',
     progress: 0,
-    remaining_questions: 8,
+    remaining_questions: 0,
     time_elapsed: 0
   });
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -112,6 +116,148 @@ export default function MockInterviewDialog({
 
   // Add state to toggle between summary and chat view
   const [viewMode, setViewMode] = useState<'chat' | 'summary'>('chat');
+
+  // Load saved interview session from Supabase when dialog opens
+  useEffect(() => {
+    if (open && user?.id) {
+      loadInterviewSession();
+    }
+  }, [open, interview.id, user?.id]);
+  
+  // Function to load interview session from Supabase
+  const loadInterviewSession = async () => {
+    if (!user?.id || !interview.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('mock_interview_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('interview_id', interview.id)
+        .single();
+      
+      if (error) {
+        if (error.code !== 'PGRST116') { // Not found error code
+          console.error('Error loading interview session:', error);
+        }
+        // If no session found or error, initialize a fresh session
+        initializeFreshSession();
+        return;
+      }
+      
+      if (data) {
+        try {
+          // Parse the saved session data
+          const sessionData = data.session_data;
+          setMessages(sessionData.messages || []);
+          setInterviewState(sessionData.interviewState || {
+            stage: 'intro',
+            progress: 0,
+            remaining_questions: 0,
+            time_elapsed: sessionData.time_elapsed || 0
+          });
+          setStartTime(sessionData.startTime ? new Date(sessionData.startTime).getTime() : null);
+          setIsInterviewComplete(sessionData.isInterviewComplete || false);
+          setPerformanceSummary(sessionData.performanceSummary || null);
+          setViewMode(sessionData.viewMode || 'chat');
+          
+          // Only start timer if interview was in progress and not complete
+          if (sessionData.startTime && !sessionData.isInterviewComplete) {
+            startTimer();
+          }
+        } catch (err) {
+          console.error('Error parsing saved interview session:', err);
+          // If there's an error parsing, initialize a fresh session
+          initializeFreshSession();
+        }
+      } else {
+        // No saved session found, initialize a fresh one
+        initializeFreshSession();
+      }
+    } catch (err) {
+      console.error('Error loading interview session:', err);
+      initializeFreshSession();
+    }
+  };
+  
+  // Save session to Supabase whenever relevant state changes
+  useEffect(() => {
+    const saveSession = async () => {
+      if (user?.id && interview.id && (messages.length > 0 || interviewState.progress > 0)) {
+        // Prevent rapid consecutive saves
+        if (isSaving) return;
+        
+        setIsSaving(true);
+        
+        const sessionData = {
+          messages,
+          interviewState,
+          startTime: startTime ? new Date(startTime).toISOString() : null,
+          isInterviewComplete,
+          performanceSummary,
+          viewMode
+        };
+        
+        try {
+          // Upsert the session data
+          const { error } = await supabase
+            .from('mock_interview_sessions')
+            .upsert({
+              user_id: user.id,
+              interview_id: interview.id,
+              company_name: jobDetails.company_name,
+              job_title: jobDetails.job_title,
+              interview_type: interview.interview_type,
+              session_data: sessionData,
+              last_updated: new Date().toISOString()
+            }, { onConflict: 'user_id,interview_id' });
+          
+          if (error) {
+            console.error('Error saving interview session:', error);
+          }
+        } catch (err) {
+          console.error('Exception saving interview session:', err);
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    };
+    
+    // Debounce saving to avoid too many database writes
+    const debounceTimer = setTimeout(() => {
+      saveSession();
+    }, 1000);
+    
+    return () => clearTimeout(debounceTimer);
+  }, [messages, interviewState, startTime, isInterviewComplete, performanceSummary, viewMode, interview.id, user?.id, jobDetails]);
+  
+  // Function to reset the interview
+  const resetInterview = async () => {
+    if (!user?.id || !interview.id) return;
+    
+    try {
+      // Delete the session from Supabase
+      const { error } = await supabase
+        .from('mock_interview_sessions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('interview_id', interview.id);
+      
+      if (error) {
+        console.error('Error deleting interview session:', error);
+        toast.error('Failed to reset interview session');
+        return;
+      }
+      
+      // Initialize fresh session
+      initializeFreshSession();
+      // Show success toast
+      toast.success('Interview session reset successfully');
+    } catch (err) {
+      console.error('Exception resetting interview:', err);
+      toast.error('An error occurred while resetting the interview');
+    }
+  };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect((): void => {
@@ -142,6 +288,11 @@ export default function MockInterviewDialog({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Format interview type for display
+  const formatInterviewType = (type: string) => {
+    return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   // Start the interview
@@ -685,91 +836,85 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
     };
   };
 
+  // Function to start the interview timer
+  const startTimer = () => {
+    if (timerRef.current) return; // Don't start if already running
+    
+    timerRef.current = setInterval(() => {
+      setInterviewState(prev => ({
+        ...prev,
+        time_elapsed: prev.time_elapsed + 1
+      }));
+    }, 1000);
+  };
+
+  // Function to initialize a fresh session
+  const initializeFreshSession = () => {
+    setMessages([]);
+    setInputValue('');
+    setIsLoading(false);
+    setInterviewState({
+      stage: 'intro',
+      progress: 0,
+      remaining_questions: 0,
+      time_elapsed: 0
+    });
+    setStartTime(null);
+    setIsInterviewComplete(false);
+    setPerformanceSummary(null);
+    setViewMode('chat');
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = undefined;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl w-[calc(100%-2rem)] h-[85vh] sm:h-[90vh] md:h-[80vh] flex flex-col p-0 gap-0 mx-auto rounded-2xl sm:rounded-xl overflow-hidden border-0 shadow-lg">
-        {/* Gradient header background */}
-        <DialogHeader className="px-4 py-3 sm:px-6 md:px-8 md:py-5 border-b bg-gradient-to-r from-primary/90 to-primary/70 text-primary-foreground">
-          <DialogTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <div className="flex items-center">
-                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5" />
-                <span className="font-semibold text-sm sm:text-base">Mock Interview</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm text-primary-foreground/90 hidden sm:inline">-</span>
-                <span className="text-xs sm:text-sm font-medium text-primary-foreground/90 truncate max-w-[200px] sm:max-w-none">
-                  {jobDetails.job_title}
-                </span>
-                <Badge 
-                  variant="secondary"
-                  className="capitalize text-[10px] sm:text-xs py-0.5 bg-white/20 hover:bg-white/30 text-white"
-                >
-                  {interview.interview_type}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 mt-1 sm:mt-0">
-              {/* Add view toggle buttons when interview is complete */}
-              {isInterviewComplete && (
-                <div className="flex gap-1 mr-1">
-              <Button 
-                    variant={viewMode === 'summary' ? 'secondary' : 'outline'}
+      <DialogContent id="mock-interview-dialog" className="max-w-4xl h-[90vh] p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="p-6 pb-2 bg-card flex flex-row items-center justify-between">
+          <div>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <BrainCircuit className="h-5 w-5 text-primary" />
+              {jobDetails.company_name} {formatInterviewType(interview.interview_type)} Interview
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {jobDetails.job_title}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {(messages.length > 0 || interviewState.progress > 0) && !isInterviewComplete && (
+              <Button
+                variant="outline"
                 size="sm"
-                    className={cn(
-                      "h-7 sm:h-8 text-[10px] sm:text-xs transition-colors",
-                      viewMode === 'summary' ? "bg-white/20 hover:bg-white/30 text-white" : "bg-white/10 hover:bg-white/20 text-white/80"
-                    )}
-                    onClick={() => setViewMode('summary')}
-                  >
-                    <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5" />
-                    Summary
-                  </Button>
-                  <Button
-                    variant={viewMode === 'chat' ? 'secondary' : 'outline'}
-                    size="sm"
-                    className={cn(
-                      "h-7 sm:h-8 text-[10px] sm:text-xs transition-colors",
-                      viewMode === 'chat' ? "bg-white/20 hover:bg-white/30 text-white" : "bg-white/10 hover:bg-white/20 text-white/80"
-                    )}
-                    onClick={() => setViewMode('chat')}
-                  >
-                    <MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5" />
-                    Interview
-                  </Button>
-                </div>
-              )}
-              <Button 
-                variant="secondary" 
-                size="sm"
-                className="h-7 sm:h-8 text-[10px] sm:text-xs bg-white/20 hover:bg-white/30 text-white"
+                className="flex items-center gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
                 onClick={() => {
-                  setMessages([]);
-                  setInterviewState({
-                    stage: 'intro',
-                    progress: 0,
-                    remaining_questions: 8,
-                    time_elapsed: 0
-                  });
-                  setStartTime(null);
-                  setIsInterviewComplete(false);
-                  setPerformanceSummary(null);
-                  setViewMode('chat');
-                  if (timerRef.current) {
-                    clearInterval(timerRef.current);
-                    timerRef.current = undefined;
+                  if (window.confirm('Are you sure you want to reset this interview session? All progress will be lost.')) {
+                    resetInterview();
                   }
                 }}
               >
-                <RefreshCcw className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5" />
-                Restart
+                <RefreshCcw className="h-3.5 w-3.5" />
+                Reset
               </Button>
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-sm font-medium bg-white/20 px-2 py-1 rounded-md">
-                <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                {formatTime(interviewState.time_elapsed)}
-              </div>
-            </div>
-          </DialogTitle>
+            )}
+            
+            {isInterviewComplete && (
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'chat' | 'summary')} className="mx-auto">
+                <TabsList className="grid grid-cols-2 w-48">
+                  <TabsTrigger value="chat" className="flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Interview
+                  </TabsTrigger>
+                  <TabsTrigger value="summary" className="flex items-center gap-1.5">
+                    <BrainCircuit className="h-3.5 w-3.5" />
+                    Summary
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+          </div>
         </DialogHeader>
 
         {/* Interview progress with stage indicators */}

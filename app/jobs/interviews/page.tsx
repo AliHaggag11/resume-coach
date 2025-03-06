@@ -324,6 +324,7 @@ export default function InterviewsPage() {
   };
 
   const handlePractice = async (interview: Interview) => {
+    // Simply open the interview dialog with the selected interview
     setCurrentInterview(interview);
     setIsMockInterviewDialogOpen(true);
   };
@@ -436,13 +437,13 @@ export default function InterviewsPage() {
                 <CardContent className="p-0">
                   <div className="p-4 sm:p-6 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                      <div className="hidden sm:flex h-14 w-14 rounded-md border bg-muted/30 items-center justify-center shrink-0">
+                      <div className="flex h-12 w-12 sm:h-14 sm:w-14 rounded-md border bg-muted/30 items-center justify-center shrink-0 self-start">
                         {application?.job_description?.includes('employer_logo:') && 
                          application.job_description.split('employer_logo:')[1]?.split('\n')[0]?.trim() !== "" ? (
                           <img 
                             src={application.job_description.split('employer_logo:')[1]?.split('\n')[0]}
                             alt={`${application.company_name} logo`}
-                            className="h-10 w-10 object-contain"
+                            className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.parentElement?.classList.add('fallback');
@@ -453,7 +454,7 @@ export default function InterviewsPage() {
                             }}
                           />
                         ) : (
-                          <BriefcaseIcon className="h-6 w-6 text-muted-foreground" />
+                          <BriefcaseIcon className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                         )}
                       </div>
                       <div className="space-y-1 flex-1">
