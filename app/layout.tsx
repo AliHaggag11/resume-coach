@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/context/AuthContext";
-import { SubscriptionProvider } from "@/context/SubscriptionContext";
+import { AuthProvider } from "@/app/context/AuthContext";
+import { SubscriptionProvider } from "@/app/context/SubscriptionContext";
 import { Toaster } from "sonner";
 import ClientLayout from "./components/ClientLayout";
 

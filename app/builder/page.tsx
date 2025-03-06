@@ -7,7 +7,7 @@ import { BuilderPageContent } from "./components/BuilderPageContent";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";

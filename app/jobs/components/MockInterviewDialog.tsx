@@ -713,9 +713,9 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
               {/* Add view toggle buttons when interview is complete */}
               {isInterviewComplete && (
                 <div className="flex gap-1 mr-1">
-                  <Button
+              <Button 
                     variant={viewMode === 'summary' ? 'secondary' : 'outline'}
-                    size="sm"
+                size="sm"
                     className={cn(
                       "h-7 sm:h-8 text-[10px] sm:text-xs transition-colors",
                       viewMode === 'summary' ? "bg-white/20 hover:bg-white/30 text-white" : "bg-white/10 hover:bg-white/20 text-white/80"
@@ -776,7 +776,7 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
         <div className="px-4 py-2 sm:px-6 sm:py-3 md:px-8 border-b bg-muted/20">
           <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">
             <div className="flex items-center gap-1.5">
-              <span>Interview Progress</span>
+            <span>Interview Progress</span>
               <Badge variant="outline" className={cn(
                 "capitalize text-[10px] sm:text-xs py-0",
                 interviewState.stage === 'intro' ? "bg-blue-100 text-blue-800 border-blue-300" :
@@ -786,9 +786,9 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
               )}>
                 {interviewState.stage}
               </Badge>
-            </div>
-            <span className="font-medium">{interviewState.progress}%</span>
           </div>
+            <span className="font-medium">{interviewState.progress}%</span>
+        </div>
           <Progress 
             value={interviewState.progress} 
             className={cn(
@@ -849,10 +849,10 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                       <div className="mt-0.5 bg-primary/10 p-1.5 rounded-full">
                         <MessageSquare className="h-3.5 w-3.5 text-primary" />
                       </div>
-                      <div>
+                <div>
                         <span className="font-medium text-sm">Realistic Questions</span>
                         <p className="text-xs text-muted-foreground mt-0.5">Based on job requirements</p>
-                      </div>
+                </div>
                     </div>
                     <div className="flex items-start space-x-2">
                       <div className="mt-0.5 bg-primary/10 p-1.5 rounded-full">
@@ -1163,7 +1163,7 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                                     return (
                                       <div key={metric} className="space-y-1.5">
                                         <div className="flex items-center justify-between text-[10px]">
-                                          <span className="text-muted-foreground capitalize">{metric}</span>
+                                        <span className="text-muted-foreground capitalize">{metric}</span>
                                           <span className={cn(
                                             "font-medium",
                                             score >= 80 ? "text-green-600" :
@@ -1171,9 +1171,9 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                                             "text-red-600"
                                           )}>
                                             {score}/100
-                                          </span>
-                                        </div>
-                                        <Progress 
+                                        </span>
+                                      </div>
+                                      <Progress 
                                           value={score} 
                                           className={cn(
                                             "h-1.5 rounded-full bg-muted/50",
@@ -1181,8 +1181,8 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                                             score >= 60 ? "text-amber-500" :
                                             "text-red-500"
                                           )}
-                                        />
-                                      </div>
+                                      />
+                                    </div>
                                     );
                                   })}
                                 </div>
@@ -1191,8 +1191,8 @@ Remember: You are ${interviewerName}, interviewing the candidate. Always respond
                                     <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                                   </div>
                                   <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {message.analysis.feedback}
-                                  </p>
+                                  {message.analysis.feedback}
+                                </p>
                                 </div>
                               </CardContent>
                             </Card>

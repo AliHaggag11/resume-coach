@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { useSubscription } from "@/context/SubscriptionContext";
+import { useAuth } from "@/app/context/AuthContext";
+import { useSubscription } from "@/app/context/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +24,22 @@ import {
   Info,
   Upload,
   Image as ImageIcon,
+  Coins,
+  BarChart3,
+  BarChart,
+  PlusCircle,
+  History,
+  Clock,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDistanceToNow } from "date-fns";
+import { CREDIT_COSTS, CREDIT_PACKAGES, CreditPackage } from "@/app/context/SubscriptionContext";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface UserMetadata {
   full_name?: string;
@@ -36,7 +50,7 @@ interface UserMetadata {
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { tier } = useSubscription();
+  const { credits, creditHistory } = useSubscription();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -49,6 +63,7 @@ export default function ProfilePage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -227,6 +242,309 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Credits Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Coins className="h-5 w-5 text-primary" />
+            Credits & Usage
+          </CardTitle>
+          <CardDescription>
+            Manage your credits and view your usage history
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="history">Transaction History</TabsTrigger>
+              <TabsTrigger value="pricing">Pricing</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                        Current Balance
+                      </h3>
+                      <div className="flex items-center justify-center gap-2 text-3xl font-bold">
+                        <Coins className="h-6 w-6 text-primary" />
+                        {credits}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4 gap-2"
+                        onClick={() => document.getElementById('purchase-credits-button')?.click()}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                        Purchase Credits
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                        Total Earned
+                      </h3>
+                      <div className="flex items-center justify-center gap-2 text-3xl font-bold">
+                        <BarChart3 className="h-6 w-6 text-green-500" />
+                        {creditHistory.length > 0 ? 
+                          creditHistory
+                            .filter(t => t.amount > 0)
+                            .reduce((sum, t) => sum + t.amount, 0) : 
+                          0
+                        }
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-4">
+                        Total credits earned or purchased
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                        Total Spent
+                      </h3>
+                      <div className="flex items-center justify-center gap-2 text-3xl font-bold">
+                        <BarChart className="h-6 w-6 text-blue-500" />
+                        {creditHistory.length > 0 ? 
+                          Math.abs(creditHistory
+                            .filter(t => t.amount < 0)
+                            .reduce((sum, t) => sum + t.amount, 0)) : 
+                          0
+                        }
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-4">
+                        Total credits spent on features
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <h3 className="text-lg font-medium mt-6">Recent Activity</h3>
+              {creditHistory.length > 0 ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Description</th>
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Feature</th>
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
+                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Credits</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {creditHistory.slice(0, 5).map((transaction) => (
+                        <tr key={transaction.id} className="hover:bg-muted/30">
+                          <td className="p-3 text-sm">{transaction.description}</td>
+                          <td className="p-3 text-sm">
+                            {transaction.feature ? (
+                              <Badge variant="outline">{transaction.feature}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-sm text-muted-foreground">
+                            {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
+                          </td>
+                          <td className={`p-3 text-sm font-medium text-right ${transaction.amount > 0 ? 'text-green-500' : 'text-foreground'}`}>
+                            {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center p-8 border rounded-lg">
+                  <div className="text-center">
+                    <History className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                    <h3 className="font-medium">No transaction history yet</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Your credit transactions will appear here
+                    </p>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="history" className="space-y-4">
+              {creditHistory.length > 0 ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Description</th>
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Feature</th>
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
+                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Credits</th>
+                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {creditHistory.map((transaction) => (
+                        <tr key={transaction.id} className="hover:bg-muted/30">
+                          <td className="p-3 text-sm">{transaction.description}</td>
+                          <td className="p-3 text-sm">
+                            {transaction.feature ? (
+                              <Badge variant="outline">{transaction.feature}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-sm text-muted-foreground">
+                            {new Date(transaction.created_at).toLocaleString()}
+                          </td>
+                          <td className={`p-3 text-sm font-medium text-right ${transaction.amount > 0 ? 'text-green-500' : 'text-foreground'}`}>
+                            {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                          </td>
+                          <td className="p-3 text-sm font-medium text-right">
+                            {transaction.balance_after}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center p-8 border rounded-lg">
+                  <div className="text-center">
+                    <History className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                    <h3 className="font-medium">No transaction history yet</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Your credit transactions will appear here
+                    </p>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="pricing" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle>Jobs Features</CardTitle>
+                    <CardDescription>Credits needed for job-related features</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      <li className="flex justify-between items-center text-sm">
+                        <span>AI Analysis</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.AI_ANALYSIS} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>AI Specialized Resume</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.AI_SPECIALIZED_RESUME} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>AI Preparation Guide</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.AI_PREPARATION_GUIDE} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Practice with AI</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.PRACTICE_WITH_AI} credits</Badge>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle>Resume Features</CardTitle>
+                    <CardDescription>Credits needed for resume features</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Summary</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_SUMMARY} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Description</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_DESCRIPTION} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Achievements</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_ACHIEVEMENTS} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Suggest Skills</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.SUGGEST_SKILLS} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Project Description</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_PROJECT_DESCRIPTION} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Project Tech Stack</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_PROJECT_TECH_STACK} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Project Achievements</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_PROJECT_ACHIEVEMENTS} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Award Description</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_AWARD_DESCRIPTION} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>ATS Analyze Resume</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.ATS_ANALYZE_RESUME} credits</Badge>
+                      </li>
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Download Resume</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.DOWNLOAD_RESUME} credits</Badge>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle>Cover Letter Features</CardTitle>
+                    <CardDescription>Credits needed for cover letter features</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      <li className="flex justify-between items-center text-sm">
+                        <span>Generate Letter</span>
+                        <Badge variant="secondary">{CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER} credits</Badge>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="mt-6">
+                <Button
+                  id="purchase-credits-button"
+                  className="gap-2"
+                  onClick={() => {
+                    const element = document.querySelector('.credits-indicator-button');
+                    if (element instanceof HTMLElement) {
+                      element.click();
+                    }
+                  }}
+                >
+                  <Coins className="h-4 w-4" />
+                  Purchase Credits
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Profile Information */}
       <Card>
@@ -466,26 +784,26 @@ export default function ProfilePage() {
                   <Crown className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-medium capitalize">{tier} Plan</h3>
+                  <h3 className="font-medium capitalize">{selectedPackage?.name || 'Free'} Plan</h3>
                   <p className="text-sm text-muted-foreground">
-                    {tier === 'free' ? 'Limited features' : 'Full access to all features'}
+                    {selectedPackage ? 'Full access to all features' : 'Limited features'}
                   </p>
                 </div>
               </div>
-              {tier === 'free' && (
+              {selectedPackage === null && (
                 <Button variant="outline">
                   Upgrade Plan
                 </Button>
               )}
             </div>
             
-            {tier !== 'free' && (
+            {selectedPackage && (
               <>
                 <Separator />
                 <div className="space-y-2">
                   <h4 className="font-medium">Next Payment</h4>
                   <p className="text-sm text-muted-foreground">
-                    Your next payment of $X will be processed on MM/DD/YYYY
+                    Your next payment of ${selectedPackage.price} will be processed on MM/DD/YYYY
                   </p>
                 </div>
                 <Button variant="outline" className="w-full">
@@ -496,6 +814,83 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="mt-10">
+        <div className="price-card-container flex flex-col items-center md:items-start md:flex-row gap-4 flex-wrap">
+          {CREDIT_PACKAGES.map((pkg) => (
+            <div 
+              key={pkg.id}
+              className={`price-card cursor-pointer relative overflow-hidden bg-background border-2 rounded-xl transition-all duration-200 ${
+                selectedPackage?.id === pkg.id ? 'border-primary' : 'border-border hover:border-primary/50'
+              }`}
+              onClick={() => setSelectedPackage(pkg)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setSelectedPackage(pkg);
+                }
+              }}
+            >
+              {pkg.tag && (
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 rounded-bl-lg text-xs font-medium">
+                  {pkg.tag}
+                </div>
+              )}
+              <div className="p-6">
+                <h3 className="text-xl font-bold">{pkg.name}</h3>
+                <div className="mt-2 flex items-end">
+                  <span className="text-3xl font-bold">${pkg.price}</span>
+                  <span className="text-muted-foreground ml-1 mb-1">one-time</span>
+                </div>
+                {pkg.discount && (
+                  <div className="mt-1 text-sm text-green-500 font-medium">
+                    {pkg.discount}% discount
+                  </div>
+                )}
+                <div className="mt-4 text-center py-2 px-3 bg-secondary/50 rounded-md">
+                  <span className="font-medium text-lg">{pkg.credits} credits</span>
+                </div>
+                <div className="mt-4">
+                  <Button className="w-full" size="sm">
+                    Buy Now
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-lg font-medium mb-2">Your Features</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <span>Unlimited Resumes & Cover Letters</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <span>Access to All AI-Powered Features</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <span>All Premium Templates</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <span>Job Matching & Recommendations</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <span>All Download Formats (PDF, DOCX, TXT)</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <span>Priority Customer Support</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

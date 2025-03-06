@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { ResumeProvider } from "@/app/context/ResumeContext";
 import { ResumeStyleProvider } from "@/app/context/ResumeStyleContext";
 import { Skeleton } from "@/components/ui/skeleton";

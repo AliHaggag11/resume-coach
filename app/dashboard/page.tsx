@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { useSubscription } from "@/context/SubscriptionContext";
+import { useAuth } from "@/app/context/AuthContext";
+import { useSubscription } from "@/app/context/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -122,7 +122,7 @@ const formatDateTime = (date: string) => {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { tier, features } = useSubscription();
+  const { credits, isLoading: creditsLoading } = useSubscription();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);

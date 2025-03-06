@@ -26,8 +26,7 @@ export const CREDIT_COSTS = {
     DOWNLOAD_RESUME: 1
   },
   COVER_LETTER: {
-    GENERATE_LETTER: 4,
-    ANALYZE_JOB: 2
+    GENERATE_LETTER: 4
   }
 };
 
@@ -249,10 +248,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     creditHistory,
     purchaseCredits,
     useCredits,
-    refreshCredits
+    refreshCredits,
   };
 
-  return <CreditsContext.Provider value={value}>{children}</CreditsContext.Provider>;
+  return (
+    <CreditsContext.Provider value={value}>
+      {children}
+    </CreditsContext.Provider>
+  );
 }
 
 export function useSubscription() {

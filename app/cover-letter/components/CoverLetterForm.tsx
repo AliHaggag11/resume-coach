@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Loader2, Copy, Download, RefreshCw, CheckCircle2, ArrowRight, 
   Wand2, Save, AlertCircle, Sparkles, Info, Undo, Trash2, 
-  ListChecks, FileSearch, BrainCircuit 
+  ListChecks, FileSearch, BrainCircuit, Search 
 } from 'lucide-react';
 import {
   Card,
@@ -43,7 +43,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useSubscription } from '@/context/SubscriptionContext';
+import { useSubscription, CREDIT_COSTS } from '@/app/context/SubscriptionContext';
 
 type FormData = {
   fullName: string;
@@ -149,9 +149,46 @@ interface CoverLetterFormProps {
   formId?: string;
 }
 
+// Add a local constant for the analyze job cost
+const ANALYZE_JOB_COST = 2;
+
+function SignInDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const router = useRouter();
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Sign in Required</DialogTitle>
+          <DialogDescription>
+            You need to sign in to create cover letters and use our AI features.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 py-4">
+          <p className="text-sm text-muted-foreground">
+            Sign in to access all features including AI-powered cover letter generation, 
+            saving your work, and more.
+          </p>
+        </div>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => router.push('/signin?redirect=/cover-letter')}>
+            Sign In
+          </Button>
+          <Button variant="secondary" onClick={() => router.push('/signup?redirect=/cover-letter')}>
+            Create Account
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function CoverLetterForm({ initialValues, formId }: CoverLetterFormProps): ReactElement {
   const router = useRouter();
-  const { tier, features } = useSubscription();
+  const { credits, useCredits, isLoading: isLoadingCredits } = useSubscription();
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [formData, setFormData] = useState<FormData>(initialValues || {
     fullName: '',
@@ -192,9 +229,11 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
   }>({ keywords: [], skills: [], suggestions: [] });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showATSTips, setShowATSTips] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [showSaveDraftDialog, setShowSaveDraftDialog] = useState(false);
+
+  const [showSignInDialog, setShowSignInDialog] = useState(false);
 
   useEffect(() => {
     // Calculate form completion progress
@@ -220,25 +259,6 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
       }
       setUserId(session.user.id);
 
-      // Check cover letter limits if not in edit mode
-      if (!formId) {
-        try {
-          const { data: existingLetters, error } = await supabase
-            .from('cover_letter_forms')
-            .select('id')
-            .eq('user_id', session.user.id);
-            
-          if (error) throw error;
-          
-          if (existingLetters && existingLetters.length >= features.maxCoverLetters) {
-            setShowPremiumModal(true);
-            return;
-          }
-        } catch (error) {
-          console.error('Error checking cover letter limits:', error);
-        }
-      }
-      
       // Only load saved data if we have a formId (editing mode)
       if (formId) {
         loadSavedData(session.user.id);
@@ -246,7 +266,7 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
     };
 
     checkAuthAndLimits();
-  }, [router, formId, features.maxCoverLetters]);
+  }, [router, formId]);
 
   // Load saved data
   const loadSavedData = async (userId: string) => {
@@ -310,21 +330,6 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
     }
 
     try {
-      // Check if we're at the limit and this is a new letter
-      if (!currentFormId) {
-        const { data: existingLetters, error } = await supabase
-          .from('cover_letter_forms')
-          .select('id')
-          .eq('user_id', userId);
-          
-        if (error) throw error;
-        
-        if (existingLetters && existingLetters.length >= features.maxCoverLetters) {
-          setShowPremiumModal(true);
-          return;
-        }
-      }
-
       console.log('Saving data for user:', userId);
       const dataToSave: Partial<DatabaseFormData> = {
         user_id: userId,
@@ -394,15 +399,13 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
     if (!userId || !formData.fullName) return; // Don't autosave if no user or empty form
 
     const timeoutId = setTimeout(() => {
-      // Only autosave if we have a currentFormId (editing) or haven't hit the limit
-      if (currentFormId || coverLetters.length < features.maxCoverLetters) {
-        console.log('Autosaving...', { formData, coverLetter });
-        saveData();
-      }
-    }, 1000);
+      // Always allow autosave, no need to check limits
+      console.log('Autosaving...', { formData, coverLetter });
+      saveData();
+    }, 30000);
     
     return () => clearTimeout(timeoutId);
-  }, [formData, userId, coverLetter, currentFormId, coverLetters.length, features.maxCoverLetters]);
+  }, [formData, userId, coverLetter, currentFormId]);
 
   // Validation effect
   useEffect(() => {
@@ -491,50 +494,41 @@ export default function CoverLetterForm({ initialValues, formId }: CoverLetterFo
     }
   };
 
+  // Update analyzeJobDescription to use local constant
   const analyzeJobDescription = async () => {
-    if (!formData.jobDescription) {
-      toast.error('Please add a job description first');
-      return;
-    }
+    // Check if user is authenticated and has enough credits
+    const canProceed = await checkAuthAndLimits();
+    if (!canProceed) return;
 
+    setIsAnalyzing(true);
+    
     try {
-      setIsAnalyzing(true);
-      
-      const prompt = {
-        content: {
-          jobDescription: formData.jobDescription,
-          context: `IMPORTANT: You must return ONLY a JSON object with NO additional text or formatting.
+      // First check if there's enough credits for analysis
+      if (credits < ANALYZE_JOB_COST) {
+        toast.error(`You need ${ANALYZE_JOB_COST} credits to analyze a job description.`);
+        setIsAnalyzing(false);
+        return;
+      }
 
-The response must be a raw JSON object exactly like this (replace with actual values):
-{
-  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
-  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
-  "suggestions": ["suggestion1", "suggestion2", "suggestion3"]
-}
+      // Use credits for job analysis - fix parameter order (amount, feature, description)
+      await useCredits(ANALYZE_JOB_COST, 'cover-letter', 'Analyze Job Description');
 
-Rules:
-1. DO NOT include any markdown formatting (no **, #, or other symbols)
-2. DO NOT include any explanatory text before or after the JSON
-3. DO NOT include any code block markers (\`\`\`)
-4. Return ONLY the JSON object
-5. Each array must have exactly the specified number of items
-6. Use proper JSON syntax with double quotes
-
-Analyze the job description and extract:
-- skills: 5 most important technical and soft skills
-- keywords: 5 most important keywords or phrases
-- suggestions: 3 specific experience points that match the requirements`
-        }
-      };
-
-      const response = await fetch('/api/ai', {
+      // Rest of the existing code for analyzing job description
+      const response = await fetch('/api/analyze-job', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, type: 'generate' }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobDescription: formData.jobDescription,
+        }),
       });
 
       const data = await response.json();
-      if (!response.ok || !data.result) throw new Error('Analysis failed');
+
+      if (!response.ok || !data.result) {
+        throw new Error(data.details || data.error || 'Failed to analyze job description');
+      }
 
       try {
         let cleanedResult = '';
@@ -574,13 +568,12 @@ Analyze the job description and extract:
         console.error('Analysis error:', error);
         toast.error(error instanceof Error ? error.message : 'Failed to analyze job description');
         setKeywordAnalysis({ keywords: [], skills: [], suggestions: [] });
-      } finally {
-        setIsAnalyzing(false);
       }
     } catch (error) {
-      console.error('Analysis error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to analyze job description');
-      setKeywordAnalysis({ keywords: [], skills: [], suggestions: [] });
+      console.error('Error analyzing job description:', error);
+      toast.error("There was an error analyzing the job description. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -626,18 +619,33 @@ Analyze the job description and extract:
   };
 
   const generateCoverLetter = async () => {
-    // Validate required fields
-    const requiredFields = ['fullName', 'companyName', 'jobTitle', 'jobDescription'] as const;
-    const missingFields = requiredFields.filter(field => !formData[field].trim());
+    // Check if user is authenticated and has enough credits
+    const canProceed = await checkAuthAndLimits();
+    if (!canProceed) return;
     
-    if (missingFields.length > 0) {
-      toast.error(`Please fill in the following fields: ${missingFields.join(', ')}`);
-      return;
-    }
-
     try {
       setIsGenerating(true);
       
+      // Use credits with proper error handling
+      try {
+        const creditResult = await useCredits(
+          CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER, 
+          'cover-letter', 
+          `Generate cover letter for ${formData.jobTitle} at ${formData.companyName}`
+        );
+        
+        if (!creditResult) {
+          setIsGenerating(false);
+          return; // Exit early if credits couldn't be used
+        }
+      } catch (error) {
+        console.error('Error using credits:', error);
+        toast.error('Failed to process credits. Please try again.');
+        setIsGenerating(false);
+        return;
+      }
+      
+      // Continue with cover letter generation only if credits were successfully used
       const prompt = {
         content: {
           ...formData,
@@ -838,683 +846,734 @@ Additional Requirements:
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [formData, coverLetter]);
 
+  // Check if the user is authenticated and has enough credits
+  const checkAuthAndLimits = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setShowSignInDialog(true);
+      return false;
+    }
+
+    // No need to check for form limits when editing
+    if (formId) {
+      return true;
+    }
+
+    // Only check if the user has enough credits for generating a cover letter
+    if (credits < CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER) {
+      setShowUpgradeDialog(true);
+      return false;
+    }
+
+    return true;
+  };
+
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Progress Bar */}
-      <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-        <motion.div
-          className="h-full bg-primary"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {lastSaved && (
-            <div className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Last saved: {lastSaved.toLocaleTimeString()}
-            </div>
-          )}
+    <>
+      <div className="space-y-4 md:space-y-6">
+        {/* Progress Bar */}
+        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+          <motion.div
+            className="h-full bg-primary"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
         </div>
-        
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={undo}
-              disabled={currentHistoryIndex <= 0}
-              className="group flex-1 md:flex-none"
-            >
-              <Undo className="h-4 w-4 mr-2 group-hover:-rotate-45 transition-transform" />
-              Undo
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={redo}
-              disabled={currentHistoryIndex >= history.length - 1}
-              className="group flex-1 md:flex-none"
-            >
-              <RefreshCw className="h-4 w-4 mr-2 group-hover:rotate-45 transition-transform" />
-              Redo
-            </Button>
-          </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="group flex-1 md:flex-none">
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Save Cover Letter</DialogTitle>
-                  <DialogDescription>
-                    This will save your cover letter as completed and return you to the dashboard.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                    const closeButton = document.querySelector('[data-dialog-close]');
-                    if (closeButton instanceof HTMLElement) closeButton.click();
-                  }}>Cancel</Button>
-                  <Button onClick={async () => {
-                    await saveAsCompleted();
-                    const closeButton = document.querySelector('[data-dialog-close]');
-                    if (closeButton instanceof HTMLElement) closeButton.click();
-                  }}>Save as Completed</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="group flex-1 md:flex-none">
-                  <Trash2 className="h-4 w-4 mr-2 group-hover:text-red-500 transition-colors" />
-                  Clear
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Clear Form</DialogTitle>
-                  <DialogDescription>
-                    Are you sure you want to clear the form? This action cannot be undone.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                    const closeButton = document.querySelector('[data-dialog-close]');
-                    if (closeButton instanceof HTMLElement) closeButton.click();
-                  }}>Cancel</Button>
-                  <Button 
-                    variant="destructive" 
-                    onClick={async () => {
-                      await clearForm();
-                      const closeButton = document.querySelector('[data-dialog-close]');
-                      if (closeButton instanceof HTMLElement) closeButton.click();
-                    }}
-                    disabled={isClearing}
-                  >
-                    {isClearing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Clearing...
-                      </>
-                    ) : (
-                      'Clear Form'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </div>
 
-      {/* Smart Features Panel */}
-      {formData.jobDescription && (
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BrainCircuit className="h-5 w-5" />
-              Smart Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={analyzeJobDescription}
-                disabled={isAnalyzing}
-                className="group w-full sm:w-auto"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <FileSearch className="h-4 w-4 mr-2" />
-                    Analyze Requirements
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowATSTips(true)}
-                className="group w-full sm:w-auto"
-              >
-                <ListChecks className="h-4 w-4 mr-2" />
-                ATS Tips
-              </Button>
-            </div>
-            
-            {isAnalyzing ? (
-              <div className="space-y-3 animate-pulse">
-                <div className="h-6 bg-muted rounded w-1/4"></div>
-                <div className="space-y-2">
-                  <div className="h-8 bg-muted rounded"></div>
-                  <div className="h-8 bg-muted rounded"></div>
-                </div>
-              </div>
-            ) : keywordAnalysis.keywords.length > 0 && (
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Analysis Results</h4>
-                  <div className="grid gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <FileSearch className="h-4 w-4" />
-                        Key Requirements
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {keywordAnalysis.keywords.map((keyword, i) => (
-                          <span key={i} className="px-2 py-1 bg-muted rounded-md text-sm">
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <ListChecks className="h-4 w-4" />
-                        Required Skills
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {keywordAnalysis.skills.map((skill, i) => (
-                          <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <Sparkles className="h-4 w-4" />
-                    Recommended Experience Points
-                  </div>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {keywordAnalysis.suggestions.map((suggestion, i) => (
-                      <li key={i} className="text-sm text-muted-foreground">{suggestion}</li>
-                    ))}
-                  </ul>
-                </div>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {lastSaved && (
+              <div className="flex items-center gap-2">
+                <Save className="h-4 w-4" />
+                Last saved: {lastSaved.toLocaleTimeString()}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ATS Tips Dialog */}
-      <Dialog open={showATSTips} onOpenChange={setShowATSTips}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] w-[95vw] sm:w-auto">
-          <DialogHeader className="space-y-2 sm:space-y-4">
-            <DialogTitle className="flex items-center gap-2 text-xl sm:text-2xl">
-              <ListChecks className="h-5 w-5 sm:h-6 sm:w-6" />
-              ATS Optimization Guide
-            </DialogTitle>
-            <DialogDescription className="text-base">
-              Learn how to optimize your cover letter for Applicant Tracking Systems
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 sm:space-y-6">
-            <div>
-              <h4 className="font-medium mb-3">Content Structure</h4>
-              <ul className="grid gap-2 sm:gap-3">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Use clear section headings like "Professional Experience," "Technical Skills"</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Start with a strong opening that mentions the exact job title and company</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Include a skills section that matches the job requirements</span>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-3">Formatting Guidelines</h4>
-              <ul className="grid gap-2 sm:gap-3">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Use standard fonts (Arial, Calibri) and simple formatting</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Avoid tables, columns, headers, footers, and images</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Use standard bullet points (• or -) instead of custom symbols</span>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-3">Keyword Optimization</h4>
-              <ul className="grid gap-2 sm:gap-3">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Use both full terms and acronyms (e.g., "Artificial Intelligence (AI)")</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Include variations of key terms (manage, managed, management)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
-                  <span className="text-sm">Place important keywords in context within achievements</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                <Info className="h-4 w-4 shrink-0" />
-                Writing Tips
-              </div>
-              <ul className="text-sm space-y-2 text-muted-foreground">
-                <li className="flex items-start gap-2">• Begin sentences with action verbs (e.g., "Developed," "Implemented")</li>
-                <li className="flex items-start gap-2">• Use specific metrics and numbers to quantify achievements</li>
-                <li className="flex items-start gap-2">• Keep paragraphs concise (3-4 sentences maximum)</li>
-                <li className="flex items-start gap-2">• Maintain a professional tone throughout the letter</li>
-              </ul>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Premium Plan Modal */}
-      <Dialog open={showPremiumModal} onOpenChange={setShowPremiumModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Upgrade to Premium
-            </DialogTitle>
-            <DialogDescription>
-              You've reached the limit of {features.maxCoverLetters} cover letters on your current plan.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Premium Benefits</h4>
-              <ul className="grid gap-2">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
-                  <span className="text-sm">Create unlimited cover letters</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
-                  <span className="text-sm">Access to all premium templates</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
-                  <span className="text-sm">Advanced AI-powered suggestions</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-1 text-green-500" />
-                  <span className="text-sm">Priority support</span>
-                </li>
-              </ul>
+          
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={undo}
+                disabled={currentHistoryIndex <= 0}
+                className="group flex-1 md:flex-none"
+              >
+                <Undo className="h-4 w-4 mr-2 group-hover:-rotate-45 transition-transform" />
+                Undo
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={redo}
+                disabled={currentHistoryIndex >= history.length - 1}
+                className="group flex-1 md:flex-none"
+              >
+                <RefreshCw className="h-4 w-4 mr-2 group-hover:rotate-45 transition-transform" />
+                Redo
+              </Button>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPremiumModal(false)}>Maybe Later</Button>
-            <Button onClick={() => router.push('/pricing')}>View Plans</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Save Draft Dialog */}
-      <Dialog open={showSaveDraftDialog} onOpenChange={setShowSaveDraftDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Save as Draft?</DialogTitle>
-            <DialogDescription>
-              Would you like to save your progress as a draft before leaving?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowSaveDraftDialog(false);
-              router.back();
-            }}>Don't Save</Button>
-            <Button onClick={async () => {
-              await saveData('draft');
-              setShowSaveDraftDialog(false);
-              router.back();
-            }}>Save as Draft</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Accordion
-        type="single"
-        value={activeSection}
-        onValueChange={setActiveSection}
-        className="space-y-3 md:space-y-4"
-      >
-        {Object.entries(SECTIONS).map(([value, label]) => (
-          <AccordionItem
-            key={value}
-            value={value}
-            className="border rounded-lg transition-all duration-200 data-[state=open]:shadow-md overflow-visible"
-          >
-            <AccordionTrigger className="px-4 md:px-6 py-3 md:py-4 transition-all">
-              <div className="flex items-center gap-3">
-                <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm">
-                  {value}
-                </div>
-                <span>{label}</span>
-                {(value === '1' || value === '2') && sectionProgress[value] && (
-                  <CheckCircle2 className="h-4 w-4 text-green-500 ml-2" />
-                )}
-              </div>
-            </AccordionTrigger>
-
-            <AccordionContent className="px-4 md:px-6 pb-4 md:pb-6">
-              {value === '1' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="fullName" className="flex items-center gap-2">
-                        Full Name *
-                        {renderFieldTooltip('fullName')}
-                      </Label>
-                      <Input
-                        id="fullName"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        placeholder="John Doe"
-                        className="mt-1.5"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="email" className="flex items-center gap-2">
-                        Email
-                        {renderFieldTooltip('email')}
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="john@example.com"
-                        className="mt-1.5"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="phone" className="flex items-center gap-2">
-                        Phone
-                        {renderFieldTooltip('phone')}
-                      </Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="+1 (555) 123-4567"
-                        className="mt-1.5"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={() => moveToNextSection()}
-                      className="group"
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="group flex-1 md:flex-none">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Save Cover Letter</DialogTitle>
+                    <DialogDescription>
+                      This will save your cover letter as completed and return you to the dashboard.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      const closeButton = document.querySelector('[data-dialog-close]');
+                      if (closeButton instanceof HTMLElement) closeButton.click();
+                    }}>Cancel</Button>
+                    <Button onClick={async () => {
+                      await saveAsCompleted();
+                      const closeButton = document.querySelector('[data-dialog-close]');
+                      if (closeButton instanceof HTMLElement) closeButton.click();
+                    }}>Save as Completed</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="group flex-1 md:flex-none">
+                    <Trash2 className="h-4 w-4 mr-2 group-hover:text-red-500 transition-colors" />
+                    Clear
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Clear Form</DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to clear the form? This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      const closeButton = document.querySelector('[data-dialog-close]');
+                      if (closeButton instanceof HTMLElement) closeButton.click();
+                    }}>Cancel</Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={async () => {
+                        await clearForm();
+                        const closeButton = document.querySelector('[data-dialog-close]');
+                        if (closeButton instanceof HTMLElement) closeButton.click();
+                      }}
+                      disabled={isClearing}
                     >
-                      Next Step
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {value === '2' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="companyName" className="flex items-center gap-2">
-                        Company Name *
-                        {renderFieldTooltip('companyName')}
-                      </Label>
-                      <Input
-                        id="companyName"
-                        name="companyName"
-                        value={formData.companyName}
-                        onChange={handleInputChange}
-                        placeholder="Company Inc."
-                        className="mt-1.5"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="jobTitle" className="flex items-center gap-2">
-                        Job Title *
-                        {renderFieldTooltip('jobTitle')}
-                      </Label>
-                      <Input
-                        id="jobTitle"
-                        name="jobTitle"
-                        value={formData.jobTitle}
-                        onChange={handleInputChange}
-                        placeholder="Software Engineer"
-                        className="mt-1.5"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="recipientName" className="flex items-center gap-2">
-                        Recipient's Name
-                        {renderFieldTooltip('recipientName')}
-                      </Label>
-                      <Input
-                        id="recipientName"
-                        name="recipientName"
-                        value={formData.recipientName}
-                        onChange={handleInputChange}
-                        placeholder="Jane Smith"
-                        className="mt-1.5"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="recipientTitle" className="flex items-center gap-2">
-                        Recipient's Title
-                        {renderFieldTooltip('recipientTitle')}
-                      </Label>
-                      <Input
-                        id="recipientTitle"
-                        name="recipientTitle"
-                        value={formData.recipientTitle}
-                        onChange={handleInputChange}
-                        placeholder="Hiring Manager"
-                        className="mt-1.5"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="companyAddress" className="flex items-center gap-2">
-                      Company Address
-                      {renderFieldTooltip('companyAddress')}
-                    </Label>
-                    <Input
-                      id="companyAddress"
-                      name="companyAddress"
-                      value={formData.companyAddress}
-                      onChange={handleInputChange}
-                      placeholder="123 Business St, City, State 12345"
-                      className="mt-1.5"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="jobDescription" className="flex items-center gap-2">
-                      Job Description *
-                      {renderFieldTooltip('jobDescription')}
-                    </Label>
-                    <div className="mt-1.5 relative">
-                      <Textarea
-                        id="jobDescription"
-                        name="jobDescription"
-                        value={formData.jobDescription}
-                        onChange={handleInputChange}
-                        placeholder="Paste the job description here..."
-                        className="h-32"
-                      />
-                      <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                        {getCharacterCount('jobDescription')}/{MAX_CHARS.jobDescription}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="tone" className="flex items-center gap-2">
-                      Letter Tone
-                      {renderFieldTooltip('tone')}
-                    </Label>
-                    <select
-                      id="tone"
-                      name="tone"
-                      value={formData.tone}
-                      onChange={handleInputChange}
-                      className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {Object.entries(TONES).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col md:flex-row justify-end gap-2 md:gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setActiveSection('1')}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      onClick={generateCoverLetter}
-                      disabled={isGenerating}
-                      className="group"
-                    >
-                      {isGenerating ? (
+                      {isClearing ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Generating...
+                          Clearing...
                         </>
                       ) : (
-                        <>
-                          Generate Letter
-                          <Wand2 className="ml-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-                        </>
+                        'Clear Form'
                       )}
                     </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </div>
+
+        {/* Smart Features Panel */}
+        {formData.jobDescription && (
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5" />
+                Smart Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  type="button"
+                  onClick={analyzeJobDescription}
+                  disabled={isAnalyzing || !formData.jobDescription || formData.jobDescription.length < 50}
+                  variant="secondary"
+                  className="w-full md:w-auto"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Analyze Job ({ANALYZE_JOB_COST} Credits)
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowATSTips(true)}
+                  className="group w-full sm:w-auto"
+                >
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  ATS Tips
+                </Button>
+              </div>
+              
+              {isAnalyzing ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-6 bg-muted rounded w-1/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-8 bg-muted rounded"></div>
+                    <div className="h-8 bg-muted rounded"></div>
+                  </div>
+                </div>
+              ) : keywordAnalysis.keywords.length > 0 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Analysis Results</h4>
+                    <div className="grid gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                          <FileSearch className="h-4 w-4" />
+                          Key Requirements
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {keywordAnalysis.keywords.map((keyword, i) => (
+                            <span key={i} className="px-2 py-1 bg-muted rounded-md text-sm">
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                          <ListChecks className="h-4 w-4" />
+                          Required Skills
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {keywordAnalysis.skills.map((skill, i) => (
+                            <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <Sparkles className="h-4 w-4" />
+                      Recommended Experience Points
+                    </div>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {keywordAnalysis.suggestions.map((suggestion, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{suggestion}</li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
 
-              {value === '3' && (
-                <>
-                  {!coverLetter ? (
-                    <Card className="border-dashed">
-                      <CardHeader>
-                        <CardTitle>Ready to Generate</CardTitle>
-                        <CardDescription>
-                          Fill in the required fields above and click the generate button to create your cover letter.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardFooter>
-                        <Button
-                          onClick={generateCoverLetter}
-                          disabled={isGenerating}
-                          className="w-full group"
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              Generate Letter
-                              <Wand2 className="ml-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-                            </>
-                          )}
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-4"
-                    >
-                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
-                        <h2 className="text-xl font-semibold">Your Cover Letter</h2>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={copyToClipboard}
-                            className="group"
-                          >
-                            <Copy className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
-                            Copy
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={downloadAsTxt}
-                            className="group"
-                          >
-                            <Download className="h-4 w-4 mr-2 group-hover:translate-y-0.5 transition-transform" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={regenerateLetter}
-                            disabled={isGenerating}
-                            className="group"
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2 group-hover:rotate-180 transition-transform" />
-                            Regenerate
-                          </Button>
+        {/* ATS Tips Dialog */}
+        <Dialog open={showATSTips} onOpenChange={setShowATSTips}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] w-[95vw] sm:w-auto">
+            <DialogHeader className="space-y-2 sm:space-y-4">
+              <DialogTitle className="flex items-center gap-2 text-xl sm:text-2xl">
+                <ListChecks className="h-5 w-5 sm:h-6 sm:w-6" />
+                ATS Optimization Guide
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                Learn how to optimize your cover letter for Applicant Tracking Systems
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 sm:space-y-6">
+              <div>
+                <h4 className="font-medium mb-3">Content Structure</h4>
+                <ul className="grid gap-2 sm:gap-3">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Use clear section headings like "Professional Experience," "Technical Skills"</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Start with a strong opening that mentions the exact job title and company</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Include a skills section that matches the job requirements</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Formatting Guidelines</h4>
+                <ul className="grid gap-2 sm:gap-3">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Use standard fonts (Arial, Calibri) and simple formatting</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Avoid tables, columns, headers, footers, and images</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Use standard bullet points (• or -) instead of custom symbols</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Keyword Optimization</h4>
+                <ul className="grid gap-2 sm:gap-3">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Use both full terms and acronyms (e.g., "Artificial Intelligence (AI)")</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Include variations of key terms (manage, managed, management)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-1 text-green-500 shrink-0" />
+                    <span className="text-sm">Place important keywords in context within achievements</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                  <Info className="h-4 w-4 shrink-0" />
+                  Writing Tips
+                </div>
+                <ul className="text-sm space-y-2 text-muted-foreground">
+                  <li className="flex items-start gap-2">• Begin sentences with action verbs (e.g., "Developed," "Implemented")</li>
+                  <li className="flex items-start gap-2">• Use specific metrics and numbers to quantify achievements</li>
+                  <li className="flex items-start gap-2">• Keep paragraphs concise (3-4 sentences maximum)</li>
+                  <li className="flex items-start gap-2">• Maintain a professional tone throughout the letter</li>
+                </ul>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Upgrade Dialog */}
+        <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" /> Credits Required
+              </DialogTitle>
+              <DialogDescription>
+                You need {CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER} credits to generate a cover letter. 
+                You currently have {credits} credits.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <div className="rounded-lg bg-muted p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BrainCircuit className="h-5 w-5 text-primary" />
+                  <h3 className="font-medium">Why we charge credits</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Our AI-powered cover letter generator uses advanced language models to create highly personalized
+                  and effective cover letters. Credits ensure we can continue providing high-quality AI services.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">With credits you can:</h4>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 text-green-500 mt-0.5" />
+                    <span className="text-sm">Generate professional, ATS-optimized cover letters</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 text-green-500 mt-0.5" />
+                    <span className="text-sm">Get tailored content based on job descriptions</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 text-green-500 mt-0.5" />
+                    <span className="text-sm">Choose from various tones and styles</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => router.push('/profile?tab=credits')}>
+                Purchase Credits
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Save Draft Dialog */}
+        <Dialog open={showSaveDraftDialog} onOpenChange={setShowSaveDraftDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Save as Draft?</DialogTitle>
+              <DialogDescription>
+                Would you like to save your progress as a draft before leaving?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setShowSaveDraftDialog(false);
+                router.back();
+              }}>Don't Save</Button>
+              <Button onClick={async () => {
+                await saveData('draft');
+                setShowSaveDraftDialog(false);
+                router.back();
+              }}>Save as Draft</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Accordion
+          type="single"
+          value={activeSection}
+          onValueChange={setActiveSection}
+          className="space-y-3 md:space-y-4"
+        >
+          {Object.entries(SECTIONS).map(([value, label]) => (
+            <AccordionItem
+              key={value}
+              value={value}
+              className="border rounded-lg transition-all duration-200 data-[state=open]:shadow-md overflow-visible"
+            >
+              <AccordionTrigger className="px-4 md:px-6 py-3 md:py-4 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm">
+                    {value}
+                  </div>
+                  <span>{label}</span>
+                  {(value === '1' || value === '2') && sectionProgress[value] && (
+                    <CheckCircle2 className="h-4 w-4 text-green-500 ml-2" />
+                  )}
+                </div>
+              </AccordionTrigger>
+
+              <AccordionContent className="px-4 md:px-6 pb-4 md:pb-6">
+                {value === '1' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="fullName" className="flex items-center gap-2">
+                          Full Name *
+                          {renderFieldTooltip('fullName')}
+                        </Label>
+                        <Input
+                          id="fullName"
+                          name="fullName"
+                          value={formData.fullName}
+                          onChange={handleInputChange}
+                          placeholder="John Doe"
+                          className="mt-1.5"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="email" className="flex items-center gap-2">
+                          Email
+                          {renderFieldTooltip('email')}
+                        </Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          placeholder="john@example.com"
+                          className="mt-1.5"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="phone" className="flex items-center gap-2">
+                          Phone
+                          {renderFieldTooltip('phone')}
+                        </Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          placeholder="+1 (555) 123-4567"
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => moveToNextSection()}
+                        className="group"
+                      >
+                        Next Step
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {value === '2' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="companyName" className="flex items-center gap-2">
+                          Company Name *
+                          {renderFieldTooltip('companyName')}
+                        </Label>
+                        <Input
+                          id="companyName"
+                          name="companyName"
+                          value={formData.companyName}
+                          onChange={handleInputChange}
+                          placeholder="Company Inc."
+                          className="mt-1.5"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="jobTitle" className="flex items-center gap-2">
+                          Job Title *
+                          {renderFieldTooltip('jobTitle')}
+                        </Label>
+                        <Input
+                          id="jobTitle"
+                          name="jobTitle"
+                          value={formData.jobTitle}
+                          onChange={handleInputChange}
+                          placeholder="Software Engineer"
+                          className="mt-1.5"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="recipientName" className="flex items-center gap-2">
+                          Recipient's Name
+                          {renderFieldTooltip('recipientName')}
+                        </Label>
+                        <Input
+                          id="recipientName"
+                          name="recipientName"
+                          value={formData.recipientName}
+                          onChange={handleInputChange}
+                          placeholder="Jane Smith"
+                          className="mt-1.5"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="recipientTitle" className="flex items-center gap-2">
+                          Recipient's Title
+                          {renderFieldTooltip('recipientTitle')}
+                        </Label>
+                        <Input
+                          id="recipientTitle"
+                          name="recipientTitle"
+                          value={formData.recipientTitle}
+                          onChange={handleInputChange}
+                          placeholder="Hiring Manager"
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="companyAddress" className="flex items-center gap-2">
+                        Company Address
+                        {renderFieldTooltip('companyAddress')}
+                      </Label>
+                      <Input
+                        id="companyAddress"
+                        name="companyAddress"
+                        value={formData.companyAddress}
+                        onChange={handleInputChange}
+                        placeholder="123 Business St, City, State 12345"
+                        className="mt-1.5"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="jobDescription" className="flex items-center gap-2">
+                        Job Description *
+                        {renderFieldTooltip('jobDescription')}
+                      </Label>
+                      <div className="mt-1.5 relative">
+                        <Textarea
+                          id="jobDescription"
+                          name="jobDescription"
+                          value={formData.jobDescription}
+                          onChange={handleInputChange}
+                          placeholder="Paste the job description here..."
+                          className="h-32"
+                        />
+                        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                          {getCharacterCount('jobDescription')}/{MAX_CHARS.jobDescription}
                         </div>
                       </div>
-                      <div className="bg-muted p-4 md:p-6 rounded-lg whitespace-pre-wrap">
-                        {coverLetter}
-                      </div>
-                    </motion.div>
-                  )}
-                </>
-              )}
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="tone" className="flex items-center gap-2">
+                        Letter Tone
+                        {renderFieldTooltip('tone')}
+                      </Label>
+                      <select
+                        id="tone"
+                        name="tone"
+                        value={formData.tone}
+                        onChange={handleInputChange}
+                        className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {Object.entries(TONES).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row justify-end gap-2 md:gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveSection('1')}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={generateCoverLetter}
+                        className="w-full md:w-auto rounded-full"
+                        disabled={isGenerating}
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            Generate Cover Letter ({CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER} Credits)
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {value === '3' && (
+                  <>
+                    {!coverLetter ? (
+                      <Card className="border-dashed">
+                        <CardHeader>
+                          <CardTitle>Ready to Generate</CardTitle>
+                          <CardDescription>
+                            Fill in the required fields above and click the generate button to create your cover letter.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button
+                            type="button"
+                            onClick={generateCoverLetter}
+                            className="w-full md:w-auto rounded-full"
+                            disabled={isGenerating}
+                          >
+                            {isGenerating ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Generate Cover Letter ({CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER} Credits)
+                              </>
+                            )}
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-4"
+                      >
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
+                          <h2 className="text-xl font-semibold">Your Cover Letter</h2>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={copyToClipboard}
+                              className="group"
+                            >
+                              <Copy className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                              Copy
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={downloadAsTxt}
+                              className="group"
+                            >
+                              <Download className="h-4 w-4 mr-2 group-hover:translate-y-0.5 transition-transform" />
+                              Download
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline" 
+                              onClick={regenerateLetter}
+                              className="md:w-auto"
+                              disabled={isGenerating}
+                            >
+                              {isGenerating ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Regenerating...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Regenerate ({CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER} Credits)
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="bg-muted p-4 md:p-6 rounded-lg whitespace-pre-wrap">
+                          {coverLetter}
+                        </div>
+                      </motion.div>
+                    )}
+                  </>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
+
+      {/* Add the SignInDialog component */}
+      <SignInDialog 
+        open={showSignInDialog} 
+        onOpenChange={setShowSignInDialog} 
+      />
+    </>
   );
 } 

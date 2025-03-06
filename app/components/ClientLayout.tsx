@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/app/context/AuthContext";
 import DashboardLayout from "./DashboardLayout";
 import Navbar from "@/components/Navbar";
 import { useEffect } from "react";

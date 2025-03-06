@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/app/components/ui/switch";
 import { motion } from "framer-motion";
+import CreditsIndicator from "./CreditsIndicator";
 
 interface NavItem {
   title: string;
@@ -195,6 +196,13 @@ export default function DashboardLayout({
                   <h2 className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">
                     Main Navigation
                   </h2>
+                </div>
+              )}
+              
+              {/* Credits indicator for logged-in users */}
+              {user && (
+                <div className="mb-3">
+                  <CreditsIndicator collapsed={isCollapsed && !isMobile} />
                 </div>
               )}
               
