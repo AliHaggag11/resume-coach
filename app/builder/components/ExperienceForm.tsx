@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { useResume } from "@/app/context/ResumeContext";
 import { toast } from "sonner";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { CREDIT_COSTS } from "@/app/context/SubscriptionContext";
 
 interface Experience {
   company: string;
@@ -28,6 +30,7 @@ interface Experience {
 
 export default function ExperienceForm() {
   const { resumeData, updateExperiences } = useResume();
+  const { spendCredits } = useSubscription();
   const [experiences, setExperiences] = useState<Experience[]>(
     resumeData.experiences.length > 0
       ? resumeData.experiences
@@ -105,6 +108,18 @@ export default function ExperienceForm() {
       if (!experience.company.trim() || !experience.position.trim()) {
         toast.error("Please enter both company name and position before generating description");
         return;
+      }
+
+      // Check and spend credits
+      const creditCost = CREDIT_COSTS.RESUME.GENERATE_DESCRIPTION;
+      const canSpendCredits = await spendCredits(
+        creditCost, 
+        'RESUME.GENERATE_DESCRIPTION', 
+        `Generated job description for ${experience.position} at ${experience.company}`
+      );
+
+      if (!canSpendCredits) {
+        return; // The spendCredits function will show appropriate error messages
       }
 
       setGeneratingDescription(index);
@@ -201,8 +216,27 @@ Fill in ONLY the template above. Do not add any other text or context.`
 
   const generateAchievements = async (index: number) => {
     try {
-      setGeneratingAchievements(index);
       const experience = experiences[index];
+      
+      // Validate required fields
+      if (!experience.company.trim() || !experience.position.trim() || !experience.description.trim()) {
+        toast.error("Please enter company name, position, and job description before generating achievements");
+        return;
+      }
+
+      // Check and spend credits
+      const creditCost = CREDIT_COSTS.RESUME.GENERATE_ACHIEVEMENTS;
+      const canSpendCredits = await spendCredits(
+        creditCost, 
+        'RESUME.GENERATE_ACHIEVEMENTS', 
+        `Generated achievements for ${experience.position} at ${experience.company}`
+      );
+
+      if (!canSpendCredits) {
+        return; // The spendCredits function will show appropriate error messages
+      }
+
+      setGeneratingAchievements(index);
       
       const prompt = {
         content: {
@@ -337,11 +371,16 @@ Fill in ONLY the template above. Do not add any other text or context.`
                   disabled={generatingDescription !== null || !experience.company.trim() || !experience.position.trim()}
                 >
                   {generatingDescription === index ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
                   ) : (
-                    <Wand2 className="h-4 w-4 mr-2" />
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Description ({CREDIT_COSTS.RESUME.GENERATE_DESCRIPTION} Credits)
+                    </>
                   )}
-                  Generate Description
                 </Button>
               </div>
               <Textarea
@@ -364,11 +403,16 @@ Fill in ONLY the template above. Do not add any other text or context.`
                   disabled={generatingAchievements !== null}
                 >
                   {generatingAchievements === index ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
                   ) : (
-                    <Wand2 className="h-4 w-4 mr-2" />
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Achievements ({CREDIT_COSTS.RESUME.GENERATE_ACHIEVEMENTS} Credits)
+                    </>
                   )}
-                  Generate Achievements
                 </Button>
               </div>
               {experience.achievements.map((achievement, achievementIndex) => (

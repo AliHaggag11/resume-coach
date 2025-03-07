@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { useResume } from "@/app/context/ResumeContext";
 import { toast } from "sonner";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { CREDIT_COSTS } from "@/app/context/SubscriptionContext";
 
 interface Award {
   title: string;
@@ -25,6 +27,7 @@ interface Award {
 
 export default function AwardsForm() {
   const { resumeData, updateAwards } = useResume();
+  const { spendCredits } = useSubscription();
   const [awards, setAwards] = useState<Award[]>(
     resumeData.awards.length > 0
       ? resumeData.awards
@@ -73,6 +76,18 @@ export default function AwardsForm() {
       if (!award.title.trim()) {
         toast.error("Please enter an award title before generating description");
         return;
+      }
+
+      // Check and spend credits
+      const creditCost = CREDIT_COSTS.RESUME.GENERATE_AWARD_DESCRIPTION;
+      const canSpendCredits = await spendCredits(
+        creditCost, 
+        'RESUME.GENERATE_AWARD_DESCRIPTION', 
+        `Generated description for award ${award.title}`
+      );
+
+      if (!canSpendCredits) {
+        return; // The spendCredits function will show appropriate error messages
       }
 
       setGeneratingDescription(index);
@@ -171,11 +186,16 @@ Respond with ONLY the description, no additional text or context.`
                   disabled={generatingDescription !== null || !award.title.trim()}
                 >
                   {generatingDescription === index ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
                   ) : (
-                    <Wand2 className="h-4 w-4 mr-2" />
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Description ({CREDIT_COSTS.RESUME.GENERATE_AWARD_DESCRIPTION} Credits)
+                    </>
                   )}
-                  Generate Description
                 </Button>
               </div>
               <Textarea

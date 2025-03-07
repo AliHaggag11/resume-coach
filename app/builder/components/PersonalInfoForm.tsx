@@ -189,16 +189,17 @@ export default function PersonalInfoForm() {
               size="sm"
               onClick={generateSummary}
               disabled={isGenerating}
+              className="gap-2"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Wand2 className="h-4 w-4 mr-2" />
-                  Generate Summary
+                  <Wand2 className="h-4 w-4" />
+                  Generate Summary ({CREDIT_COSTS.RESUME.GENERATE_SUMMARY} Credits)
                 </>
               )}
             </Button>

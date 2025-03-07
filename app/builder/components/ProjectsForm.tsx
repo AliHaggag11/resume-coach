@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { useResume } from "@/app/context/ResumeContext";
 import { toast } from "sonner";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { CREDIT_COSTS } from "@/app/context/SubscriptionContext";
 
 interface Project {
   name: string;
@@ -28,6 +30,7 @@ interface Project {
 
 export default function ProjectsForm() {
   const { resumeData, updateProjects } = useResume();
+  const { spendCredits } = useSubscription();
   const [projects, setProjects] = useState<Project[]>(
     resumeData.projects.length > 0
       ? resumeData.projects
@@ -130,6 +133,18 @@ export default function ProjectsForm() {
       if (!project.name.trim()) {
         toast.error("Please enter a project name before generating description");
         return;
+      }
+
+      // Check and spend credits
+      const creditCost = CREDIT_COSTS.RESUME.GENERATE_PROJECT_DESCRIPTION;
+      const canSpendCredits = await spendCredits(
+        creditCost, 
+        'RESUME.GENERATE_PROJECT_DESCRIPTION', 
+        `Generated description for project ${project.name}`
+      );
+
+      if (!canSpendCredits) {
+        return; // The spendCredits function will show appropriate error messages
       }
 
       setGeneratingDescription(index);
@@ -272,6 +287,18 @@ Do not include any additional text, bullets, or formatting.`
         return;
       }
 
+      // Check and spend credits
+      const creditCost = CREDIT_COSTS.RESUME.GENERATE_PROJECT_ACHIEVEMENTS;
+      const canSpendCredits = await spendCredits(
+        creditCost, 
+        'RESUME.GENERATE_PROJECT_ACHIEVEMENTS', 
+        `Generated achievements for project ${project.name}`
+      );
+
+      if (!canSpendCredits) {
+        return; // The spendCredits function will show appropriate error messages
+      }
+
       setGeneratingAchievements(index);
       
       const prompt = {
@@ -378,11 +405,16 @@ Respond with ONLY the achievements, one per line, starting with a dash (-). Each
                   disabled={generatingDescription !== null || !project.name.trim()}
                 >
                   {generatingDescription === index ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
                   ) : (
-                    <Wand2 className="h-4 w-4 mr-2" />
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Description ({CREDIT_COSTS.RESUME.GENERATE_PROJECT_DESCRIPTION} Credits)
+                    </>
                   )}
-                  Generate Description
                 </Button>
               </div>
               <Textarea
@@ -443,11 +475,16 @@ Respond with ONLY the achievements, one per line, starting with a dash (-). Each
                   disabled={generatingTechnologies !== null || !project.description.trim()}
                 >
                   {generatingTechnologies === index ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
                   ) : (
-                    <Wand2 className="h-4 w-4 mr-2" />
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Tech Stack ({CREDIT_COSTS.RESUME.GENERATE_PROJECT_TECH_STACK} Credits)
+                    </>
                   )}
-                  Generate Tech Stack
                 </Button>
               </div>
               {project.technologies.map((tech, techIndex) => (
@@ -489,11 +526,16 @@ Respond with ONLY the achievements, one per line, starting with a dash (-). Each
                   disabled={generatingAchievements !== null || !project.description.trim()}
                 >
                   {generatingAchievements === index ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
                   ) : (
-                    <Wand2 className="h-4 w-4 mr-2" />
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Achievements ({CREDIT_COSTS.RESUME.GENERATE_PROJECT_ACHIEVEMENTS} Credits)
+                    </>
                   )}
-                  Generate Achievements
                 </Button>
               </div>
               {project.achievements.map((achievement, achievementIndex) => (
