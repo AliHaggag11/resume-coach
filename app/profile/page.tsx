@@ -30,6 +30,16 @@ import {
   PlusCircle,
   History,
   Clock,
+  Plus,
+  Sparkles,
+  ArrowUpRight,
+  ArrowDownRight,
+  RefreshCw,
+  Users,
+  FileText,
+  Settings,
+  DollarSign,
+  UserPlus,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
@@ -40,6 +50,15 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface UserMetadata {
   full_name?: string;
@@ -50,7 +69,7 @@ interface UserMetadata {
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { credits, creditHistory } = useSubscription();
+  const { credits, creditHistory, purchaseCredits } = useSubscription();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -64,6 +83,8 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
   const [selectedPackage, setSelectedPackage] = useState<CreditPackage | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -198,6 +219,28 @@ export default function ProfilePage() {
     }
   };
 
+  const handlePurchase = async () => {
+    if (!selectedPackage) return;
+    
+    setIsPurchasing(true);
+    try {
+      const { success, error } = await purchaseCredits(selectedPackage.credits);
+      
+      if (success) {
+        toast.success(`Successfully purchased ${selectedPackage.credits} credits!`);
+        setIsOpen(false);
+        setSelectedPackage(null);
+      } else {
+        toast.error(error || 'Failed to purchase credits');
+      }
+    } catch (error: any) {
+      console.error('Error purchasing credits:', error);
+      toast.error(error.message || 'An unexpected error occurred');
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -208,7 +251,7 @@ export default function ProfilePage() {
       <div>
         <h1 className="text-4xl font-bold">Profile Settings</h1>
         <p className="text-muted-foreground mt-2">
-          Manage your account settings and subscription
+          Manage your account settings and preferences
         </p>
       </div>
 
@@ -243,310 +286,31 @@ export default function ProfilePage() {
         </Card>
       )}
 
-      {/* Credits Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-primary" />
-            Credits & Usage
-          </CardTitle>
-          <CardDescription>
-            Manage your credits and view your usage history
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="history">Transaction History</TabsTrigger>
-              <TabsTrigger value="pricing">Pricing</TabsTrigger>
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="personal" className="space-y-6">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
+          <TabsTrigger value="personal" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            <span>Personal Info</span>
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Key className="h-4 w-4" />
+            <span>Security</span>
+          </TabsTrigger>
+          <TabsTrigger value="credits" className="flex items-center gap-2">
+            <Coins className="h-4 w-4" />
+            <span>Credits & Usage</span>
+          </TabsTrigger>
+          {((user?.user_metadata as UserMetadata)?.role === 'support' || (user?.user_metadata as UserMetadata)?.role === 'admin') && (
+            <TabsTrigger value="staff" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span>Staff Management</span>
+            </TabsTrigger>
+          )}
             </TabsList>
             
-            <TabsContent value="overview" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                        Current Balance
-                      </h3>
-                      <div className="flex items-center justify-center gap-2 text-3xl font-bold">
-                        <Coins className="h-6 w-6 text-primary" />
-                        {credits}
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-4 gap-2"
-                        onClick={() => document.getElementById('purchase-credits-button')?.click()}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                        Purchase Credits
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                        Total Earned
-                      </h3>
-                      <div className="flex items-center justify-center gap-2 text-3xl font-bold">
-                        <BarChart3 className="h-6 w-6 text-green-500" />
-                        {creditHistory.length > 0 ? 
-                          creditHistory
-                            .filter(t => t.amount > 0)
-                            .reduce((sum, t) => sum + t.amount, 0) : 
-                          0
-                        }
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-4">
-                        Total credits earned or purchased
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                        Total Spent
-                      </h3>
-                      <div className="flex items-center justify-center gap-2 text-3xl font-bold">
-                        <BarChart className="h-6 w-6 text-blue-500" />
-                        {creditHistory.length > 0 ? 
-                          Math.abs(creditHistory
-                            .filter(t => t.amount < 0)
-                            .reduce((sum, t) => sum + t.amount, 0)) : 
-                          0
-                        }
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-4">
-                        Total credits spent on features
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <h3 className="text-lg font-medium mt-6">Recent Activity</h3>
-              {creditHistory.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-muted/50">
-                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Description</th>
-                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Feature</th>
-                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
-                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Credits</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {creditHistory.slice(0, 5).map((transaction) => (
-                        <tr key={transaction.id} className="hover:bg-muted/30">
-                          <td className="p-3 text-sm">{transaction.description}</td>
-                          <td className="p-3 text-sm">
-                            {transaction.feature ? (
-                              <Badge variant="outline">{transaction.feature}</Badge>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="p-3 text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: true })}
-                          </td>
-                          <td className={`p-3 text-sm font-medium text-right ${transaction.amount > 0 ? 'text-green-500' : 'text-foreground'}`}>
-                            {transaction.amount > 0 ? '+' : ''}{transaction.amount}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center p-8 border rounded-lg">
-                  <div className="text-center">
-                    <History className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                    <h3 className="font-medium">No transaction history yet</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Your credit transactions will appear here
-                    </p>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="history" className="space-y-4">
-              {creditHistory.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-muted/50">
-                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Description</th>
-                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Feature</th>
-                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
-                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Credits</th>
-                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {creditHistory.map((transaction) => (
-                        <tr key={transaction.id} className="hover:bg-muted/30">
-                          <td className="p-3 text-sm">{transaction.description}</td>
-                          <td className="p-3 text-sm">
-                            {transaction.feature ? (
-                              <Badge variant="outline">{transaction.feature}</Badge>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="p-3 text-sm text-muted-foreground">
-                            {new Date(transaction.created_at).toLocaleString()}
-                          </td>
-                          <td className={`p-3 text-sm font-medium text-right ${transaction.amount > 0 ? 'text-green-500' : 'text-foreground'}`}>
-                            {transaction.amount > 0 ? '+' : ''}{transaction.amount}
-                          </td>
-                          <td className="p-3 text-sm font-medium text-right">
-                            {transaction.balance_after}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center p-8 border rounded-lg">
-                  <div className="text-center">
-                    <History className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                    <h3 className="font-medium">No transaction history yet</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Your credit transactions will appear here
-                    </p>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="pricing" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Jobs Features</CardTitle>
-                    <CardDescription>Credits needed for job-related features</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      <li className="flex justify-between items-center text-sm">
-                        <span>AI Analysis</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.AI_ANALYSIS} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>AI Specialized Resume</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.AI_SPECIALIZED_RESUME} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>AI Preparation Guide</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.AI_PREPARATION_GUIDE} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Practice with AI</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.JOBS.PRACTICE_WITH_AI} credits</Badge>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Resume Features</CardTitle>
-                    <CardDescription>Credits needed for resume features</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Summary</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_SUMMARY} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Description</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_DESCRIPTION} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Achievements</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_ACHIEVEMENTS} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Suggest Skills</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.SUGGEST_SKILLS} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Project Description</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_PROJECT_DESCRIPTION} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Project Tech Stack</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_PROJECT_TECH_STACK} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Project Achievements</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_PROJECT_ACHIEVEMENTS} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Award Description</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.GENERATE_AWARD_DESCRIPTION} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>ATS Analyze Resume</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.ATS_ANALYZE_RESUME} credits</Badge>
-                      </li>
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Download Resume</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.RESUME.DOWNLOAD_RESUME} credits</Badge>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Cover Letter Features</CardTitle>
-                    <CardDescription>Credits needed for cover letter features</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      <li className="flex justify-between items-center text-sm">
-                        <span>Generate Letter</span>
-                        <Badge variant="secondary">{CREDIT_COSTS.COVER_LETTER.GENERATE_LETTER} credits</Badge>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="mt-6">
-                <Button
-                  id="purchase-credits-button"
-                  className="gap-2"
-                  onClick={() => {
-                    const element = document.querySelector('.credits-indicator-button');
-                    if (element instanceof HTMLElement) {
-                      element.click();
-                    }
-                  }}
-                >
-                  <Coins className="h-4 w-4" />
-                  Purchase Credits
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Profile Information */}
+        {/* Personal Info Tab */}
+        <TabsContent value="personal" className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -627,43 +391,27 @@ export default function ProfilePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                Email Address
-                {user.email_confirmed_at && (
-                  <Badge variant="outline" className="font-normal">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Verified
-                  </Badge>
-                )}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger type="button">
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Please contact support to change your email address
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
+                  <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                value={user.email}
+                    value={formData.email}
                 disabled
-                className="bg-muted"
+                    className="bg-muted/50"
               />
+                  <p className="text-xs text-muted-foreground">
+                    To change your email, please contact support
+                  </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (Optional)</Label>
+                  <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
-                type="tel"
                 value={formData.phone}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, phone: e.target.value }))
                 }
-                placeholder="+1 (555) 000-0000"
+                    placeholder="(555) 555-5555"
               />
             </div>
             <Button type="submit" disabled={isUpdating}>
@@ -679,12 +427,14 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Security */}
+        {/* Security Tab */}
+        <TabsContent value="security" className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+                <Key className="h-5 w-5" />
             Security
           </CardTitle>
           <CardDescription>
@@ -733,164 +483,427 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Staff Information - Only shown for support/admin users */}
-      {((user?.user_metadata as UserMetadata)?.role === 'support' || (user?.user_metadata as UserMetadata)?.role === 'admin') && (
+        {/* Credits & Usage Tab */}
+        <TabsContent value="credits" className="space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Staff Information
-            </CardTitle>
+            <CardHeader className="flex items-center gap-2 pb-2">
+              <div className="bg-blue-500/20 p-2 rounded-lg">
+                <Coins className="h-5 w-5 text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <CardTitle>Credits & Usage</CardTitle>
             <CardDescription>
-              Your staff member information and statistics
+                  Manage your AI credits and view usage history
             </CardDescription>
+              </div>
           </CardHeader>
           <CardContent className="space-y-6">
+              {/* Current Balance */}
+              <div className="bg-muted rounded-xl p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="bg-blue-500/20 p-2 rounded-lg mr-3">
+                      <Coins className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Current Balance</p>
+                      <p className="text-2xl font-bold">{credits} Credits</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => setIsOpen(true)} 
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Credits
+                  </Button>
+                </div>
+              </div>
+
+              {/* Credit Usage Stats */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Credit Usage</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-lg border bg-card">
-                <h4 className="font-medium mb-1">Assigned Tickets</h4>
-                <p className="text-2xl font-bold">-</p>
+                  <div className="p-5 rounded-lg bg-card border">
+                    <p className="text-base mb-2 text-muted-foreground">Resume Edits</p>
+                    <p className="text-2xl font-bold">45</p>
               </div>
-              <div className="p-4 rounded-lg border bg-card">
-                <h4 className="font-medium mb-1">Resolved Tickets</h4>
-                <p className="text-2xl font-bold">-</p>
+                  <div className="p-5 rounded-lg bg-card border">
+                    <p className="text-base mb-2 text-muted-foreground">Cover Letters</p>
+                    <p className="text-2xl font-bold">12</p>
               </div>
-              <div className="p-4 rounded-lg border bg-card">
-                <h4 className="font-medium mb-1">Response Time</h4>
-                <p className="text-2xl font-bold">-</p>
+                  <div className="p-5 rounded-lg bg-card border">
+                    <p className="text-base mb-2 text-muted-foreground">Job Analyses</p>
+                    <p className="text-2xl font-bold">8</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction History */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">Transaction History</h3>
+                  <Button variant="ghost" size="sm" className="gap-1 h-8">
+                    <Clock className="h-3.5 w-3.5" />
+                    View All
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {creditHistory.slice(0, 3).map((transaction, index) => (
+                    <div key={transaction.id || index} className="flex items-center justify-between p-4 rounded-lg bg-card border">
+                      <div className="flex items-center">
+                        <div className="bg-blue-500/20 p-2 rounded-lg mr-3">
+                          <Coins className="h-4 w-4 text-blue-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{transaction.description}</p>
+                          <p className="text-xs text-muted-foreground flex items-center mt-1">
+                            <Clock className="h-3 w-3 mr-1" />
+                            about {formatDistanceToNow(new Date(transaction.created_at), { addSuffix: false })} ago
+                          </p>
+                        </div>
+                      </div>
+                      <p className={`font-medium ${transaction.amount > 0 ? 'text-green-500' : 'text-blue-500'}`}>
+                        {transaction.amount > 0 ? '+' : ''}{transaction.amount} Credits
+                      </p>
+                    </div>
+                  ))}
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
+        </TabsContent>
 
-      {/* Subscription - Hide for support users unless they are also subscribers */}
-      {(user?.user_metadata as UserMetadata)?.role !== 'support' && (
+        {/* Staff Management Tab */}
+        {((user?.user_metadata as UserMetadata)?.role === 'support' || (user?.user_metadata as UserMetadata)?.role === 'admin') && (
+          <TabsContent value="staff" className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Subscription
+                  <Shield className="h-5 w-5" />
+                  Staff Dashboard
             </CardTitle>
             <CardDescription>
-              Manage your subscription and billing
+                  Access staff tools and monitor support metrics
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Crown className="h-6 w-6 text-primary" />
-                </div>
+                {/* Activity Overview */}
                 <div>
-                  <h3 className="font-medium capitalize">{selectedPackage?.name || 'Free'} Plan</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPackage ? 'Full access to all features' : 'Limited features'}
-                  </p>
+                  <h3 className="font-medium mb-3">Activity Overview</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-lg border bg-card">
+                      <h4 className="text-sm text-muted-foreground mb-1">Assigned Tickets</h4>
+                      <p className="text-2xl font-bold">12</p>
+                      <div className="mt-2 text-xs text-green-500 flex items-center">
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                        <span>25% this week</span>
                 </div>
+                    </div>
+                    <div className="p-4 rounded-lg border bg-card">
+                      <h4 className="text-sm text-muted-foreground mb-1">Resolved Tickets</h4>
+                      <p className="text-2xl font-bold">48</p>
+                      <div className="mt-2 text-xs text-green-500 flex items-center">
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                        <span>15% this month</span>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-lg border bg-card">
+                      <h4 className="text-sm text-muted-foreground mb-1">Avg. Response Time</h4>
+                      <p className="text-2xl font-bold">2.4h</p>
+                      <div className="mt-2 text-xs text-blue-500 flex items-center">
+                        <ArrowDownRight className="h-3 w-3 mr-1" />
+                        <span>10% improvement</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Support Queue */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium">Active Support Queue</h3>
+                    <Button variant="outline" size="sm" className="h-8 gap-1">
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>Refresh</span>
+                    </Button>
+                </div>
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted/40 px-4 py-2.5 border-b grid grid-cols-12 gap-4 text-sm font-medium">
+                      <div className="col-span-1">#</div>
+                      <div className="col-span-3">User</div>
+                      <div className="col-span-4">Subject</div>
+                      <div className="col-span-2">Status</div>
+                      <div className="col-span-2 text-right">Waiting</div>
               </div>
-              {selectedPackage === null && (
-                <Button variant="outline">
-                  Upgrade Plan
+                    <div className="divide-y">
+                      {[
+                        { id: 'T-1023', user: 'james@example.com', subject: 'Resume builder not working', status: 'New', time: '10m' },
+                        { id: 'T-1022', user: 'sarah@example.com', subject: 'Login issues after password reset', status: 'In Progress', time: '32m' },
+                        { id: 'T-1021', user: 'michael@example.com', subject: 'Feature request: Add new template', status: 'Waiting', time: '2h' },
+                      ].map((ticket, i) => (
+                        <div key={i} className="px-4 py-3 grid grid-cols-12 gap-4 text-sm hover:bg-muted/20 transition-colors">
+                          <div className="col-span-1 font-mono">{ticket.id}</div>
+                          <div className="col-span-3 truncate">{ticket.user}</div>
+                          <div className="col-span-4 truncate">{ticket.subject}</div>
+                          <div className="col-span-2">
+                            <Badge className={
+                              ticket.status === 'New' ? 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-200' :
+                              ticket.status === 'In Progress' ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-yellow-200' :
+                              'bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 border-purple-200'
+                            }>
+                              {ticket.status}
+                            </Badge>
+                          </div>
+                          <div className="col-span-2 text-right text-muted-foreground">{ticket.time}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex justify-center mt-3">
+                    <Button variant="link" size="sm" className="text-xs text-muted-foreground">
+                      View All Tickets
                 </Button>
-              )}
+                  </div>
             </div>
             
-            {selectedPackage && (
+                {/* Admin Tools */}
+                {(user?.user_metadata as UserMetadata)?.role === 'admin' && (
               <>
                 <Separator />
-                <div className="space-y-2">
-                  <h4 className="font-medium">Next Payment</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Your next payment of ${selectedPackage.price} will be processed on MM/DD/YYYY
-                  </p>
+                    <div>
+                      <h3 className="font-medium mb-3">Administration</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="border rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-blue-500/10 rounded-lg">
+                              <Users className="h-5 w-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">User Management</h4>
+                              <p className="text-sm text-muted-foreground mt-1 mb-3">
+                                Manage user roles, permissions, and accounts
+                              </p>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm">
+                                  View Users
+                                </Button>
+                                <Button variant="default" size="sm" className="gap-1">
+                                  <UserPlus className="h-3.5 w-3.5" />
+                                  Add User
+                                </Button>
                 </div>
-                <Button variant="outline" className="w-full">
-                  Manage Subscription
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-green-500/10 rounded-lg">
+                              <BarChart3 className="h-5 w-5 text-green-500" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">Analytics & Reports</h4>
+                              <p className="text-sm text-muted-foreground mt-1 mb-3">
+                                View platform usage metrics and generate reports
+                              </p>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm">
+                                  Dashboard
                 </Button>
+                                <Button variant="default" size="sm" className="gap-1">
+                                  <FileText className="h-3.5 w-3.5" />
+                                  Generate Report
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-purple-500/10 rounded-lg">
+                              <Settings className="h-5 w-5 text-purple-500" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">System Settings</h4>
+                              <p className="text-sm text-muted-foreground mt-1 mb-3">
+                                Configure application settings and features
+                              </p>
+                              <Button variant="outline" size="sm">
+                                Manage Settings
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-amber-500/10 rounded-lg">
+                              <DollarSign className="h-5 w-5 text-amber-500" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">Billing & Subscriptions</h4>
+                              <p className="text-sm text-muted-foreground mt-1 mb-3">
+                                Manage billing settings and subscription plans
+                              </p>
+                              <Button variant="outline" size="sm">
+                                Billing Dashboard
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* System Health */}
+                    <div>
+                      <h3 className="font-medium mb-3">System Health</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-200">
+                              Operational
+                            </Badge>
+                            <span className="font-medium">API Services</span>
+                          </div>
+                          <div className="text-right text-sm">
+                            <span className="text-muted-foreground">Uptime:</span> 99.98%
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-200">
+                              Operational
+                            </Badge>
+                            <span className="font-medium">Database</span>
+                          </div>
+                          <div className="text-right text-sm">
+                            <span className="text-muted-foreground">Uptime:</span> 100%
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-200">
+                              Degraded
+                            </Badge>
+                            <span className="font-medium">Storage</span>
+                          </div>
+                          <div className="text-right text-sm">
+                            <span className="text-muted-foreground">Uptime:</span> 98.5%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
               </>
             )}
           </CardContent>
         </Card>
-      )}
-
-      <div className="mt-10">
-        <div className="price-card-container flex flex-col items-center md:items-start md:flex-row gap-4 flex-wrap">
-          {CREDIT_PACKAGES.map((pkg) => (
+          </TabsContent>
+        )}
+      </Tabs>
+      
+      {/* Purchase Credits Dialog */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="sm:max-w-md border-0 bg-background/95 backdrop-blur-sm">
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="bg-blue-500/20 p-1.5 rounded-md">
+              <Coins className="h-5 w-5 text-blue-500" />
+            </div>
+            <DialogTitle className="text-xl font-semibold p-0 m-0">
+              Purchase Credits
+            </DialogTitle>
+          </div>
+          
+          <DialogDescription className="text-muted-foreground pb-4">
+            Credits are used for AI-powered features like resume generation, mock interviews, and more.
+          </DialogDescription>
+          
+          <div className="space-y-5 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-medium">Current Balance:</span>
+              <div className="font-bold text-lg flex items-center gap-2">
+                <div className="bg-blue-500/20 p-1 rounded-md">
+                  <Coins className="h-4 w-4 text-blue-500" />
+                </div>
+                {credits} Credits
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-sm font-medium mb-3">Select a Package:</p>
+              <div className="space-y-3">
+                {CREDIT_PACKAGES.map((pkg, index) => (
             <div 
               key={pkg.id}
-              className={`price-card cursor-pointer relative overflow-hidden bg-background border-2 rounded-xl transition-all duration-200 ${
-                selectedPackage?.id === pkg.id ? 'border-primary' : 'border-border hover:border-primary/50'
-              }`}
+                    className={cn(
+                      "relative border rounded-xl p-4 cursor-pointer transition-colors",
+                      selectedPackage?.id === pkg.id 
+                        ? "border-blue-500 bg-blue-500/5" 
+                        : "border-border hover:border-blue-500/30 hover:bg-blue-500/5"
+                    )}
               onClick={() => setSelectedPackage(pkg)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  setSelectedPackage(pkg);
-                }
-              }}
             >
               {pkg.tag && (
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 rounded-bl-lg text-xs font-medium">
+                      <span className={cn(
+                        "absolute right-3 top-0 -translate-y-1/2 text-xs px-3 py-0.5 rounded-full font-medium",
+                        "bg-blue-500 text-white"
+                      )}>
                   {pkg.tag}
+                      </span>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-blue-900/20 rounded-lg p-2.5">
+                          <Sparkles className="h-6 w-6 text-blue-500" />
                 </div>
-              )}
-              <div className="p-6">
-                <h3 className="text-xl font-bold">{pkg.name}</h3>
-                <div className="mt-2 flex items-end">
-                  <span className="text-3xl font-bold">${pkg.price}</span>
-                  <span className="text-muted-foreground ml-1 mb-1">one-time</span>
-                </div>
+                        <div>
+                          <div className="text-lg font-medium">{pkg.credits} Credits</div>
                 {pkg.discount && (
-                  <div className="mt-1 text-sm text-green-500 font-medium">
-                    {pkg.discount}% discount
+                            <div className="text-sm text-blue-500">
+                              Save {pkg.discount}%
                   </div>
                 )}
-                <div className="mt-4 text-center py-2 px-3 bg-secondary/50 rounded-md">
-                  <span className="font-medium text-lg">{pkg.credits} credits</span>
                 </div>
-                <div className="mt-4">
-                  <Button className="w-full" size="sm">
-                    Buy Now
-                  </Button>
                 </div>
+                      <div className="text-xl font-bold">${pkg.price}</div>
               </div>
             </div>
           ))}
+              </div>
         </div>
       </div>
 
-      <div className="mt-8">
-        <h3 className="text-lg font-medium mb-2">Your Features</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-start space-x-2">
-            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>Unlimited Resumes & Cover Letters</span>
+          <div className="flex items-center justify-between gap-4 mt-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+              className="flex-1 border-blue-500/20 hover:bg-blue-500/5 hover:text-blue-600"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePurchase} 
+              disabled={isPurchasing || !selectedPackage}
+              className="flex-1 gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isPurchasing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Purchase
+                  <Plus className="h-4 w-4" />
+                </>
+              )}
+            </Button>
           </div>
-          <div className="flex items-start space-x-2">
-            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>Access to All AI-Powered Features</span>
-          </div>
-          <div className="flex items-start space-x-2">
-            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>All Premium Templates</span>
-          </div>
-          <div className="flex items-start space-x-2">
-            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>Job Matching & Recommendations</span>
-          </div>
-          <div className="flex items-start space-x-2">
-            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>All Download Formats (PDF, DOCX, TXT)</span>
-          </div>
-          <div className="flex items-start space-x-2">
-            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-            <span>Priority Customer Support</span>
-          </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

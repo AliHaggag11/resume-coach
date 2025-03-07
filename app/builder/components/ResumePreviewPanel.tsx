@@ -249,100 +249,92 @@ export default function ResumePreviewPanel({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleFullscreen}
-                title="Fullscreen"
                 className="h-7 w-7 sm:h-9 sm:w-9"
+                onClick={toggleFullscreen}
               >
                 <Maximize className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             )}
-            {onExport && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={onExport} 
-                title="Export"
-                className="h-7 w-7 sm:h-9 sm:w-9"
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              {totalPages > 1 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={prevPage}
+                    disabled={currentPage === 1}
+                    className="h-7 w-7 sm:h-9 sm:w-9"
+                  >
+                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={nextPage}
+                    disabled={currentPage === totalPages}
+                    className="h-7 w-7 sm:h-9 sm:w-9"
+                  >
+                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </Button>
+                </>
+              )}
+              
+              {renderZoomControl()}
+              
+              <Button
+                variant="outline"
+                onClick={onExport}
+                size="sm"
+                className="hidden sm:flex items-center gap-1 h-8"
               >
                 <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden md:inline">Export</span>
               </Button>
-            )}
-            {onShare && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={onShare} 
-                title="Share"
-                className="h-7 w-7 sm:h-9 sm:w-9"
-              >
-                <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-            )}
+              {onShare && (
+                <Button
+                  variant="outline"
+                  onClick={onShare}
+                  size="sm"
+                  className="hidden sm:flex items-center gap-1 h-8"
+                >
+                  <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden md:inline">Share</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
-
-      <div className="relative flex-1 overflow-hidden bg-muted/30 rounded-lg flex items-center justify-center">
+      
+      {/* Resume Preview */}
+      <div 
+        className={cn(
+          "flex-1 relative",
+          !showDetails && "rounded-lg border overflow-hidden"
+        )}
+      >
         <div 
-          className={cn(
-            "transition-transform duration-200 shadow-xl",
-            fullscreen ? "transform-gpu" : ""
-          )}
+          className="w-full overflow-auto"
           style={{ 
-            transform: `scale(${scale})`,
-            transition: "transform 0.2s ease"
+            maxHeight: fullscreen ? "calc(100vh - 100px)" : "calc(100vh - 220px)",
+            padding: showDetails ? "0" : "0.5rem",
           }}
         >
-          <ResumePreview 
-            template={style.theme} 
-            scale={1} 
-          />
+          <ResumePreview scale={scale} template={style.theme} />
         </div>
-
-        {/* Page navigation */}
-        {totalPages > 1 && (
-          <>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-8 sm:w-8 bg-background/80 hover:bg-background shadow-sm"
-              onClick={prevPage}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-8 sm:w-8 bg-background/80 hover:bg-background shadow-sm"
-              onClick={nextPage}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
-          </>
-        )}
+        
+        {/* Mobile export button */}
+        <div className="mt-4 flex items-center justify-center sm:hidden">
+          <Button
+            onClick={onExport}
+            size="sm"
+            className="w-full"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Resume
+          </Button>
+        </div>
       </div>
-
-      {/* Show details panel only when not in fullscreen mobile mode */}
-      {showDetails && (!fullscreen || !isMobile) && (
-        <Card className="mt-2 sm:mt-4 p-2 sm:p-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-2">
-            {renderZoomControl()}
-            <div className="text-[10px] sm:text-xs text-muted-foreground">
-              Template: <span className="font-medium capitalize">{style.theme}</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-1 sm:gap-2 text-[10px] sm:text-xs">
-            <div>
-              <span className="text-muted-foreground">Font:</span> <span className="font-medium">{style.font} ({style.fontSize})</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Spacing:</span> <span className="font-medium">{style.spacing}</span>
-            </div>
-          </div>
-        </Card>
-      )}
     </div>
   );
 } 

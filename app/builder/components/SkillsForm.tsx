@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Wand2, RefreshCw } from "lucide-react";
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import { useResume } from "@/app/context/ResumeContext";
 import { toast } from "sonner";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { CREDIT_COSTS } from "@/app/context/SubscriptionContext";
 
 interface SkillCategory {
   name: string;
@@ -21,6 +23,7 @@ interface SkillCategory {
 
 export default function SkillsForm() {
   const { resumeData, updateSkills } = useResume();
+  const { spendCredits } = useSubscription();
   const [categories, setCategories] = useState<SkillCategory[]>(
     resumeData.skills.length > 0
       ? resumeData.skills
@@ -32,6 +35,18 @@ export default function SkillsForm() {
         ]
   );
   const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    if (resumeData.skills && resumeData.skills.length > 0) {
+      setCategories(resumeData.skills);
+    }
+  }, [resumeData.skills]);
+
+  useEffect(() => {
+    if (categories !== resumeData.skills && categories.length > 0) {
+      updateSkills(categories);
+    }
+  }, [categories, updateSkills, resumeData.skills]);
 
   const addCategory = () => {
     setCategories([
@@ -96,6 +111,18 @@ export default function SkillsForm() {
       if (!resumeData.personalInfo.summary?.trim()) {
         toast.error("Please add a professional summary in the Personal Info section first");
         return;
+      }
+
+      // Check and spend credits
+      const creditCost = CREDIT_COSTS.RESUME.SUGGEST_SKILLS;
+      const canSpendCredits = await spendCredits(
+        creditCost, 
+        'RESUME.SUGGEST_SKILLS', 
+        `Suggested skills for ${category.name} category`
+      );
+
+      if (!canSpendCredits) {
+        return; // The spendCredits function will show appropriate error messages
       }
 
       setIsGenerating(true);

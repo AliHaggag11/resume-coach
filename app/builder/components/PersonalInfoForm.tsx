@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Wand2, RefreshCw, Loader2 } from "lucide-react";
+import { Wand2, RefreshCw, Loader2, Info } from "lucide-react";
 import { useResume } from "@/app/context/ResumeContext";
 import { toast } from "sonner";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { CREDIT_COSTS } from "@/app/context/SubscriptionContext";
 
 export default function PersonalInfoForm() {
   const { resumeData, updatePersonalInfo } = useResume();
+  const { spendCredits } = useSubscription();
   const { personalInfo } = resumeData;
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -26,6 +29,18 @@ export default function PersonalInfoForm() {
       if (!personalInfo.title) {
         toast.error("Please enter a professional title first");
         return;
+      }
+
+      // Check and spend credits
+      const creditCost = CREDIT_COSTS.RESUME.GENERATE_SUMMARY;
+      const canSpendCredits = await spendCredits(
+        creditCost, 
+        'RESUME.GENERATE_SUMMARY', 
+        `Generated professional summary for ${personalInfo.title}`
+      );
+
+      if (!canSpendCredits) {
+        return; // The spendCredits function will show appropriate error messages
       }
 
       setIsGenerating(true);
