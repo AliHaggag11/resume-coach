@@ -198,7 +198,10 @@ export default function ResumePreviewPanel({
       )}
       style={fullscreen ? {
         padding: isMobile ? '48px 8px 64px 8px' : '72px 24px 24px 72px',
-      } : {}}
+      } : {
+        maxHeight: 'calc(100vh - 140px)', // Set the max height to viewport height minus some spacing
+        height: '100%'
+      }}
     >
       {/* Fullscreen UI */}
       {fullscreen && (
@@ -393,6 +396,11 @@ export default function ResumePreviewPanel({
           fullscreen && "absolute inset-0 z-[101]",
           fullscreen && isMobile && "pt-14 pb-14"
         )}
+        style={{
+          maxHeight: fullscreen ? '100vh' : 'calc(100vh - 200px)',
+          height: 'auto',
+          minHeight: '300px' // Ensure a minimum height for small content
+        }}
       >
         <div 
           className="transition-all bg-white shadow-md mx-auto my-2"
@@ -401,7 +409,7 @@ export default function ResumePreviewPanel({
             transformOrigin: 'top center',
             width: '210mm', // A4 width
             height: 'auto', // Let the height adjust based on content
-            maxHeight: fullscreen ? (isMobile ? 'calc(100vh - 100px)' : 'calc(100vh - 140px)') : 'none'
+            maxHeight: fullscreen ? (isMobile ? 'calc(100vh - 100px)' : 'calc(100vh - 140px)') : 'calc(100vh - 220px)'
           }}
         >
           <ResumePreview 

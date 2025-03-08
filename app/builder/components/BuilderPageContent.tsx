@@ -1951,11 +1951,11 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
 
             <div
               className={cn(
-                "lg:block",
+                "lg:block h-full",
                 showPreview ? "block" : "hidden lg:block"
               )}
             >
-              <div className="relative md:sticky md:top-[7rem]">
+              <div className="relative md:sticky md:top-[7rem] h-full max-h-[calc(100vh-7rem)]">
                 <div className="h-full">
                   <ResumePreviewPanel 
                     onExport={() => setExportDialogOpen(true)}
@@ -1964,7 +1964,7 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
                       // For now, just show a toast message
                       toast.info("Share functionality coming soon!");
                     }}
-                    className="h-full"
+                    className="h-full flex-1 min-h-0"
                   />
                   
                   {/* Mobile only - return to edit button */}
