@@ -848,6 +848,48 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
       const filename = options.filename || `resume-${new Date().toISOString().split('T')[0]}`;
       const fullFilename = `${filename}.${format}`;
       
+      // Helper function to optimize section layout for PDF
+      const optimizeSectionsForPDF = (element: HTMLElement): HTMLElement => {
+        // Clone the element first
+        const optimizedElement = element.cloneNode(true) as HTMLElement;
+        
+        // Find all section headers (typically h2 elements)
+        const sectionHeaders = optimizedElement.querySelectorAll('h2');
+        
+        sectionHeaders.forEach(header => {
+          // For each section header, find its parent section
+          const section = header.closest('.pdf-section');
+          if (section instanceof HTMLElement) {
+            // Ensure it has the necessary CSS properties
+            section.style.pageBreakInside = 'avoid';
+            section.style.breakInside = 'avoid';
+            
+            // When a section is longer than typical page height, we need more sophisticated handling
+            // Calculate approximate height of the section
+            const sectionHeight = section.getBoundingClientRect().height;
+            
+            // If the section is very large, consider it can break across pages
+            // But ensure that individual items within the section stay together
+            if (sectionHeight > 700) { // rough estimate of what might fit on a page
+              section.style.pageBreakInside = 'auto';
+              section.style.breakInside = 'auto';
+              
+              // But make sure individual entries in the section don't break
+              const entries = section.querySelectorAll('div > div');
+              entries.forEach(entry => {
+                if (entry instanceof HTMLElement) {
+                  entry.style.pageBreakInside = 'avoid';
+                  entry.style.breakInside = 'avoid';
+                  entry.style.display = 'block';
+                }
+              });
+            }
+          }
+        });
+        
+        return optimizedElement;
+      };
+      
       // Handle different export formats
       switch (format) {
         case 'pdf':
@@ -876,6 +918,15 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
             clonedElement.style.letterSpacing = '0.5px'; // Improve letter spacing
             clonedElement.style.color = '#000000'; // Force text to be black
             clonedElement.style.backgroundColor = '#ffffff'; // Force background to be white
+            
+            // Apply optimization for PDF section layout
+            try {
+              // Only try to optimize if we can access the element properties correctly
+              optimizeSectionsForPDF(clonedElement);
+            } catch (err) {
+              console.warn("Could not fully optimize section layout:", err);
+              // Continue with the export even if optimization fails
+            }
             
             // Force all text elements to be black
             const allTextElements = clonedElement.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, li, a, div');
@@ -941,6 +992,92 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
             });
             
             document.body.appendChild(clonedElement);
+            
+            // Enhanced section page break control - better targeting of sections
+            const sectionElements = clonedElement.querySelectorAll('.pdf-section');
+            sectionElements.forEach(section => {
+              if (section instanceof HTMLElement) {
+                // Ensure all PDF sections have these styles
+                section.style.pageBreakInside = 'avoid';
+                section.style.breakInside = 'avoid';
+                section.style.display = 'block';
+                section.style.position = 'relative';
+                
+                // Add a small margin to help with page breaks
+                section.style.marginBottom = '16px';
+                
+                // Find all items within the section that should also avoid breaks
+                const items = section.querySelectorAll('div > div');
+                items.forEach(item => {
+                  if (item instanceof HTMLElement && !item.classList.contains('pdf-section')) {
+                    item.style.pageBreakInside = 'avoid';
+                    item.style.breakInside = 'avoid';
+                  }
+                });
+              }
+            });
+
+            // Add specific CSS to handle page breaks for major sections
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+              @media print {
+                .pdf-section {
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                  margin-top: 16px !important;
+                  padding-bottom: 8px !important;
+                }
+                
+                /* For experience and education items to avoid breaking */
+                .pdf-section > div > div {
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                }
+                
+                /* Help browser make better decisions about page breaks */
+                h1, h2, h3, h4, h5, h6 {
+                  page-break-after: avoid !important;
+                  break-after: avoid !important;
+                }
+                
+                /* Prevent orphaned list items */
+                li {
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                }
+                
+                /* For multi-column layouts */
+                .grid {
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                }
+                
+                /* Make sure section headings always come with some content */
+                h2 {
+                  margin-bottom: 8px !important;
+                  page-break-after: avoid !important;
+                  break-after: avoid !important;
+                }
+                
+                /* Ensure that lists stay with their intro */
+                ul, ol {
+                  page-break-before: avoid !important;
+                  break-before: avoid !important;
+                }
+                
+                /* Prevent orphaned headings */
+                h2::after, h3::after {
+                  content: "";
+                  display: block;
+                  height: 0;
+                  margin-bottom: 0;
+                  page-break-after: avoid;
+                  break-after: avoid;
+                }
+              }
+            `;
+            
+            clonedElement.appendChild(styleElement);
             
             // Use html2canvas with better settings
             const canvas = await html2canvas(clonedElement, {
