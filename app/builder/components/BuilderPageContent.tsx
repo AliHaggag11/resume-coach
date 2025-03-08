@@ -168,6 +168,51 @@ export function BuilderPageContent({ initialData }: BuilderPageContentProps): Re
   const [isAtsMinimized, setIsAtsMinimized] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAtsScore, setShowAtsScore] = useState(false);
+  const currentDate = new Date().toISOString().split('T')[0];
+
+  // Define the sections
+  const builderSections: Section[] = [
+    {
+      id: "personal-info",
+      label: "Personal Info",
+      icon: User,
+      component: <PersonalInfoForm />,
+    },
+    {
+      id: "experience",
+      label: "Experience",
+      icon: Briefcase,
+      component: <ExperienceForm />,
+    },
+    {
+      id: "education",
+      label: "Education",
+      icon: GraduationCap,
+      component: <EducationForm />,
+    },
+    {
+      id: "skills",
+      label: "Skills",
+      icon: Star,
+      component: <SkillsForm />,
+    },
+    {
+      id: "projects",
+      label: "Projects",
+      icon: FolderGit2,
+      component: <ProjectsForm />,
+    },
+    {
+      id: "awards",
+      label: "Awards",
+      icon: Trophy,
+      component: <AwardsForm />,
+    },
+  ];
+
+  // Calculate the current section index for navigation (moved after builderSections definition)
+  const currentSectionIndex = builderSections.findIndex(section => section.id === activeSection);
 
   useEffect(() => {
     if (initialData) {
@@ -1008,46 +1053,6 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
     URL.revokeObjectURL(link.href);
   };
 
-  const builderSections: Section[] = [
-    {
-      id: "personal-info",
-      label: "Personal Info",
-      icon: User,
-      component: <PersonalInfoForm />,
-    },
-    {
-      id: "experience",
-      label: "Experience",
-      icon: Briefcase,
-      component: <ExperienceForm />,
-    },
-    {
-      id: "education",
-      label: "Education",
-      icon: GraduationCap,
-      component: <EducationForm />,
-    },
-    {
-      id: "skills",
-      label: "Skills",
-      icon: Star,
-      component: <SkillsForm />,
-    },
-    {
-      id: "projects",
-      label: "Projects",
-      icon: FolderGit2,
-      component: <ProjectsForm />,
-    },
-    {
-      id: "awards",
-      label: "Awards",
-      icon: Trophy,
-      component: <AwardsForm />,
-    },
-  ];
-
-  const currentSectionIndex = builderSections.findIndex((section: Section) => section.id === activeSection);
   const currentSection = builderSections[currentSectionIndex];
   const hasNext = currentSectionIndex < builderSections.length - 1;
   const hasPrev = currentSectionIndex > 0;
@@ -1107,96 +1112,68 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="relative">
-        <div className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 max-w-screen-2xl items-center">
-            {/* Mobile Navigation */}
-            <div className="flex md:hidden items-center gap-2 w-full">
+    <div className="min-h-screen flex flex-col">
+      <div className={cn(
+        "sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        showAtsScore ? "shadow-sm" : ""
+      )}>
+        <div className="container flex h-14 max-w-screen-2xl items-center">
+          {/* Mobile Menu */}
+          <div className="md:hidden flex items-center justify-between w-full">
             <Sheet>
               <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    showPreview && "hidden" // Hide sections button when preview is shown
-                  )}
-                >
-                  <Menu className="h-4 w-4 mr-2" />
-                  Sections
+                <Button variant="ghost" size="icon" className="h-9 w-9 p-0">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[85%] max-w-sm pr-0">
-                <SheetHeader className="px-4 pb-4 border-b">
-                  <SheetTitle>Resume Sections</SheetTitle>
+              <SheetContent side="left" className="flex flex-col w-full max-w-[350px] p-0">
+                <SheetHeader className="p-4 border-b">
+                  <SheetTitle>Resume Builder</SheetTitle>
                 </SheetHeader>
-                <nav className="grid gap-1 p-4">
-                  {builderSections.map((section: Section) => {
-                    const Icon = section.icon;
-                    const isActive = activeSection === section.id;
-                    return (
-                      <button
-                        key={section.id}
-                        onClick={() => {
-                          setActiveSection(section.id);
-                          // Close sheet
-                          const closeButton = document.querySelector(
-                            '[data-dismiss="sheet"]'
-                          );
-                          if (closeButton instanceof HTMLElement)
-                            closeButton.click();
-                        }}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        )}
+                <div className="flex flex-col flex-1 overflow-auto">
+                  <div className="flex-1 p-4">
+                    <div className="space-y-3">
+                      {builderSections.map((section) => {
+                        const Icon = section.icon;
+                        const isActive = activeSection === section.id;
+                        return (
+                          <button
+                            key={section.id}
+                            onClick={() => setActiveSection(section.id)}
+                            className={cn(
+                              "flex items-center gap-x-2 w-full rounded-md px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                              isActive
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {section.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div className="border-t p-4">
+                    <div className="grid gap-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowStyleDialog(true)}
+                        className="justify-start"
                       >
-                        <Icon className="h-5 w-5" />
-                        {section.label}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </SheetContent>
-            </Sheet>
-
-              {/* Mobile Actions - Moved to top */}
-              <div className="flex items-center ml-auto gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowPreview(!showPreview)}
-                  className={cn(
-                    "transition-colors",
-                    showPreview && "bg-primary text-primary-foreground"
-                  )}
-                >
-                  {showPreview ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowStyleDialog(true)}
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[40vh]">
-                    <SheetHeader className="text-left">
-                      <SheetTitle>More Actions</SheetTitle>
-                    </SheetHeader>
-                    <div className="grid gap-4 py-4">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Customize Design
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setExportDialogOpen(true)}
+                        className="justify-start"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Resume
+                      </Button>
                       <Button
                         variant="outline"
                         onClick={() => handleAnalyze()}
@@ -1219,116 +1196,146 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
                         Save and Exit
                       </Button>
                     </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-4 flex-1">
-              {/* Section Tabs */}
-              <Tabs
-                value={activeSection}
-                className="w-full"
-                onValueChange={(value) => setActiveSection(value)}
-              >
-                <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full">
-                  {builderSections.map((section: Section) => {
-                    const Icon = section.icon;
-                    return (
-                      <TabsTrigger
-                        key={section.id}
-                        value={section.id}
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow flex-1"
-                      >
-                        <div className="flex items-center gap-2 justify-center">
-                          <Icon className="h-4 w-4" />
-                          <span>{section.label}</span>
-                        </div>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </Tabs>
-            </div>
-
-            {/* Desktop Actions */}
-            <div className="hidden md:flex items-center justify-end space-x-2">
-              <div className="w-full flex-1 md:w-auto md:flex-none">
-                {lastSaved && (
-                  <p className="text-sm text-muted-foreground">
-                    Last saved: {lastSaved.toLocaleTimeString()}
-                  </p>
-                )}
-              </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+            <div className="flex items-center gap-3">
+              <h1 className="text-base font-semibold">
+                {activeSection ? builderSections.find(s => s.id === activeSection)?.label : 'Resume Builder'}
+              </h1>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={() => setShowStyleDialog(true)}
+                onClick={() => setShowPreview(!showPreview)}
+                className="ml-auto h-8 gap-1 text-xs"
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Style
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => handleAnalyze()}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <LineChart className="h-4 w-4" />
-                    Analyze Resume
-                  </>
-                )}
-              </Button>
-              <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Save Resume</DialogTitle>
-                    <DialogDescription>
-                      This will save your resume as completed and return you to the dashboard.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <DialogClose asChild>
-                      <Button
-                        onClick={async () => {
-                          await saveResume('completed');
-                          router.push('/dashboard');
-                        }}
-                      >
-                        Save and Exit
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-1"
-                onClick={() => setExportDialogOpen(true)}
-              >
-                <Download className="h-4 w-4" /> Export
+                {showPreview ? 'Edit' : 'Preview'}
+                {showPreview ? <Eye className="ml-1 h-3.5 w-3.5" /> : <EyeOff className="ml-1 h-3.5 w-3.5" />}
               </Button>
             </div>
           </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4 flex-1">
+            {/* Section Tabs */}
+            <Tabs
+              value={activeSection}
+              className="w-full"
+              onValueChange={(value) => setActiveSection(value)}
+            >
+              <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full overflow-x-auto">
+                {builderSections.map((section: Section) => {
+                  const Icon = section.icon;
+                  return (
+                    <TabsTrigger
+                      key={section.id}
+                      value={section.id}
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow flex-1"
+                    >
+                      <div className="flex items-center gap-2 justify-center">
+                        <Icon className="h-4 w-4" />
+                        <span className="hidden sm:inline">{section.label}</span>
+                      </div>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center justify-end space-x-2">
+            <div className="w-full flex-1 md:w-auto md:flex-none">
+              {lastSaved && (
+                <p className="text-sm text-muted-foreground">
+                  Last saved: {lastSaved.toLocaleTimeString()}
+                </p>
+              )}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowStyleDialog(true)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Style
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => handleAnalyze()}
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <LineChart className="h-4 w-4" />
+                  Analyze Resume
+                </>
+              )}
+            </Button>
+            <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Save Resume</DialogTitle>
+                  <DialogDescription>
+                    Your resume is automatically saved. You can also edit the title below.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button
+                      onClick={async () => {
+                        await saveResume('completed');
+                        router.push('/dashboard');
+                      }}
+                    >
+                      Save and Exit
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setExportDialogOpen(true)}>
+                  Export as PDF...
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExport('json', {
+                    filename: `resume-${currentDate}`,
+                    quality: 90,
+                    includeContactInfo: true,
+                    pageSize: 'a4',
+                    orientation: 'portrait'
+                  })}
+                >
+                  Export as JSON
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
         {/* ATS Analysis Section */}
         {atsScore && showAtsDialog && (
@@ -1791,12 +1798,34 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
         )}
 
         <div className="container py-4 md:py-8 relative z-10">
-          <div className="grid gap-8 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:gap-8 lg:grid-cols-2">
             <div className={cn(
               "relative",
               showPreview && "hidden md:block" // Hide form when preview is shown on mobile
             )}>
               {currentSection.component}
+              
+              {/* Mobile navigation buttons */}
+              <div className="flex items-center justify-between mt-6 md:hidden">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPrevSection}
+                  disabled={currentSectionIndex === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextSection}
+                  disabled={currentSectionIndex === builderSections.length - 1}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
             </div>
 
             <div
@@ -1805,7 +1834,7 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
                 showPreview ? "block" : "hidden lg:block"
               )}
             >
-              <div className="sticky top-[7rem]">
+              <div className="relative md:sticky md:top-[7rem]">
                 <div className="h-full">
                   <ResumePreviewPanel 
                     onExport={() => setExportDialogOpen(true)}
@@ -1816,6 +1845,15 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
                     }}
                     className="h-full"
                   />
+                  
+                  {/* Mobile only - return to edit button */}
+                  {showPreview && (
+                    <div className="md:hidden mt-4">
+                      <Button onClick={() => setShowPreview(false)} className="w-full" variant="default">
+                        Return to Editing
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

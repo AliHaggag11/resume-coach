@@ -104,14 +104,14 @@ export default function BuilderPage() {
 
   if (user && recentResumes.length > 0) {
     return (
-      <div className="container max-w-7xl p-6 mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Resume Builder</h1>
+      <div className="container max-w-7xl px-4 py-4 sm:p-6 mx-auto space-y-4 sm:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-0 sm:justify-between">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Resume Builder</h1>
           <Button 
             onClick={createNewResume} 
             disabled={isCreatingResume}
             size="lg"
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
           >
             {isCreatingResume ? (
               <>
@@ -128,32 +128,32 @@ export default function BuilderPage() {
         </div>
         
         <section>
-          <h2 className="text-xl font-semibold mb-4">Recent Resumes</h2>
+          <h2 className="text-xl font-semibold mb-3 sm:mb-4">Recent Resumes</h2>
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {[...Array(4)].map((_, i) => (
-                <Card key={i} className="h-[200px] animate-pulse bg-muted"></Card>
+                <Card key={i} className="h-[180px] sm:h-[200px] animate-pulse bg-muted"></Card>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {recentResumes.map((resume) => (
                 <Card key={resume.id} className="overflow-hidden transition-all hover:shadow-md">
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-lg truncate">{resume.title}</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                    <CardTitle className="text-base sm:text-lg truncate">{resume.title}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
                       Last edited: {new Date(resume.last_modified).toLocaleDateString()}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="h-24 flex items-center justify-center bg-muted/50 rounded-md">
-                      <FileText className="h-12 w-12 text-muted-foreground/70" />
+                  <CardContent className="p-3 sm:p-4 pt-0">
+                    <div className="h-20 sm:h-24 flex items-center justify-center bg-muted/50 rounded-md">
+                      <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/70" />
                     </div>
                   </CardContent>
-                  <CardFooter className="p-4 pt-0">
+                  <CardFooter className="p-3 sm:p-4 pt-0">
                     <Button 
                       variant="default" 
-                      className="w-full" 
+                      className="w-full text-sm sm:text-base" 
                       onClick={() => continueEditing(resume.id)}
                     >
                       Continue Editing
@@ -171,17 +171,17 @@ export default function BuilderPage() {
   return (
     <ResumeProvider>
       <ResumeStyleProvider>
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-6">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 sm:p-6">
           <Card className="w-full max-w-3xl">
-            <CardHeader>
-              <CardTitle className="text-2xl">Create Your First Resume</CardTitle>
-              <CardDescription>
+            <CardHeader className="sm:pb-2">
+              <CardTitle className="text-xl sm:text-2xl">Create Your First Resume</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
                 Get started by creating a professional resume in minutes
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p>Our resume builder makes it easy to create a professional resume that highlights your skills and experience.</p>
-              <ul className="list-disc pl-5 space-y-1">
+            <CardContent className="space-y-3 sm:space-y-4">
+              <p className="text-sm sm:text-base">Our resume builder makes it easy to create a professional resume that highlights your skills and experience.</p>
+              <ul className="list-disc pl-5 space-y-1 text-sm sm:text-base">
                 <li>Choose from multiple professional templates</li>
                 <li>Easily customize fonts, colors, and layouts</li>
                 <li>Export to PDF for sharing and printing</li>

@@ -78,7 +78,7 @@ export default function ResumePreviewPanel({
   // Detect mobile devices
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      setIsMobile(window.innerWidth < 768); // Changed from 640px to 768px for more consistent mobile experience
     };
     
     checkMobile();
@@ -88,6 +88,17 @@ export default function ResumePreviewPanel({
       window.removeEventListener('resize', checkMobile);
     };
   }, []);
+  
+  // Adjust scale automatically based on screen size
+  useEffect(() => {
+    if (isMobile && !fullscreen) {
+      setScale(0.55); // Smaller scale on mobile by default
+    } else if (isMobile && fullscreen) {
+      setScale(0.75); // Better fullscreen view on mobile
+    } else {
+      setScale(0.7); // Default for desktop
+    }
+  }, [isMobile, fullscreen]);
 
   const toggleFullscreen = () => {
     setFullscreen(!fullscreen);
@@ -95,6 +106,15 @@ export default function ResumePreviewPanel({
     // When entering fullscreen, scroll to top to ensure visibility
     if (!fullscreen) {
       window.scrollTo(0, 0);
+      // Lock body scroll when in fullscreen on mobile
+      if (isMobile) {
+        document.body.style.overflow = 'hidden';
+      }
+    } else {
+      // Restore scroll when exiting fullscreen
+      if (isMobile) {
+        document.body.style.overflow = '';
+      }
     }
   };
 
@@ -113,11 +133,11 @@ export default function ResumePreviewPanel({
   }, [fullscreen]);
 
   const zoomIn = () => {
-    setScale(prev => Math.min(prev + 0.1, 1.5));
+    setScale(prev => Math.min(prev + (isMobile ? 0.1 : 0.1), isMobile ? 1.2 : 1.5));
   };
 
   const zoomOut = () => {
-    setScale(prev => Math.max(prev - 0.1, 0.3));
+    setScale(prev => Math.max(prev - (isMobile ? 0.1 : 0.1), isMobile ? 0.4 : 0.3));
   };
 
   const nextPage = () => {
@@ -140,7 +160,7 @@ export default function ResumePreviewPanel({
           variant="outline"
           size="sm"
           onClick={zoomOut}
-          disabled={scale <= 0.3}
+          disabled={scale <= (isMobile ? 0.4 : 0.3)}
           className="h-7 w-7 sm:h-8 sm:w-8 p-0"
         >
           <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -148,10 +168,10 @@ export default function ResumePreviewPanel({
         
         <CustomSlider
           value={[scale * 100]}
-          min={30}
-          max={150}
+          min={isMobile ? 40 : 30}
+          max={isMobile ? 120 : 150}
           step={10}
-          className="w-[60px] sm:w-[120px]"
+          className="w-[60px] sm:w-[100px] md:w-[120px]"
           onValueChange={(value: number[]) => setScale(value[0] / 100)}
         />
         
@@ -159,12 +179,12 @@ export default function ResumePreviewPanel({
           variant="outline"
           size="sm"
           onClick={zoomIn}
-          disabled={scale >= 1.5}
+          disabled={scale >= (isMobile ? 1.2 : 1.5)}
           className="h-7 w-7 sm:h-8 sm:w-8 p-0"
         >
           <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
         </Button>
-        <span className="text-[10px] sm:text-xs font-medium">{Math.round(scale * 100)}%</span>
+        <span className="text-[10px] sm:text-xs font-medium w-9 text-center">{Math.round(scale * 100)}%</span>
       </div>
     );
   };
@@ -189,7 +209,7 @@ export default function ResumePreviewPanel({
               variant="ghost"
               size="sm"
               onClick={toggleFullscreen}
-              className="h-8 flex items-center"
+              className="h-8 flex items-center touch-manipulation"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Back
@@ -201,25 +221,72 @@ export default function ResumePreviewPanel({
               variant="ghost"
               size="sm"
               onClick={toggleFullscreen}
-              className="h-8"
+              className="h-8 touch-manipulation"
             >
               <Minimize className="h-4 w-4" />
             </Button>
           </div>
           
           {/* Bottom controls wrapper for mobile */}
-          <div className="absolute bottom-0 left-0 right-0 bg-background border-t px-2 py-3 z-[102] sm:hidden">
-            <div className="flex justify-between items-center">
-              <div className="text-xs font-medium flex items-center">
-                <ZoomOut className="h-3 w-3 mr-1 text-muted-foreground" onClick={zoomOut} />
-                <span>{Math.round(scale * 100)}%</span>
-                <ZoomIn className="h-3 w-3 ml-1 text-muted-foreground" onClick={zoomIn} />
-              </div>
-              <div className="text-xs">
-                <kbd className="px-1 py-0.5 bg-muted border rounded text-muted-foreground">ESC</kbd>
-                <span className="ml-1">to exit</span>
-              </div>
+          <div className="absolute bottom-0 left-0 right-0 bg-background border-t px-2 py-3 z-[102] flex justify-between items-center">
+            <div className="flex gap-2 items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 p-2 touch-manipulation"
+                onClick={zoomOut}
+                disabled={scale <= (isMobile ? 0.4 : 0.3)}
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-xs font-medium">{Math.round(scale * 100)}%</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 p-2 touch-manipulation"
+                onClick={zoomIn}
+                disabled={scale >= (isMobile ? 1.2 : 1.5)}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
             </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 p-0 touch-manipulation"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-xs">
+                  {currentPage}/{totalPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 p-0 touch-manipulation"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
+            {onExport && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onExport}
+                className="h-8 p-2 touch-manipulation"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </>
       )}
@@ -235,70 +302,56 @@ export default function ResumePreviewPanel({
               </span>
             )}
           </div>
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setShowDetails(!showDetails)}
-              title={showDetails ? "Hide details" : "Show details"}
-              className="h-7 w-7 sm:h-9 sm:w-9"
-            >
-              {showDetails ? <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
-            </Button>
-            {!fullscreen && (
-              <Button
-                variant="ghost"
-                size="icon"
+          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-1 sm:gap-2">
+            {/* Show zoom control based on screen size */}
+            <div className="sm:block flex-1 max-w-[180px]">
+              {renderZoomControl()}
+            </div>
+            
+            <div className="flex items-center">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowDetails(!showDetails)}
+                title={showDetails ? "Hide details" : "Show details"}
                 className="h-7 w-7 sm:h-9 sm:w-9"
-                onClick={toggleFullscreen}
               >
-                <Maximize className="h-3 w-3 sm:h-4 sm:w-4" />
+                {showDetails ? <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
               </Button>
-            )}
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              {totalPages > 1 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={prevPage}
-                    disabled={currentPage === 1}
-                    className="h-7 w-7 sm:h-9 sm:w-9"
-                  >
-                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={nextPage}
-                    disabled={currentPage === totalPages}
-                    className="h-7 w-7 sm:h-9 sm:w-9"
-                  >
-                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                </>
+              
+              {!fullscreen && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFullscreen}
+                  title="Fullscreen preview"
+                  className="h-7 w-7 sm:h-9 sm:w-9"
+                >
+                  <Maximize className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
               )}
               
-              {renderZoomControl()}
+              {onExport && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onExport}
+                  title="Export resume"
+                  className="h-7 w-7 sm:h-9 sm:w-9"
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+              )}
               
-              <Button
-                variant="outline"
-                onClick={onExport}
-                size="sm"
-                className="hidden sm:flex items-center gap-1 h-8"
-              >
-                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden md:inline">Export</span>
-              </Button>
               {onShare && (
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  size="icon"
                   onClick={onShare}
-                  size="sm"
-                  className="hidden sm:flex items-center gap-1 h-8"
+                  title="Share resume"
+                  className="h-7 w-7 sm:h-9 sm:w-9"
                 >
                   <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden md:inline">Share</span>
                 </Button>
               )}
             </div>
@@ -306,35 +359,58 @@ export default function ResumePreviewPanel({
         </div>
       )}
       
+      {/* Page navigation for multi-page resumes - desktop/tablet only */}
+      {totalPages > 1 && !isMobile && !fullscreen && (
+        <div className="hidden sm:flex items-center justify-center gap-1 mb-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={prevPage}
+            disabled={currentPage === 1}
+            className="h-7 w-7 p-0"
+          >
+            <ChevronLeft className="h-3 w-3" />
+          </Button>
+          <span className="text-xs">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={nextPage}
+            disabled={currentPage === totalPages}
+            className="h-7 w-7 p-0"
+          >
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+      
       {/* Resume Preview */}
       <div 
         className={cn(
-          "flex-1 relative",
-          !showDetails && "rounded-lg border overflow-hidden"
+          "flex-1 overflow-auto bg-muted rounded-lg flex items-start justify-center p-2 sm:p-4",
+          fullscreen && "absolute inset-0 z-[101]",
+          fullscreen && isMobile && "pt-14 pb-14"
         )}
       >
         <div 
-          className="w-full overflow-auto"
-          style={{ 
-            maxHeight: fullscreen ? "calc(100vh - 100px)" : "calc(100vh - 220px)",
-            padding: showDetails ? "0" : "0.5rem",
+          className="transition-all bg-white shadow-md mx-auto my-2"
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: 'top center',
+            width: '210mm', // A4 width
+            height: 'auto', // Let the height adjust based on content
+            maxHeight: fullscreen ? (isMobile ? 'calc(100vh - 100px)' : 'calc(100vh - 140px)') : 'none'
           }}
         >
-          <ResumePreview scale={scale} template={style.theme} />
-        </div>
-        
-        {/* Mobile export button */}
-        <div className="mt-4 flex items-center justify-center sm:hidden">
-          <Button
-            onClick={onExport}
-            size="sm"
-            className="w-full"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export Resume
-          </Button>
+          <ResumePreview 
+            template={style.theme}
+            scale={1}
+            key={`resume-${currentPage}-${showDetails ? 'details' : 'no-details'}`}
+          />
         </div>
       </div>
     </div>
   );
-} 
+}

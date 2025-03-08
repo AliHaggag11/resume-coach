@@ -105,14 +105,14 @@ function EditResumeContent() {
 
   if (isLoading) {
     return (
-      <div className="container max-w-7xl py-8 space-y-8">
-        <Skeleton className="h-8 w-64" />
+      <div className="container max-w-7xl px-4 py-4 sm:py-8 space-y-4 sm:space-y-8">
+        <Skeleton className="h-6 sm:h-8 w-48 sm:w-64" />
         <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-3 sm:space-y-4">
+              <Skeleton className="h-10 sm:h-12 w-full" />
+              <Skeleton className="h-10 sm:h-12 w-full" />
+              <Skeleton className="h-10 sm:h-12 w-full" />
             </div>
           </CardContent>
         </Card>
