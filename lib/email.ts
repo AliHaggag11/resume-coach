@@ -46,6 +46,15 @@ export async function sendEmail({
       ? `${fromName} <${fromEmail}>` 
       : fromEmail;
 
+    console.log('Sending email:', {
+      from: fromAddress,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      isProd,
+      environment: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV || 'Not in Vercel'
+    });
+
     const { data, error } = await resend.emails.send({
       from: fromAddress,
       to: Array.isArray(to) ? to : [to],
@@ -59,6 +68,7 @@ export async function sendEmail({
       return false;
     }
 
+    console.log('Email sent successfully:', data);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
