@@ -1447,30 +1447,14 @@ Ensure all array fields contain at least 3-5 items. Keep each recommendation con
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setExportDialogOpen(true)}>
-                  Export as PDF...
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleExport('json', {
-                    filename: `resume-${currentDate}`,
-                    quality: 90,
-                    includeContactInfo: true,
-                    pageSize: 'a4',
-                    orientation: 'portrait'
-                  })}
-                >
-                  Export as JSON
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setExportDialogOpen(true)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
         </div>
 
