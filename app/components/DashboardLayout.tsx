@@ -48,7 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/app/components/ui/switch";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import CreditsIndicator from "./CreditsIndicator";
 import { useSubscription } from "@/app/context/SubscriptionContext";
 import { Toaster } from "sonner";
@@ -154,7 +154,7 @@ export default function DashboardLayout({
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<{ [key: string]: boolean }>({
-    "/jobs": pathname.startsWith("/jobs")
+    "#": pathname.startsWith("/jobs")
   });
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -220,22 +220,17 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Mobile Overlay */}
-      {isMobileOpen && (
-        <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-30 lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-
-      {/* Mobile Toggle Button */}
-      <div className="fixed top-4 left-4 z-50 lg:hidden">
+    <div className="min-h-screen bg-background text-foreground antialiased relative">
+      {/* Mobile Navigation Bar */}
+      <div className="fixed top-0 left-0 right-0 h-16 border-b border-b-muted/60 flex items-center px-4 lg:px-0 lg:hidden z-30 bg-background/95 backdrop-blur-sm">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="h-10 w-10 rounded-full bg-background shadow-md border"
+          className={cn(
+            "h-9 w-9 rounded-full",
+            isMobileOpen && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary"
+          )}
         >
           {isMobileOpen ? (
             <X className="h-5 w-5" />
@@ -245,21 +240,30 @@ export default function DashboardLayout({
         </Button>
       </div>
 
+      {/* Mobile overlay to close the sidebar when clicking outside */}
+      {isMobileOpen && isMobile && (
+        <div 
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed top-0 left-0 z-40 h-screen bg-background transition-all duration-300",
+          "fixed top-0 left-0 z-40 h-screen bg-background/95 backdrop-blur-md transition-all duration-300",
           // Desktop behavior
           !isMobile && (isCollapsed ? "w-20" : "w-72"),
           // Mobile behavior
-          isMobile && (isMobileOpen ? "translate-x-0" : "-translate-x-full"),
-          isMobile && "w-72 shadow-xl",
+          isMobile && (isMobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"),
+          isMobile && "w-[280px]",
           "border-r border-r-muted/60"
         )}
       >
         <div className="flex h-full flex-col">
           {/* Logo/Header */}
-          <div className="h-18 border-b border-b-muted/60 flex items-center px-5 py-5">
+          <div className="h-18 border-b border-b-muted/60 flex items-center px-5 py-5 bg-gradient-to-r from-primary/10 to-transparent">
             <div className="flex-1">
               <Logo collapsed={isMobile ? false : isCollapsed} className={isCollapsed ? "justify-center" : ""} />
             </div>
@@ -267,7 +271,7 @@ export default function DashboardLayout({
               <Button
                 variant="ghost"
                 size="icon"
-                className="ml-auto h-8 w-8 rounded-full hover:bg-muted"
+                className="ml-auto h-8 w-8 rounded-full hover:bg-primary/20 text-primary/80 hover:text-primary"
                 onClick={() => setIsCollapsed(!isCollapsed)}
               >
                 {isCollapsed ? (
@@ -279,12 +283,12 @@ export default function DashboardLayout({
             )}
           </div>
 
-          <div className="flex-1 flex flex-col justify-between overflow-y-auto py-4 scrollbar-thin">
+          <div className="flex-1 flex flex-col justify-between overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
             {/* Navigation Items */}
             <div className="px-3">
               {!isCollapsed && !isMobile && (
                 <div className="mb-4 px-3">
-                  <h2 className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">
+                  <h2 className="text-xs uppercase font-semibold text-primary/70 tracking-wider">
                     Main Navigation
                   </h2>
                 </div>
@@ -298,53 +302,97 @@ export default function DashboardLayout({
                   
                   return (
                     <div key={item.href}>
-                      {hasChildren ? (
+                      {hasChildren && !isMobile && isCollapsed ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={cn(
+                                "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative group justify-center",
+                                isActive
+                                  ? "bg-primary/15 text-primary hover:bg-primary/20"
+                                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                              )}
+                            >
+                              <div className={cn(
+                                "relative flex items-center justify-center p-1.5 rounded-md",
+                                isActive ? "bg-primary/20 text-primary" : "text-muted-foreground group-hover:text-foreground",
+                                isActive && "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1.5 after:h-8 after:bg-primary after:rounded-r-full"
+                              )}>
+                                <item.icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+                              </div>
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="right" align="start" className="w-48">
+                            {item.children?.map((child) => {
+                              const isChildActive = pathname === child.href;
+                              return (
+                                <DropdownMenuItem key={child.href} asChild>
+                                  <Link
+                                    href={child.href}
+                                    className={cn(
+                                      "flex items-center gap-3 w-full",
+                                      isChildActive ? "text-primary" : "text-foreground"
+                                    )}
+                                  >
+                                    <child.icon className="h-4 w-4" />
+                                    <span>{child.title}</span>
+                                  </Link>
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : hasChildren ? (
                         <button
                           onClick={() => {
                             setExpandedItems(prev => ({
                               ...prev,
                               [item.href]: !isExpanded
                             }));
-                            if (!isExpanded && !isCollapsed) {
+                            // Don't navigate on mobile or in collapsed mode
+                            if (!isExpanded && !isCollapsed && !isMobile) {
                               router.push(item.href);
                             }
                           }}
                           className={cn(
                             "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative group",
                             isActive
-                              ? "bg-primary/10 text-primary hover:bg-primary/15"
-                              : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                              ? "bg-primary/15 text-primary hover:bg-primary/20"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                             !isMobile && isCollapsed ? "justify-center" : "",
                             isActive && !isCollapsed && "pl-4",
                           )}
                         >
                           {isActive && !isCollapsed && (
-                            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1.5 h-8 bg-primary rounded-r-full" />
                           )}
                           <div className={cn(
-                            "relative",
+                            "relative flex items-center justify-center p-1.5 rounded-md",
+                            isActive ? "bg-primary/20 text-primary" : "text-muted-foreground group-hover:text-foreground",
                             isActive && isCollapsed ? 
-                              "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-6 after:bg-primary after:rounded-r-full" : 
+                              "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1.5 after:h-8 after:bg-primary after:rounded-r-full" : 
                               ""
                           )}>
                             <item.icon className={cn(
                               "w-5 h-5 transition-transform",
-                              isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
                               isCollapsed ? "group-hover:scale-110" : ""
                             )} />
                           </div>
                           {(!isCollapsed || isMobile) && (
                             <>
                               <span className="truncate">{item.title}</span>
-                              <ChevronDown className={cn(
-                                "ml-auto h-4 w-4 shrink-0 transition-transform",
-                                isExpanded ? "rotate-180" : "rotate-0"
-                              )} />
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 180 : 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="ml-auto"
+                              >
+                                <ChevronDown className="h-4 w-4 shrink-0" />
+                              </motion.div>
                             </>
                           )}
                           
                           {item.badge && !isCollapsed && (
-                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-xs font-medium bg-primary/15 text-primary">
                               {item.badge}
                             </span>
                           )}
@@ -355,24 +403,24 @@ export default function DashboardLayout({
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all relative group",
                             isActive
-                              ? "bg-primary/10 text-primary hover:bg-primary/15"
-                              : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                              ? "bg-primary/15 text-primary hover:bg-primary/20"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                             !isMobile && isCollapsed ? "justify-center" : "",
                             isActive && !isCollapsed && "pl-4",
                           )}
                         >
                           {isActive && !isCollapsed && (
-                            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1.5 h-8 bg-primary rounded-r-full" />
                           )}
                           <div className={cn(
-                            "relative",
+                            "relative flex items-center justify-center p-1.5 rounded-md",
+                            isActive ? "bg-primary/20 text-primary" : "text-muted-foreground group-hover:text-foreground",
                             isActive && isCollapsed ? 
-                              "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1 after:h-6 after:bg-primary after:rounded-r-full" : 
+                              "after:absolute after:-left-2 after:top-1/2 after:-translate-y-1/2 after:w-1.5 after:h-8 after:bg-primary after:rounded-r-full" : 
                               ""
                           )}>
                             <item.icon className={cn(
                               "w-5 h-5 transition-transform",
-                              isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
                               isCollapsed ? "group-hover:scale-110" : ""
                             )} />
                           </div>
@@ -381,7 +429,7 @@ export default function DashboardLayout({
                           )}
                           
                           {item.badge && !isCollapsed && (
-                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-xs font-medium bg-primary/15 text-primary">
                               {item.badge}
                             </span>
                           )}
@@ -389,30 +437,53 @@ export default function DashboardLayout({
                       )}
                       
                       {/* Submenu items */}
-                      {hasChildren && isExpanded && !isCollapsed && (
-                        <div className="mt-1 ml-5 pl-2 border-l border-muted space-y-1">
-                          {item.children?.map((child) => {
-                            const isChildActive = pathname === child.href;
-                            return (
-                              <Link
-                                key={child.href}
-                                href={child.href}
-                                className={cn(
-                                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all relative",
-                                  isChildActive
-                                    ? "bg-primary/10 text-primary hover:bg-primary/15"
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                )}
-                              >
-                                <child.icon className={cn(
-                                  "w-4 h-4",
-                                  isChildActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                                )} />
-                                <span className="truncate">{child.title}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
+                      {hasChildren && (
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3, ease: "easeInOut" }}
+                              className="overflow-hidden"
+                            >
+                              <div className={cn(
+                                "mt-1 space-y-1",
+                                !isCollapsed || isMobile ? "ml-7 pl-3 border-l-2 border-primary/20" : "px-1"
+                              )}>
+                                {item.children?.map((child) => {
+                                  const isChildActive = pathname === child.href;
+                                  return (
+                                    <Link
+                                      key={child.href}
+                                      href={child.href}
+                                      className={cn(
+                                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all relative",
+                                        isChildActive
+                                          ? "bg-primary/15 text-primary hover:bg-primary/20"
+                                          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                                        isCollapsed && !isMobile && "justify-center"
+                                      )}
+                                      onClick={() => {
+                                        if (isMobile) {
+                                          setIsMobileOpen(false);
+                                        }
+                                      }}
+                                    >
+                                      <child.icon className={cn(
+                                        "w-4 h-4",
+                                        isChildActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                      )} />
+                                      {(!isCollapsed || isMobile) && (
+                                        <span className="truncate">{child.title}</span>
+                                      )}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       )}
                     </div>
                   );
@@ -422,18 +493,21 @@ export default function DashboardLayout({
 
             {/* User Section */}
             <div className={cn(
-              "mt-auto bg-muted/30 space-y-3 p-3",
+              "mt-auto space-y-3 p-3",
               !isCollapsed ? "mx-3 rounded-lg" : ""
             )}>
-              <div className="flex items-center gap-3 px-2 py-2">
+              <div className={cn(
+                "flex items-center gap-3 px-3 py-3 rounded-lg",
+                !isCollapsed || isMobile ? "bg-gradient-to-r from-primary/10 to-background" : ""
+              )}>
                 {(!isCollapsed || isMobile) ? (
                   <>
-                    <Avatar className="border-2 border-primary/10 h-10 w-10 ring-2 ring-background">
+                    <Avatar className="border-2 border-primary/20 h-11 w-11 ring-1 ring-background">
                       <AvatarImage src={user?.user_metadata?.avatar_url || null} alt={user?.email || "User"} />
                       <AvatarFallback className="bg-primary/20 text-primary font-medium">{userInitials}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">
+                      <p className="truncate text-sm font-medium">
                         {user?.email}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
@@ -444,8 +518,8 @@ export default function DashboardLayout({
                 ) : (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-10 w-10 mx-auto">
-                        <Avatar className="h-10 w-10 border-2 border-primary/10 ring-2 ring-background">
+                      <Button variant="ghost" size="icon" className="h-11 w-11 mx-auto rounded-full hover:bg-primary/15 p-0">
+                        <Avatar className="h-full w-full border-2 border-primary/20 ring-1 ring-background">
                           <AvatarImage src={user?.user_metadata?.avatar_url || null} alt={user?.email || "User"} />
                           <AvatarFallback className="bg-primary/20 text-primary font-medium">{userInitials}</AvatarFallback>
                         </Avatar>
@@ -473,20 +547,20 @@ export default function DashboardLayout({
                 )}
               </div>
 
-              <div className="space-y-1">
-                {/* Add credits indicator here for logged-in users with custom styling */}
+              <div className="space-y-2">
+                {/* Credits indicator */}
                 {(!isCollapsed || isMobile) && user && (
-                  <div className="mb-2 relative">
+                  <div className="mb-3 relative">
                     {/* Hidden original credits indicator for functionality */}
                     <div className="sr-only">
                       <CreditsIndicator collapsed={false} />
                     </div>
                     
                     {/* Custom styled credits display */}
-                    <div className="px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <div className="px-3 py-2.5 rounded-lg bg-gradient-to-r from-blue-500/20 to-primary/10 border border-blue-500/20 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="bg-blue-500/15 p-1.5 rounded-md">
+                        <div className="flex items-center gap-2.5">
+                          <div className="bg-blue-500/20 p-2 rounded-md">
                             <Coins className="h-4 w-4 text-blue-500" />
                           </div>
                           <div>
@@ -498,7 +572,7 @@ export default function DashboardLayout({
                         </div>
                         <button
                           onClick={() => setIsOpen(true)}
-                          className="h-7 w-7 p-0 rounded-full bg-transparent hover:bg-blue-500/20 text-blue-500 flex items-center justify-center"
+                          className="h-7 w-7 p-0 rounded-full bg-blue-500/15 hover:bg-blue-500/30 text-blue-500 flex items-center justify-center transition-colors"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
@@ -508,7 +582,7 @@ export default function DashboardLayout({
                 )}
                 
                 {isCollapsed && !isMobile && user && (
-                  <div className="mb-2 flex justify-center relative">
+                  <div className="mb-3 flex justify-center">
                     {/* Hidden original credits indicator for functionality */}
                     <div className="sr-only">
                       <CreditsIndicator collapsed={true} />
@@ -517,7 +591,7 @@ export default function DashboardLayout({
                     {/* Custom styled credits icon for collapsed view */}
                     <button
                       onClick={() => setIsOpen(true)}
-                      className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-colors group"
+                      className="p-2.5 rounded-lg bg-gradient-to-r from-blue-500/20 to-primary/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors group"
                     >
                       <Coins className="h-5 w-5 text-blue-500 group-hover:scale-110 transition-transform" />
                     </button>
@@ -626,8 +700,8 @@ export default function DashboardLayout({
                 </Dialog>
                 
                 {(!isCollapsed || isMobile) && (
-                  <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-muted/50">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-lg px-3 py-2.5 bg-gradient-to-r from-muted/80 to-muted/40 border border-muted/50">
+                    <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
                       {theme === 'light' ? (
                         <Sun className="h-4 w-4" />
                       ) : (
@@ -642,40 +716,53 @@ export default function DashboardLayout({
                     />
                   </div>
                 )}
-                <Link
-                  href="/profile"
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-muted-foreground hover:bg-muted hover:text-foreground",
-                    !isMobile && isCollapsed && "justify-center"
-                  )}
-                >
-                  <User className={cn(
-                    "h-4 w-4 shrink-0",
-                    isCollapsed ? "h-5 w-5" : ""
-                  )} />
-                  {(!isCollapsed || isMobile) && <span>Profile</span>}
-                </Link>
-                <button
-                  onClick={() => {
-                    signOut()
-                      .then(() => {
-                        router.push('/');
-                      })
-                      .catch((error) => {
-                        console.error('Error during sign out:', error);
-                      });
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-red-500/10 text-muted-foreground hover:text-red-500",
-                    !isMobile && isCollapsed && "justify-center"
-                  )}
-                >
-                  <LogOut className={cn(
-                    "h-4 w-4 shrink-0",
-                    isCollapsed ? "h-5 w-5" : ""
-                  )} />
-                  {(!isCollapsed || isMobile) && <span>Sign Out</span>}
-                </button>
+
+                <div className="rounded-lg overflow-hidden border border-muted/50">
+                  <Link
+                    href="/profile"
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors text-muted-foreground hover:bg-muted hover:text-foreground border-b border-muted/50",
+                      !isMobile && isCollapsed && "justify-center py-3"
+                    )}
+                  >
+                    <div className={cn(
+                      "relative flex items-center justify-center p-1.5 rounded-md bg-muted/50",
+                      isCollapsed && !isMobile ? "p-2" : ""
+                    )}>
+                      <User className={cn(
+                        "h-4 w-4 shrink-0",
+                        isCollapsed && !isMobile ? "h-5 w-5" : ""
+                      )} />
+                    </div>
+                    {(!isCollapsed || isMobile) && <span>Profile</span>}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut()
+                        .then(() => {
+                          router.push('/');
+                        })
+                        .catch((error) => {
+                          console.error('Error during sign out:', error);
+                        });
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-red-500/10 text-muted-foreground hover:text-red-500",
+                      !isMobile && isCollapsed && "justify-center py-3"
+                    )}
+                  >
+                    <div className={cn(
+                      "relative flex items-center justify-center p-1.5 rounded-md bg-muted/50 group-hover:bg-red-500/10",
+                      isCollapsed && !isMobile ? "p-2" : ""
+                    )}>
+                      <LogOut className={cn(
+                        "h-4 w-4 shrink-0",
+                        isCollapsed && !isMobile ? "h-5 w-5" : ""
+                      )} />
+                    </div>
+                    {(!isCollapsed || isMobile) && <span>Sign Out</span>}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -690,8 +777,8 @@ export default function DashboardLayout({
           "ml-0" // No margin on mobile
         )}
       >
-        {/* Add padding on mobile to account for the toggle button */}
-        <div className="pt-16 lg:pt-0">
+        {/* Add padding on mobile to account for the navigation bar */}
+        <div className="pt-16 lg:pt-0 min-h-screen">
           {children}
         </div>
       </div>
