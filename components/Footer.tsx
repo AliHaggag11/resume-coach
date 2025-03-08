@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Github, Twitter, Linkedin, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default function Footer() {
   return (
@@ -121,28 +122,7 @@ export default function Footer() {
           </div>
 
           {/* Newsletter Signup */}
-          <div className="space-y-4">
-            <h4 className="font-semibold">Stay Updated</h4>
-            <p className="text-sm text-muted-foreground">
-              Get the latest updates, tips, and career resources delivered straight to your inbox.
-            </p>
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="h-10 rounded-full bg-background"
-                />
-                <Button size="sm" className="h-10 rounded-full px-4">
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                <span>No spam, unsubscribe anytime</span>
-              </div>
-            </div>
-          </div>
+          <NewsletterSignup />
         </div>
       </div>
 

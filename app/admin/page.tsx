@@ -25,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Shield, UserPlus, Trash2, PencilLine } from "lucide-react";
+import { Loader2, Shield, UserPlus, Trash2, PencilLine, Mail } from "lucide-react";
 
 type StaffUser = {
   id: string;
@@ -184,9 +184,9 @@ export default function AdminDashboard() {
   return (
     <div className="container max-w-4xl py-8 space-y-8">
       <div>
-        <h1 className="text-4xl font-bold">Staff Management</h1>
+        <h1 className="text-4xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground mt-2">
-          Manage staff users and their roles
+          Manage all aspects of your application
         </p>
       </div>
 
@@ -338,6 +338,31 @@ export default function AdminDashboard() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Newsletter</CardTitle>
+              <CardDescription>Manage your newsletter and subscribers</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 rounded-lg border">
+            <div>
+              <h3 className="font-medium">Newsletter Management</h3>
+              <p className="text-sm text-muted-foreground">
+                Compose and send newsletters to your subscribers
+              </p>
+            </div>
+            <Button onClick={() => window.location.href = '/admin/newsletter'}>
+              <Mail className="h-4 w-4 mr-2" />
+              Manage Newsletter
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
